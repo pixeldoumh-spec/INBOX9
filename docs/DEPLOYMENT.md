@@ -1,16 +1,10 @@
-# Deployment Plan — Vercel
+# Deployment & Operations
 
-## Current mode
+INBOX9 is intentionally deployment-agnostic. The repository contains a plain Node-based HTTP runtime and API route modules, so the hosting layer can be selected later.
 
-The repository is Vercel-ready for the **mock/demo** environment:
-- static frontend in `public/`
-- Node API Functions in `api/`
-- local development server in `dev-server.js`
-- `vercel.json` with baseline security headers
+## Local development
 
-Vercel supports Node.js server-side code and recommends keeping secrets in Environment Variables rather than source control. New Vercel deployments should use a currently supported Node version; this project targets Node 22+. Vercel has announced Node 20 deprecation for new deployments beginning October 1, 2026. 
-
-## Local verification
+Requirements: Node.js 22+.
 
 ```bash
 npm run check
@@ -18,70 +12,76 @@ npm test
 npm start
 ```
 
-Then verify:
+The local server listens on port 4173 by default.
+
+Basic checks:
 
 ```bash
 curl http://localhost:4173/api/health
 curl http://localhost:4173/api/services
-curl -X POST http://localhost:4173/api/activations \
-  -H 'content-type: application/json' \
-  -d '{"serviceId":"whatsapp-0"}'
 ```
 
-## Vercel deployment
+## Hosting requirements
 
-The project can be imported from GitHub and deployed from the repository root. Add server-only environment variables in Vercel Project Settings → Environment Variables; do not commit `.env` files or provider secrets.
+Any hosting environment used later should provide:
 
-Required for production infrastructure:
+- Node.js 22 or newer.
+- A process/runtime that can execute `dev-server.js` or an equivalent Node entrypoint.
+- Persistent PostgreSQL for production account, wallet, activation and inventory state.
+- Shared Redis-compatible rate limiting when production rate limiting is enabled.
+- HTTPS and a stable canonical application origin.
+- Secure environment-variable storage for secrets.
+- A scheduler, task runner, or external cron service for periodic reconciliation.
+
+The exact reverse proxy, process manager, container, platform, domain and scheduler can be selected independently of the application code.
+
+## Environment
+
+Start from `.env.example`. Do not commit real credentials.
+
+Required production infrastructure:
 
 ```text
 DATABASE_URL=
 DATABASE_SSL=true
 UPSTASH_REDIS_REST_URL=
 UPSTASH_REDIS_REST_TOKEN=
-APP_ORIGIN=https://<your-domain>
+APP_ORIGIN=https://your-domain.example
 CRON_SECRET=<long-random-secret>
 INBOX9_UPI_ID=<your-UPI-ID>
 ```
 
-Provider credentials are added only when an authorized provider adapter is enabled. `SESSION_SECRET` is reserved and is not currently part of request authentication.
-
+Provider credentials are added only when an authorized provider adapter is enabled.
 
 ## Reconciliation scheduling
 
-The default `vercel.json` intentionally does not register an every-minute Cron Job. Vercel's current plan limits allow once-per-minute Cron Jobs on Pro and Enterprise, while Hobby is limited to once per day; an every-minute schedule would fail deployment on Hobby. citehttps://vercel.com/docs/cron-jobs/usage-and-pricing
-
-The reconciliation API endpoint supports Vercel's `Authorization: Bearer <CRON_SECRET>` convention. citehttps://vercel.com/docs/cron-jobs/manage-cron-jobs#securing-cron-jobs
-
-For Hobby or plan-independent deployment, the repository includes `.github/workflows/reconcile.yml`, which invokes the endpoint every five minutes. Set these repository secrets:
+The reconciliation endpoint is:
 
 ```text
-INBOX9_RECONCILE_URL=https://<your-domain>/api/internal-provider-reconcile
-INBOX9_CRON_SECRET=<same value as Vercel CRON_SECRET>
+/api/internal-provider-reconcile
 ```
 
-For Pro/Enterprise, you may instead add the endpoint as a Vercel Cron schedule such as `* * * * *` after deployment. Vercel notes that cron delivery is best effort and does not retry failed invocations, so the reconciliation code is intentionally idempotent and retryable. citehttps://vercel.com/docs/cron-jobs/manage-cron-jobs#cron-job-delivery-and-idempotency
+It accepts the configured scheduled-job secret using:
 
-## Do not enable real transactions yet
+```text
+Authorization: Bearer <CRON_SECRET>
+```
 
-The current activation state and demo wallet are intentionally not a production datastore. Vercel Functions may run in separate invocations/instances, so production activation state must move to a durable database before real traffic is enabled.
+The repository also includes `.github/workflows/reconcile.yml` as one optional scheduler implementation. A different scheduler can call the same endpoint; the application does not depend on GitHub Actions.
 
-## Sprint 7 staging gate
+## Production readiness
 
-Before a production Vercel deployment:
+Before enabling real traffic:
 
-1. Create a managed PostgreSQL database and set `DATABASE_URL` and `DATABASE_SSL=true`.
-2. Set `APP_ORIGIN` to the exact HTTPS deployment origin.
-3. Provision Upstash Redis and set `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`.
-4. Set `CRON_SECRET` to a long random secret; Vercel sends it as `Authorization: Bearer <CRON_SECRET>`.
-5. Set `INBOX9_MAX_SESSIONS` (default 5; allowed 1–20).
-6. Run `npm run db:migrate` against the staging database.
-7. Run `npm run db:verify` and require `ok: true`.
-8. Deploy the Vercel staging project.
-9. Run `STAGING_URL=https://<staging-domain> npm run staging:smoke`.
-10. Run `npm run issue9:e2e` locally for regression coverage.
-11. Verify reconciliation scheduling: for Hobby use the included GitHub Actions workflow; for Pro/Enterprise a Vercel Cron can invoke the endpoint with `Authorization: Bearer <CRON_SECRET>`.
-12. Check `/api/health` and require `ready: true`; production health requires the database, shared rate limiter, canonical origin, and `CRON_SECRET`.
-13. Only then promote to production.
+1. Provision PostgreSQL and run `npm run db:migrate`.
+2. Run `npm run db:verify` and require `ok: true`.
+3. Configure the shared rate limiter.
+4. Configure `APP_ORIGIN` for the final HTTPS origin.
+5. Configure a strong `CRON_SECRET`.
+6. Configure the real recharge destination.
+7. Run `npm run check` and `npm test`.
+8. Run `npm run issue9:e2e` and `npm run synthetic:smoke`.
+9. Configure a scheduler to invoke reconciliation.
+10. Verify `/api/health` reports the required production dependencies as ready.
 
-Production state-changing endpoints fail closed if the shared rate-limit service is missing. No production credential belongs in Git.
+Production state-changing endpoints fail closed when required shared services are missing. No production credential belongs in Git.
