@@ -9,6 +9,7 @@ India-only OTP marketplace powered by an internal synthetic number and OTP engin
 - LocalStorage-backed demo session state.
 - Vercel-compatible /api functions.
 - Single internal synthetic fulfillment engine for numbers and OTP lifecycle.
+- Synthetic inventory is presented as 11 server chunks per service (5,000 slots total: ten 455-slot chunks plus one 450-slot chunk). Selecting a server constrains synthetic slot allocation to that chunk.
 - Security headers, integer paise pricing, payload limits and accessibility improvements.
 - 25-track engineering review documented in docs/25-AGENT-REVIEW.md.
 
@@ -81,7 +82,7 @@ For a local development preview only, set `INBOX9_LOCAL_ADMIN_EMAIL` to the exac
 
 ## Current release
 
-`v0.8.13` — synthetic-only fulfillment engine and external-provider removal.
+`v0.8.13` — synthetic-only fulfillment engine and external-provider removal, with server-chunked synthetic inventory.
 
 ## Synthetic fulfillment
 
