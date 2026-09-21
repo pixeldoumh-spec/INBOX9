@@ -1,11 +1,15 @@
 import fs from 'node:fs/promises';
 import { generateSyntheticIdentity, generateSyntheticInventory, generateSyntheticOtp, normalizeCapacity } from '../api/_lib/synthetic-otp.js';
+import { listSyntheticServers, SYNTHETIC_SERVER_COUNT } from '../api/_lib/synthetic-servers.js';
 
 const services = JSON.parse(await fs.readFile(new URL('../data/services.json', import.meta.url), 'utf8'));
 const capacity = normalizeCapacity(process.env.SYNTHETIC_CAPACITY || 5000);
 const serviceNames = services.map((row) => row[0]);
+const servers = listSyntheticServers(capacity);
 
 if (serviceNames.length !== 76) throw new Error(`Expected 76 services, found ${serviceNames.length}`);
+if (servers.length !== SYNTHETIC_SERVER_COUNT) throw new Error(`Expected ${SYNTHETIC_SERVER_COUNT} synthetic servers, found ${servers.length}`);
+if (servers.reduce((sum, server) => sum + server.capacity, 0) !== capacity) throw new Error('Synthetic server chunk capacity mismatch');
 
 let identities = 0;
 let otpMismatches = 0;
@@ -29,6 +33,8 @@ console.log(JSON.stringify({
   services: serviceNames.length,
   capacityPerService: capacity,
   syntheticIdentities: identities,
+  serverChunksPerService: servers.length,
+  serverChunkCapacityTotal: servers.reduce((sum, server) => sum + server.capacity, 0),
   otpMismatches,
   reproducibility: generateSyntheticIdentity(serviceNames[0], 1, capacity) === generateSyntheticIdentity(serviceNames[0], 1, capacity),
 }));
