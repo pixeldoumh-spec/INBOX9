@@ -1,8 +1,7 @@
 # Synthetic Inventory & OTP Engine
 
 This module is an internal QA/load-testing generator. It creates deterministic,
-non-routable synthetic identities and six-digit OTPs for the 76 INBOX9 catalog
-services.
+non-routable synthetic identities and six-digit OTPs for the 832 INBOX9 catalog services.
 
 It deliberately does **not** create real telephone numbers, send SMS, reserve
 telecom inventory, or call third-party verification endpoints.
@@ -10,7 +9,7 @@ telecom inventory, or call third-party verification endpoints.
 ## Capacity
 
 The generator supports up to 5,000 synthetic identities per catalog service,
-for 380,000 synthetic identities across the current 76 services.
+for 4,160,000 synthetic identities across the current 832 services.
 
 Inventory is generated on demand rather than stored as 380,000 database rows.
 This keeps the test environment lightweight while allowing deterministic load

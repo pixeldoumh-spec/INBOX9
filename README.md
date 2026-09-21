@@ -4,12 +4,12 @@ India-only OTP marketplace powered by an internal synthetic number and OTP engin
 
 ## Current release
 
-- 76 supplied India service catalog entries.
+- 832 supplied India service catalog entries.
 - Responsive marketplace, active-number, orders, wallet and API screens.
 - LocalStorage-backed demo session state.
 - Vercel-compatible /api functions.
 - Single internal synthetic fulfillment engine for numbers and OTP lifecycle.
-- Synthetic inventory is presented as 11 server chunks per service (5,000 slots total: ten 455-slot chunks plus one 450-slot chunk). Selecting a server constrains synthetic slot allocation to that chunk.
+- Synthetic inventory is presented as 11 server chunks per service, partitioning 5,000 slots into six 455-slot chunks and five 454-slot chunks. Selecting a server constrains synthetic slot allocation to that chunk.
 - Security headers, integer paise pricing, payload limits and accessibility improvements.
 - 25-track engineering review documented in docs/25-AGENT-REVIEW.md.
 
@@ -86,11 +86,11 @@ For a local development preview only, set `INBOX9_LOCAL_ADMIN_EMAIL` to the exac
 
 ## Synthetic fulfillment
 
-All 76 catalog services use the internal synthetic engine. It creates up to 5,000 synthetic slots per service and deterministic six-digit OTPs. These are generated locally for the INBOX9 lifecycle and do not originate from real telecom numbers or external SMS providers.
+All 832 catalog services use the internal synthetic engine. It creates up to 5,000 synthetic slots per service and deterministic six-digit OTPs. These are generated locally for the INBOX9 lifecycle and do not originate from real telecom numbers or external SMS providers.
 
 ## Certification
 
 - `npm run check` — syntax validation
 - `npm test` — automated test suite
 - `npm run issue9:e2e` — local end-to-end and concurrency certification
-- `npm run synthetic:smoke` — 76-service / 5,000-slot synthetic inventory verification
+- `npm run synthetic:smoke` — 832-service / 5,000-slot synthetic inventory verification

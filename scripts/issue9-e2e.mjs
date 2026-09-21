@@ -49,7 +49,7 @@ try {
   assert.equal(catalog.status, 200);
   assert.equal(catalog.json.country, 'IN');
   assert.equal(catalog.json.currency, 'INR');
-  assert.equal(catalog.json.services.length, 76);
+  assert.equal(catalog.json.services.length, 832);
 
   // Unknown account must sign up first.
   const unknown = await request('/api/auth/login', { method:'POST', body:{ email:userEmail, password } });

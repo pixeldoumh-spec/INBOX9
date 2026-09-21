@@ -10,7 +10,7 @@ The sole registered implementation is synthetic, backed by api/_lib/synthetic-ot
 
 ## Capacity
 
-The engine supports up to 5,000 synthetic slots per catalog service (380,000 across the current 76-service catalog) and generates activations on demand.
+The engine supports up to 5,000 synthetic slots per catalog service (4,160,000 across the current 832-service catalog) and generates activations on demand.
 
 ## Deterministic OTPs
 
