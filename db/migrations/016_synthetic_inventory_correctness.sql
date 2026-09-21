@@ -45,7 +45,7 @@ SELECT
     WHEN (a.provider_metadata->>'slot')::integer BETWEEN 3639 AND 4092 THEN 'server-9'
     WHEN (a.provider_metadata->>'slot')::integer BETWEEN 4093 AND 4546 THEN 'server-10'
     WHEN (a.provider_metadata->>'slot')::integer BETWEEN 4547 AND 5000 THEN 'server-11'
-  END
+  END,
   a.id,
   'Reserved',
   a.created_at
