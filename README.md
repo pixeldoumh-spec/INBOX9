@@ -8,8 +8,9 @@ India-only OTP marketplace powered by an internal synthetic number and OTP engin
 - Responsive marketplace, active-number, orders, wallet and API screens.
 - LocalStorage-backed demo session state.
 - Vercel-compatible /api functions.
-- Single internal synthetic fulfillment engine for numbers and OTP lifecycle.
+- Single internal synthetic fulfillment engine for numbers and OTP lifecycle, with durable per-service slot reservations and 11-server partitioning.
 - Synthetic inventory is presented as 11 server chunks per service, partitioning 5,000 slots into six 455-slot chunks and five 454-slot chunks. Selecting a server constrains synthetic slot allocation to that chunk.
+- Active synthetic slots are reserved transactionally in PostgreSQL; duplicate slot claims are rejected and retried, and terminal activation states release the reservation.
 - Security headers, integer paise pricing, payload limits and accessibility improvements.
 - 25-track engineering review documented in docs/25-AGENT-REVIEW.md.
 
