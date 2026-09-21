@@ -1,0 +1,17 @@
+import { dbEnabled } from '../_lib/db.js';
+import { getSessionUser, requireAdmin } from '../_lib/auth.js';
+import { listProviders, providerHealth } from '../_lib/provider-repository.js';
+import { listProviderAdapters } from '../_lib/provider-registry.js';
+
+export default async function handler(req, res) {
+  if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
+  if (!dbEnabled()) return res.status(503).json({ error: 'Provider registry requires PostgreSQL' });
+  const user = await getSessionUser(req);
+  try { requireAdmin(user); } catch (e) { return res.status(e.statusCode || 401).json({ error: e.message }); }
+  try {
+    return res.status(200).json({ providers: await listProviders(), health: await providerHealth(), installedAdapters: listProviderAdapters() });
+  } catch (error) {
+    console.error('admin.providers_failed', error);
+    return res.status(503).json({ error: 'Provider registry unavailable' });
+  }
+}

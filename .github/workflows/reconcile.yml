@@ -1,0 +1,25 @@
+name: INBOX9 Reconciliation
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            scripts/reconcile-cron.mjs
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node scripts/reconcile-cron.mjs
+        env:
+          RECONCILE_URL: ${{ secrets.INBOX9_RECONCILE_URL }}
+          CRON_SECRET: ${{ secrets.INBOX9_CRON_SECRET }}
