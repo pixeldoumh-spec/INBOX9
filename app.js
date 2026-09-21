@@ -29,7 +29,14 @@ const state = {
   serviceSearchIndex: [],
   marketSearchTimer: null,
   marketServerStats: {},
-  marketServerLoading: {}
+  marketServerLoading: {},
+  purchaseFlow: {
+    step: 'service',
+    serviceId: null,
+    serverId: null,
+    submitting: false,
+    error: ''
+  }
 };
 
 const nav = [
@@ -271,13 +278,75 @@ async function boot() {
   setInterval(tick, 1000);
 }
 
+function resetPurchaseFlow() {
+  state.purchaseFlow = { step: 'service', serviceId: null, serverId: null, submitting: false, error: '' };
+}
+
+function purchaseFlowData() {
+  const service = state.services.find((item) => item.id === state.purchaseFlow.serviceId);
+  const stats = state.marketServerStats[state.purchaseFlow.serviceId] || SYNTHETIC_SERVERS;
+  const server = stats.find((item) => item.id === state.purchaseFlow.serverId) || null;
+  const pricePaise = Number(service?.pricePaise || 0);
+  return { service, server, pricePaise, afterBalancePaise: Math.max(0, state.balancePaise - pricePaise) };
+}
+
+function openPurchaseReview(serviceId, serverId) {
+  const service = state.services.find((item) => item.id === serviceId);
+  const stats = state.marketServerStats[serviceId] || SYNTHETIC_SERVERS;
+  const server = stats.find((item) => item.id === serverId);
+  if (!service || !server) return;
+  if (service.stock <= 0 || Number(server.availableCount ?? server.capacity) <= 0) return toast('That service is currently unavailable');
+  state.purchaseFlow = { step: 'review', serviceId, serverId, submitting: false, error: '' };
+  renderBuyCatalog();
+}
+
+function closePurchaseReview() {
+  if (state.purchaseFlow.submitting) return;
+  resetPurchaseFlow();
+  renderBuyCatalog();
+}
+
+function purchaseReviewModal() {
+  const flow = state.purchaseFlow;
+  if (!['review', 'activation'].includes(flow.step)) return '';
+  const data = purchaseFlowData();
+  if (!data.service || !data.server) return '';
+  const insufficient = state.balancePaise < data.pricePaise;
+  const activating = flow.step === 'activation' || flow.submitting;
+  const available = Number(data.server.availableCount ?? data.server.capacity);
+  const error = flow.error ? `<div class="purchase-error">${esc(flow.error)}</div>` : '';
+  if (activating) return `<div class="purchase-overlay" role="presentation"><div class="purchase-backdrop"></div><section class="purchase-sheet purchase-sheet-loading" role="dialog" aria-modal="true" aria-labelledby="purchase-title"><div class="purchase-sheet-top"><div><span class="kicker">STEP 3 OF 3</span><h2 id="purchase-title">Getting your number</h2></div></div><div class="purchase-steps" aria-label="Purchase progress"><span class="purchase-step done"><b>1</b> Service</span><span class="purchase-step done"><b>2</b> Review</span><span class="purchase-step current"><b>3</b> Track</span></div><div class="purchase-activation-state"><div class="purchase-loader" aria-hidden="true"></div><span class="service-category">ACTIVATION</span><h3>Reserving your number…</h3><p>We're securing your activation now. Your live status will appear next.</p></div></section></div>`;
+  return `<div class="purchase-overlay" role="presentation"><button class="purchase-backdrop" type="button" aria-label="Close purchase review" data-purchase-close></button><section class="purchase-sheet" role="dialog" aria-modal="true" aria-labelledby="purchase-title"><div class="purchase-sheet-top"><div><span class="kicker">STEP 2 OF 3</span><h2 id="purchase-title">Review your activation</h2></div><button class="icon-btn" type="button" aria-label="Close" data-purchase-close>×</button></div><div class="purchase-steps" aria-label="Purchase progress"><span class="purchase-step done"><b>1</b> Service</span><span class="purchase-step current"><b>2</b> Review</span><span class="purchase-step"><b>3</b> Track</span></div><div class="purchase-service-card"><div class="service-icon large">${iconFor(data.service.category)}</div><div class="purchase-service-copy"><span class="service-category">${esc(data.service.category)}</span><strong>${esc(data.service.name)}</strong><span>India (+91) · OTP in about 20 seconds</span></div></div><div class="purchase-detail-grid"><div><span>Server</span><strong>${esc(data.server.name)}</strong><small>${available.toLocaleString()} available</small></div><div><span>Price</span><strong>${money(data.pricePaise)}</strong><small>One activation</small></div><div><span>Current balance</span><strong>${money(state.balancePaise)}</strong><small>Wallet balance</small></div><div><span>After purchase</span><strong>${money(data.afterBalancePaise)}</strong><small>Remaining balance</small></div></div><div class="purchase-trust"><span>✓</span><div><strong>Your number appears immediately</strong><small>The verification code will appear automatically about 20 seconds later.</small></div></div>${error}${insufficient ? `<div class="purchase-actions"><button class="secondary-btn" type="button" data-purchase-close>Back</button><button class="primary-btn" type="button" data-purchase-wallet>Add funds</button></div>` : `<div class="purchase-actions"><button class="secondary-btn" type="button" data-purchase-close>Back</button><button class="primary-btn purchase-confirm-btn" type="button" data-purchase-confirm>Confirm &amp; Get Number <span>→</span></button></div>`}</section></div>`;
+}
+
+async function confirmPurchase() {
+  const data = purchaseFlowData();
+  if (!data.service || !data.server) return;
+  if (state.balancePaise < data.pricePaise) {
+    state.purchaseFlow.error = 'You need more wallet balance to complete this activation.';
+    renderBuyCatalog();
+    return;
+  }
+  state.purchaseFlow.step = 'activation';
+  state.purchaseFlow.submitting = true;
+  state.purchaseFlow.error = '';
+  renderBuyCatalog();
+  await buy(data.service.id, data.server.id);
+}
+
 async function buy(serviceId, serverId = null) {
   const purchaseKey = `${serviceId}:${serverId || 'auto'}`;
   if (state.purchaseBusy.has(purchaseKey)) {
     toast('Purchase request is already in progress');
     return;
   }
+  if (state.purchaseFlow.serviceId === serviceId && state.purchaseFlow.serverId === serverId) {
+    state.purchaseFlow.step = 'activation';
+    state.purchaseFlow.submitting = true;
+    state.purchaseFlow.error = '';
+  }
   if (state.balancePaise < (state.services.find((s) => s.id === serviceId)?.pricePaise || 0)) {
+    resetPurchaseFlow();
     state.page = 'wallet';
     render();
     toast('Insufficient wallet balance. Please recharge first.');
@@ -299,31 +368,39 @@ async function buy(serviceId, serverId = null) {
     state.orders.unshift({ id: activation.id, service: activation.service, number: activation.number, pricePaise: activation.pricePaise, status: 'Active', otp: 'Waiting…', created: 'Just now' });
     if (Number.isFinite(activation.walletBalancePaise)) state.balancePaise = activation.walletBalancePaise;
     state.page = 'active';
+    resetPurchaseFlow();
     persist();
     render();
     toast(`${activation.service} • ${activation.serverId ? activation.serverId.replace('server-', 'Server ') : 'Auto'} reserved`);
   } catch (error) {
     state.purchaseBusy.delete(purchaseKey);
     if (error.code === 'IDEMPOTENCY_IN_PROGRESS') {
+      state.purchaseFlow.step = 'activation';
+      state.purchaseFlow.submitting = true;
       persist();
-      toast('Purchase is already being processed. Tap again to safely check it.');
-      render();
+      toast('Your purchase is still processing. Check Active shortly.');
+      renderBuyCatalog();
       return;
     }
     if (error.code === 'NETWORK_ERROR') {
+      state.purchaseFlow.step = 'review';
+      state.purchaseFlow.submitting = false;
+      state.purchaseFlow.error = 'The request may still be processing. You can safely retry.';
       persist();
-      toast('Request may still be processing. Tap Buy again to safely retry.');
-      render();
+      renderBuyCatalog();
       return;
     }
     delete state.pendingPurchaseKeys[purchaseKey];
+    state.purchaseFlow.step = 'review';
+    state.purchaseFlow.submitting = false;
+    state.purchaseFlow.error = error.message || 'We could not complete this activation.';
     persist();
     if (error.code === 'IDEMPOTENCY_KEY_REUSED') {
       toast('Purchase request could not be reused. Please start a new purchase.');
     } else {
       toast(error.message);
     }
-    render();
+    renderBuyCatalog();
   }
 }
 
