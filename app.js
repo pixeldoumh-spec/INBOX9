@@ -27,7 +27,9 @@ const state = {
   marketVisibleCount: 48,
   categoryCounts: {},
   serviceSearchIndex: [],
-  marketSearchTimer: null
+  marketSearchTimer: null,
+  marketServerStats: {},
+  marketServerLoading: {}
 };
 
 const nav = [
@@ -604,34 +606,38 @@ function content() {
 }
 
 function toggleService(serviceId) {
-  state.expandedServiceId = state.expandedServiceId === serviceId ? null : serviceId;
+  const expanding = state.expandedServiceId !== serviceId;
+  state.expandedServiceId = expanding ? serviceId : null;
   renderBuyCatalog();
+  if (expanding && !state.marketServerStats[serviceId] && !state.marketServerLoading[serviceId]) {
+    void loadServerStats(serviceId);
+  }
 }
 
-const SYNTHETIC_SERVERS = (() => {
-  const capacity = 5000;
-  const count = 11;
-  const base = Math.floor(capacity / count);
-  const remainder = capacity % count;
-  let start = 1;
-  return Array.from({ length: count }, (_, i) => {
-    const size = base + (i < remainder ? 1 : 0);
-    const server = { id: `server-${i + 1}`, name: `Server ${i + 1}`, capacity: size, startSlot: start, endSlot: start + size - 1 };
-    start += size;
-    return server;
-  });
-})();
+async function loadServerStats(serviceId) {
+  state.marketServerLoading[serviceId] = true;
+  renderBuyCatalog();
+  try {
+    const payload = await api(`/api/services/${encodeURIComponent(serviceId)}/servers`);
+    state.marketServerStats[serviceId] = Array.isArray(payload.servers) ? payload.servers : [];
+  } catch (error) {
+    toast(error.message || 'Unable to load server inventory');
+  } finally {
+    state.marketServerLoading[serviceId] = false;
+    if (state.expandedServiceId === serviceId) renderBuyCatalog();
+  }
+}
 
 function syntheticServers() { return SYNTHETIC_SERVERS; }
 
-function serverRows(service) {
+function serverRows(service, stats = SYNTHETIC_SERVERS) {
   const disabled = service.pricePaise > state.balancePaise;
-  return SYNTHETIC_SERVERS.map((server) => `
+  return stats.map((server) => `
     <div class="server-row">
       <div class="server-number" aria-hidden="true">${server.name.replace("Server ", "")}</div>
       <div class="server-info">
         <div class="server-name">${server.name}</div>
-        <div class="server-stock">• ${server.capacity} synthetic slots · #${server.startSlot.toLocaleString()}–${server.endSlot.toLocaleString()}</div>
+        <div class="server-stock">• ${Number(server.availableCount ?? server.capacity).toLocaleString()} available of ${server.capacity.toLocaleString()} · #${server.startSlot.toLocaleString()}–${server.endSlot.toLocaleString()}</div>
       </div>
       <strong class="server-price">${money(service.pricePaise)}</strong>
       <button class="buy-btn server-buy" type="button" data-buy-server-service="${esc(service.id)}" data-buy-server="${server.id}" ${disabled ? "disabled aria-disabled=\"true\"" : ""}>${disabled ? "Top up" : "Buy"}</button>
@@ -640,6 +646,11 @@ function serverRows(service) {
 
 function serviceCard(service) {
   const expanded = state.expandedServiceId === service.id;
+  const stats = state.marketServerStats[service.id];
+  const loading = Boolean(state.marketServerLoading[service.id]);
+  const serverContent = loading
+    ? '<div class="server-loading">Checking live synthetic inventory…</div>'
+    : serverRows(service, stats?.length ? stats : SYNTHETIC_SERVERS);
   return `<article class="market-service-group ${expanded ? "expanded" : ""}">
     <button class="service-group-header" type="button" data-toggle-service="${esc(service.id)}" aria-expanded="${expanded}" aria-controls="servers-${esc(service.id)}">
       <span class="service-icon service-brand-icon">${iconFor(service.category)}</span>
@@ -647,8 +658,8 @@ function serviceCard(service) {
       <span class="service-group-chevron" aria-hidden="true">${expanded ? "⌃" : "⌄"}</span>
     </button>
     ${expanded ? `<div class="server-panel" id="servers-${esc(service.id)}">
-      <div class="synthetic-note"><span class="synthetic-note-icon">ϟ</span><div><strong>Synthetic server pools</strong><span>Every generated slot belongs to one server chunk. Selecting a server constrains the generator to that chunk.</span></div></div>
-      <div class="server-list">${serverRows(service)}</div>
+      <div class="synthetic-note"><span class="synthetic-note-icon">ϟ</span><div><strong>Live synthetic server pools</strong><span>Availability is read from the same reservation state used by the activation engine.</span></div></div>
+      <div class="server-list">${serverContent}</div>
     </div>` : ""}
   </article>`;
 }
