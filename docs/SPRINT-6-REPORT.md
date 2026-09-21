@@ -3,7 +3,7 @@
 ## QA, Security Hardening & E2E Foundation
 
 ### Completed
-- Security headers including CSP and HSTS in Vercel configuration.
+- Security headers including CSP and HSTS in deployment platform configuration.
 - Server-side security helper for request IDs, headers, body-size checks, rate limiting and same-origin protection.
 - Login/register/logout rate limits.
 - Recharge and activation mutation rate limits.
