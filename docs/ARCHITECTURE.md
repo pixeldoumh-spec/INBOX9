@@ -3,7 +3,7 @@
 ```text
 Frontend
    ↓ authenticated HTTP
-Vercel API
+deployment platform API
    ├── Auth / sessions
    ├── Wallet / ledger
    ├── Recharge verification
