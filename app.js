@@ -22,7 +22,8 @@ const state = {
   admin: { overview: null, recharges: [], users: [], services: [], activations: [], ledger: [], audit: [], providers: [] },
   pendingPurchaseKeys: {},
   purchaseBusy: new Set(),
-  securityOpen: false
+  securityOpen: false,
+  expandedServiceId: null
 };
 
 const nav = [
@@ -221,8 +222,9 @@ async function boot() {
   setInterval(tick, 1000);
 }
 
-async function buy(serviceId) {
-  if (state.purchaseBusy.has(serviceId)) {
+async function buy(serviceId, serverId = null) {
+  const purchaseKey = `${serviceId}:${serverId || 'auto'}`;
+  if (state.purchaseBusy.has(purchaseKey)) {
     toast('Purchase request is already in progress');
     return;
   }
@@ -232,27 +234,27 @@ async function buy(serviceId) {
     toast('Insufficient wallet balance. Please recharge first.');
     return;
   }
-  const key = state.pendingPurchaseKeys[serviceId] || (crypto.randomUUID ? crypto.randomUUID() : `purchase-${Date.now()}-${Math.random().toString(36).slice(2)}`);
-  state.pendingPurchaseKeys[serviceId] = key;
-  state.purchaseBusy.add(serviceId);
+  const key = state.pendingPurchaseKeys[purchaseKey] || (crypto.randomUUID ? crypto.randomUUID() : `purchase-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+  state.pendingPurchaseKeys[purchaseKey] = key;
+  state.purchaseBusy.add(purchaseKey);
   persist();
   try {
     const activation = await api('/api/activations', {
       method: 'POST',
       headers: { 'content-type': 'application/json', 'Idempotency-Key': key },
-      body: JSON.stringify({ serviceId })
+      body: JSON.stringify({ serviceId, ...(serverId ? { serverId } : {}) })
     });
-    delete state.pendingPurchaseKeys[serviceId];
-    state.purchaseBusy.delete(serviceId);
+    delete state.pendingPurchaseKeys[purchaseKey];
+    state.purchaseBusy.delete(purchaseKey);
     state.active.unshift(activation);
     state.orders.unshift({ id: activation.id, service: activation.service, number: activation.number, pricePaise: activation.pricePaise, status: 'Active', otp: 'Waiting…', created: 'Just now' });
     if (Number.isFinite(activation.walletBalancePaise)) state.balancePaise = activation.walletBalancePaise;
     state.page = 'active';
     persist();
     render();
-    toast(`${activation.service} number reserved`);
+    toast(`${activation.service} • ${activation.serverId ? activation.serverId.replace('server-', 'Server ') : 'Auto'} reserved`);
   } catch (error) {
-    state.purchaseBusy.delete(serviceId);
+    state.purchaseBusy.delete(purchaseKey);
     if (error.code === 'IDEMPOTENCY_IN_PROGRESS') {
       persist();
       toast('Purchase is already being processed. Tap again to safely check it.');
@@ -265,7 +267,7 @@ async function buy(serviceId) {
       render();
       return;
     }
-    delete state.pendingPurchaseKeys[serviceId];
+    delete state.pendingPurchaseKeys[purchaseKey];
     persist();
     if (error.code === 'IDEMPOTENCY_KEY_REUSED') {
       toast('Purchase request could not be reused. Please start a new purchase.');
@@ -554,17 +556,60 @@ function content() {
   return buyPage();
 }
 
+function toggleService(serviceId) {
+  state.expandedServiceId = state.expandedServiceId === serviceId ? null : serviceId;
+  render();
+}
+
+function syntheticServers() {
+  const capacity = 5000;
+  const count = 11;
+  const base = Math.floor(capacity / count);
+  const remainder = capacity % count;
+  let start = 1;
+  return Array.from({ length: count }, (_, i) => {
+    const size = base + (i < remainder ? 1 : 0);
+    const server = { id: `server-${i + 1}`, name: `Server ${i + 1}`, capacity: size, startSlot: start, endSlot: start + size - 1 };
+    start += size;
+    return server;
+  });
+}
+
+function serverRows(service) {
+  const disabled = service.pricePaise > state.balancePaise;
+  return syntheticServers().map((server) => `
+    <div class="server-row">
+      <div class="server-number" aria-hidden="true">${server.name.replace('Server ', '')}</div>
+      <div class="server-info">
+        <div class="server-name">${server.name}</div>
+        <div class="server-stock">• ${server.capacity} synthetic slots · #${server.startSlot.toLocaleString()}–${server.endSlot.toLocaleString()}</div>
+      </div>
+      <strong class="server-price">${money(service.pricePaise)}</strong>
+      <button class="buy-btn server-buy" type="button" data-buy-server-service="${esc(service.id)}" data-buy-server="${server.id}" ${disabled ? 'disabled aria-disabled="true"' : ''}>${disabled ? 'Top up' : 'Buy'}</button>
+    </div>`).join('');
+}
+
+function serviceCard(service, index) {
+  const expanded = state.expandedServiceId ? state.expandedServiceId === service.id : index === 0;
+  return `<article class="market-service-group ${expanded ? 'expanded' : ''}">
+    <button class="service-group-header" type="button" data-toggle-service="${esc(service.id)}" aria-expanded="${expanded}">
+      <span class="service-icon service-brand-icon">${iconFor(service.category)}</span>
+      <span class="service-group-copy"><span class="service-category">${esc(service.category)}</span><strong>${esc(service.name)}</strong><small>from ${money(service.pricePaise)} · 11 synthetic servers · 5,000 total slots</small></span>
+      <span class="service-group-chevron" aria-hidden="true">${expanded ? '⌃' : '⌄'}</span>
+    </button>
+    ${expanded ? `<div class="server-panel">
+      <div class="synthetic-note"><span class="synthetic-note-icon">ϟ</span><div><strong>Synthetic server pools</strong><span>Every generated slot belongs to one server chunk. Selecting a server constrains the generator to that chunk.</span></div></div>
+      <div class="server-list">${serverRows(service)}</div>
+    </div>` : ''}
+  </article>`;
+}
+
 function buyPage() {
   const query = state.search.toLowerCase().trim();
   const list = state.services.filter((service) => (state.category === 'All' || service.category === state.category) && (!query || service.name.toLowerCase().includes(query)));
-  return `<div class="section-head"><div><span class="kicker">INDIA / +91</span><h2>Choose a service</h2></div><span class="result-note">${list.length} services</span></div>
+  return `<div class="section-head"><div><span class="kicker">INDIA / +91</span><h2>Choose a service</h2></div><span class="result-note">${list.length} services · 11 servers/service</span></div>
     <div class="controls"><div class="toolbar"><label class="search-box" aria-label="Search services"><span>⌕</span><input id="service-search" value="${esc(state.search)}" placeholder="Search WhatsApp, YONO, Rummy…" autocomplete="off"><kbd>/</kbd></label><div class="category-scroll">${categories.map((category) => `<button class="filter-btn ${state.category === category ? 'selected' : ''}" type="button" data-category="${category}">${category}</button>`).join('')}</div></div></div>
     <div class="service-grid">${list.map(serviceCard).join('')}</div>`;
-}
-
-function serviceCard(service) {
-  const disabled = service.pricePaise > state.balancePaise;
-  return `<article class="service-card"><div class="service-top"><div class="service-icon">${iconFor(service.category)}</div><div class="service-meta"><span class="service-category">${esc(service.category)}</span><h3 title="${esc(service.name)}">${esc(service.name)}</h3></div><span class="availability ${service.availability === 'medium' ? 'medium' : ''}">${service.availability === 'high' ? 'High' : 'Medium'}</span></div><div class="service-stats"><div><span>Starting</span><strong>${money(service.pricePaise)}</strong></div><div><span>Active now</span><strong>${service.stock}</strong></div><div><span>Route</span><strong>India</strong></div></div><button class="buy-btn" type="button" data-buy="${esc(service.id)}" ${disabled ? 'disabled aria-disabled="true"' : ''}>${disabled ? 'Top up needed' : 'Get number ↗'}</button></article>`;
 }
 
 function activePage() {
@@ -583,7 +628,7 @@ function activeCard(activation) {
   const seconds = String(remaining % 60).padStart(2, '0');
   const progress = Math.min(100, Math.max(0, (remaining / 180) * 100));
   const completed = activation.status === 'Completed';
-  return `<article class="active-card ${completed ? 'completed' : ''}><div class="active-card-header"><div class="service-icon large">${iconFor(state.services.find((s) => s.id === activation.serviceId)?.category)}</div><div class="service-meta"><span class="service-category">${esc(activation.service)}</span><h3>${esc(activation.number)}</h3></div><span class="activation-status">${completed ? '✓ OTP received' : '↻ Waiting SMS'}</span></div>${completed ? `<div class="otp-panel"><div class="otp-label">VERIFICATION CODE</div><div class="otp-code">${esc(activation.otp)}</div><button class="copy-btn" type="button" data-copy="${esc(activation.otp.replace(/\s/g, ''))}">⧉ Copy OTP</button></div>` : `<div class="otp-panel"><div class="otp-label">TIME REMAINING</div><div class="timer">◷ ${minutes}:${seconds}</div><div class="progress"><span style="width:${progress}%"></span></div><div class="waiting-note">▣ Your verification code will appear here automatically</div></div>`}<div class="active-footer"><span>Order <strong class="mono">${esc(activation.id)}</strong></span><span>${money(activation.pricePaise)}</span>${!completed ? `<button class="text-danger" type="button" data-cancel="${esc(activation.id)}">Cancel & refund</button>` : ''}</div></article>`;
+  return `<article class="active-card ${completed ? 'completed' : ''}><div class="active-card-header"><div class="service-icon large">${iconFor(state.services.find((s) => s.id === activation.serviceId)?.category)}</div><div class="service-meta"><span class="service-category">${esc(activation.service)}</span><h3>${esc(activation.number)}</h3></div><span class="activation-status">${completed ? '✓ OTP received' : '↻ Waiting SMS'}</span></div>${completed ? `<div class="otp-panel"><div class="otp-label">VERIFICATION CODE</div><div class="otp-code">${esc(activation.otp)}</div><button class="copy-btn" type="button" data-copy="${esc(activation.otp.replace(/\s/g, ''))}">⧉ Copy OTP</button></div>` : `<div class="otp-panel"><div class="otp-label">TIME REMAINING</div><div class="timer">◷ ${minutes}:${seconds}</div><div class="progress"><span style="width:${progress}%"></span></div><div class="waiting-note">▣ Your verification code will appear here automatically</div></div>`}<div class="active-footer"><span>Order <strong class="mono">${esc(activation.id)}</strong></span><span>${activation.serverId ? esc(activation.serverId.replace('server-', 'Server ')) : 'Auto server'}</span><span>${money(activation.pricePaise)}</span>${!completed ? `<button class="text-danger" type="button" data-cancel="${esc(activation.id)}">Cancel & refund</button>` : ''}</div></article>`;
 }
 
 function ordersPage() {
@@ -626,7 +671,8 @@ function bindEvents() {
   document.getElementById('change-password-form')?.addEventListener('submit', submitChangePassword);
   document.querySelectorAll('[data-page]').forEach((node) => node.addEventListener('click', () => setPage(node.dataset.page)));
   document.querySelectorAll('[data-category]').forEach((node) => node.addEventListener('click', () => { state.category = node.dataset.category; render(); }));
-  document.querySelectorAll('[data-buy]').forEach((node) => node.addEventListener('click', () => buy(node.dataset.buy)));
+  document.querySelectorAll('[data-buy-server-service]').forEach((node) => node.addEventListener('click', () => buy(node.dataset.buyServerService, node.dataset.buyServer)));
+  document.querySelectorAll('[data-toggle-service]').forEach((node) => node.addEventListener('click', () => toggleService(node.dataset.toggleService)));
   document.querySelectorAll('[data-cancel]').forEach((node) => node.addEventListener('click', () => cancelActivation(node.dataset.cancel)));
   document.querySelectorAll('[data-copy]').forEach((node) => node.addEventListener('click', async () => { try { await navigator.clipboard.writeText(node.dataset.copy); toast('OTP copied'); } catch { toast('Copy unavailable on this browser'); } }));
   document.querySelectorAll('[data-action="open-menu"]').forEach((node) => node.addEventListener('click', openMenu));
