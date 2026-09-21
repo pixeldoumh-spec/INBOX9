@@ -174,13 +174,13 @@ async function apiRoute(req, res, url) {
     }
     if (req.method === 'GET' && url.pathname === '/api/admin/activations') return send(res,200,{activations:[],persistent:false});
     if (req.method === 'GET' && url.pathname === '/api/admin/ledger') return send(res,200,{ledger:[...demoLedger.values()].flat().sort((a,b)=>b.createdAt-a.createdAt),persistent:false});
-    if (req.method === 'GET' && url.pathname === '/api/admin/providers') return send(res,200,{providers:[{id:'provider-mock',name:'INBOX9 Mock Provider',adapterKey:'mock',active:true,priority:100,routedServices:services.length}],health:[{id:'provider-mock',name:'INBOX9 Mock Provider',adapterKey:'mock',healthy:true,message:'Mock provider ready'}],installedAdapters:['mock'],persistent:false});
-    if (req.method === 'GET' && url.pathname === '/api/admin/providers-health') return send(res,200,{health:[{id:'provider-mock',name:'INBOX9 Mock Provider',adapterKey:'mock',healthy:true,message:'Mock provider ready'}],persistent:false});
+    if (req.method === 'GET' && url.pathname === '/api/admin/providers') return send(res,200,{providers:[{id:'provider-mock',name:'INBOX9 Synthetic Engine',adapterKey:'synthetic',active:true,priority:10,routedServices:services.length}],health:[{id:'provider-mock',name:'INBOX9 Synthetic Engine',adapterKey:'synthetic',healthy:true,message:'Synthetic engine ready'}],installedAdapters:['synthetic'],persistent:false});
+    if (req.method === 'GET' && url.pathname === '/api/admin/providers-health') return send(res,200,{health:[{id:'provider-mock',name:'INBOX9 Synthetic Engine',adapterKey:'synthetic',healthy:true,message:'Synthetic engine ready'}],persistent:false});
     if (req.method === 'GET' && url.pathname === '/api/admin/audit') return send(res,200,{logs:[],persistent:false});
     return send(res,404,{error:'Admin route not found'});
   }
 
-  if (req.method === 'GET' && url.pathname === '/api/health') return send(res, 200, { ok: true, mode: 'mock-local', timestamp: new Date().toISOString() });
+  if (req.method === 'GET' && url.pathname === '/api/health') return send(res, 200, { ok: true, mode: 'synthetic-local', timestamp: new Date().toISOString() });
   if (req.method === 'GET' && url.pathname === '/api/services') return send(res, 200, { country: 'IN', currency: 'INR', services });
   if (url.pathname === '/api/activations' && req.method === 'GET') {
     if (!getMockSession(req)) return send(res, 401, { error: 'Authentication required' });
@@ -192,6 +192,7 @@ async function apiRoute(req, res, url) {
       const body = await readBody(req);
       const service = getService(body.serviceId);
       if (!service) return send(res, 400, { error: 'Unknown service' });
+      const serverId = body.serverId ? String(body.serverId).trim().toLowerCase() : null;
       const idemKey = String(req.headers['idempotency-key'] || '').trim();
       if (idemKey) {
         const cacheKey = `${demoKey(req)}:${idemKey}`;
@@ -203,7 +204,7 @@ async function apiRoute(req, res, url) {
       }
       const balance = demoBalance(req);
     if (balance < service.pricePaise) return send(res, 402, { error: 'Insufficient wallet balance. Please recharge first.', code: 'INSUFFICIENT_BALANCE' });
-    const activation = reserveMock(service);
+    const activation = reserveMock({ ...service, serverId });
     setDemoBalance(req, balance - service.pricePaise);
     const email = demoKey(req); const ledger = demoLedger.get(email) || []; ledger.unshift({ id:`LED-DEMO-${Date.now()}`, email, type:'debit', amountPaise:service.pricePaise, referenceType:'activation', referenceId:activation.id, description:`Activation • ${service.name}`, createdAt:Date.now() }); demoLedger.set(email, ledger);
     const response = { ...activation, walletBalancePaise: balance - service.pricePaise };
