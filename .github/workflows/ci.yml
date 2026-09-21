@@ -22,7 +22,7 @@ jobs:
       - name: Secret pattern scan
         shell: bash
         run: |
-          if grep -RInE "(sk_live|AKIA[0-9A-Z]{16}|-----BEGIN (RSA|EC|OPENSSH) PRIVATE KEY-----)" --exclude-dir=.git .; then
+          if grep -RInE "(sk_live|AKIA[0-9A-Z]{16}|-----BEGIN (RSA|EC|OPENSSH) PRIVATE KEY-----)" --exclude-dir=.git --exclude=ci.yml .; then
             echo "Potential secret material found in repository" >&2
             exit 1
           fi
