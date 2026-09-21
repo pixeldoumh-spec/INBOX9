@@ -6,7 +6,7 @@ import { normalizeProviderActivation } from '../api/_lib/provider.js';
 test('synthetic engine reserves a normalized India activation', async () => {
   const activation = await syntheticProvider.reserveNumber({ id: 'whatsapp-0', name: 'WhatsApp', pricePaise: 950 });
   assert.match(activation.providerActivationId, /^SYN-/);
-  assert.match(activation.number, /^\\+91 00000 \\d{5}$/);
+  assert.match(activation.number, /^\+91 00000 \d{5}$/);
   assert.equal(activation.status, 'Active');
   assert.ok(activation.expiresAt > activation.createdAt);
   assert.ok(activation.mockOtpAt > activation.createdAt);
@@ -25,5 +25,5 @@ test('synthetic engine returns a deterministic OTP after availability time', asy
   const simulated = { ...created, mockOtpAt: Date.now() - 1 };
   const completed = await syntheticProvider.getActivation({ activation: simulated });
   assert.equal(completed.status, 'Completed');
-  assert.match(completed.otp, /^\\d{6}$/);
+  assert.match(completed.otp, /^\d{6}$/);
 });
