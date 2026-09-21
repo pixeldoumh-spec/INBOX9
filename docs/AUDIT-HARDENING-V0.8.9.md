@@ -2,11 +2,11 @@
 
 ## Completed
 
-1. **Vercel Cron authentication and plan-safe scheduling**
-   - `/api/internal-provider-reconcile` accepts the Vercel `Authorization: Bearer <CRON_SECRET>` form.
+1. **scheduled job authentication and plan-safe scheduling**
+   - `/api/internal-provider-reconcile` accepts the deployment platform `Authorization: Bearer <CRON_SECRET>` form.
    - `INTERNAL_CRON_SECRET` remains a manual/local compatibility fallback.
    - Constant-time comparison is used after length validation.
-   - The default Vercel config no longer registers an every-minute cron that would fail on Hobby. A portable GitHub Actions reconciler runs every five minutes; Pro/Enterprise can use a Vercel Cron instead.
+   - The default deployment platform config no longer registers an every-minute cron that would fail on Hobby. A portable GitHub Actions reconciler runs every five minutes; Pro/Enterprise can use a scheduled job instead.
 
 2. **Activation status polling protection**
    - `GET /api/activations/:id` now uses shared rate limiting when Redis is configured.
@@ -23,7 +23,7 @@
    - The old post-transaction duplicate audit write was removed.
 
 5. **Production readiness health**
-   - Production health now requires shared rate limiting, `APP_ORIGIN`, and the Vercel `CRON_SECRET` in addition to reachable PostgreSQL.
+   - Production health now requires shared rate limiting, `APP_ORIGIN`, and the deployment platform `CRON_SECRET` in addition to reachable PostgreSQL.
    - Health reports whether a legacy manual cron fallback is present.
 
 6. **PostgreSQL TLS option**
@@ -47,7 +47,7 @@
 These items are intentionally not marked as passed because they require external infrastructure/credentials:
 
 - Staging PostgreSQL concurrency certification
-- Vercel deployment and real Cron invocation
+- deployment and real Cron invocation
 - Authorized real provider sandbox/integration
 - Automated bank/UPI reconciliation feed
 - Backup/restore drill against the real production database
