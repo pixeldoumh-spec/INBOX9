@@ -2,8 +2,7 @@ import crypto from 'node:crypto';
 
 const DEFAULT_CAPACITY = 5000;
 const OTP_LENGTH = 6;
-const MIN_OTP_DELAY_MS = 3000;
-const MAX_OTP_DELAY_MS = 15000;
+const SYNTHETIC_OTP_DELAY_MS = 20_000;
 
 function assertServiceKey(service) {
   const value = String(service ?? '').trim();
@@ -57,14 +56,8 @@ export function generateSyntheticOtp(service, index, activationNonce = 'default'
   return String(digits).padStart(OTP_LENGTH, '0');
 }
 
-export function syntheticOtpTiming(service, index, activationNonce = 'default') {
-  const key = assertServiceKey(service);
-  const n = assertIndex(index);
-  const nonce = String(activationNonce);
-  const hex = digestHex(`timing:${key}:${n}:${nonce}`);
-  const value = Number.parseInt(hex.slice(0, 8), 16);
-  const span = MAX_OTP_DELAY_MS - MIN_OTP_DELAY_MS + 1;
-  return MIN_OTP_DELAY_MS + (value % span);
+export function syntheticOtpTiming(_service, _index, _activationNonce = 'default') {
+  return SYNTHETIC_OTP_DELAY_MS;
 }
 
 export function generateSyntheticInventory(service, count = DEFAULT_CAPACITY) {

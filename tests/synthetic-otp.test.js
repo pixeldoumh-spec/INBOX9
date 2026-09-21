@@ -34,7 +34,7 @@ test('capacity is bounded at 5000', () => {
   assert.throws(() => generateSyntheticIdentity('X', 0));
 });
 
-test('synthetic OTP timing is bounded', () => {
-  const ms = syntheticOtpTiming('WhatsApp', 1);
-  assert.ok(ms >= 3000 && ms <= 15000);
+test('synthetic OTP timing is exactly 20 seconds', () => {
+  assert.equal(syntheticOtpTiming('WhatsApp', 1), 20_000);
+  assert.equal(syntheticOtpTiming('WhatsApp', 1, 'different-activation'), 20_000);
 });

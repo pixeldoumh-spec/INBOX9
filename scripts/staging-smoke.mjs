@@ -22,7 +22,7 @@ if (health.status !== 200) throw new Error(`health failed: HTTP ${health.status}
 const services = await request('/api/services');
 if (services.status !== 200) throw new Error(`services failed: HTTP ${services.status}`);
 const parsed = JSON.parse(services.body);
-if (parsed.country !== 'IN' || parsed.currency !== 'INR' || !Array.isArray(parsed.services) || parsed.services.length !== 76) {
+if (parsed.country !== 'IN' || parsed.currency !== 'INR' || !Array.isArray(parsed.services) || parsed.services.length !== 832) {
   throw new Error('service catalog integrity check failed');
 }
 console.log(JSON.stringify({ ok: true, base, serviceCount: parsed.services.length, health: JSON.parse(health.body) }, null, 2));

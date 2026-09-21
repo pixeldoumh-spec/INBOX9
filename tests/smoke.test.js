@@ -4,9 +4,10 @@ import { services, getService } from '../api/_lib/catalog.js';
 import { reserveMock, getMock, cancelMock, resetMocks } from '../api/_lib/mock.js';
 
 test('catalog contains the supplied India service set', () => {
-  assert.equal(services.length, 76);
+  assert.equal(services.length, 832);
   assert.ok(getService('whatsapp-0'));
   assert.ok(getService('moneyrummy-75'));
+  assert.ok(getService('zomatodelhiverypartner-831'));
   assert.equal(services.every((s) => s.country === 'IN' && s.currency === 'INR'), true);
 });
 

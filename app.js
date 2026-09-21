@@ -32,7 +32,7 @@ const nav = [
   ['orders', 'Orders', '▤'],
   ['wallet', 'Wallet', '▱']
 ];
-const categories = ['All', 'Social', 'Productivity', 'Rummy', 'Games'];
+const categories = ['All', 'Social', 'Productivity', 'Rummy', 'Games', 'Other'];
 
 function appNav() {
   return state.user?.role === 'admin'
@@ -543,7 +543,7 @@ function render() {
 }
 
 function hero() {
-  return `<section class="hero-strip"><div><span class="eyebrow">✦ FAST ACTIVATIONS</span><h1>India-only numbers, built for speed.</h1><p>Choose a service, reserve a number, and receive the verification message in one place.</p></div><div class="hero-metric"><span>Current availability</span><strong>98.4%</strong><small>↗ live catalog</small></div></section>`;
+  return `<section class="hero-strip"><div><span class="eyebrow">✦ FAST ACTIVATIONS</span><h1>India-only numbers, built for speed.</h1><p>Choose a service, reserve a number, and receive the verification message in one place.</p></div><div class="hero-metric"><span>Synthetic inventory</span><strong>${state.services.length.toLocaleString()}</strong><small>services · 5,000 slots/service · OTP in 20 sec</small></div></section>`;
 }
 
 function content() {
