@@ -14,8 +14,11 @@ export function validateIdempotencyKey(value) {
   return key;
 }
 
-export function hashActivationRequest({ serviceId }) {
-  const canonical = JSON.stringify({ serviceId: String(serviceId || '') });
+export function hashActivationRequest({ serviceId, serverId = null }) {
+  const canonical = JSON.stringify({
+    serviceId: String(serviceId || ''),
+    serverId: serverId ? String(serverId) : null,
+  });
   return crypto.createHash('sha256').update(canonical).digest('hex');
 }
 
