@@ -93,3 +93,6 @@
   .server-list{grid-template-columns:1fr}
   .service-group-header{min-height:70px}
 }
+
+.server-loading{min-height:120px;display:grid;place-items:center;color:#75839a;font-size:11px;border:1px dashed #263244;border-radius:10px}
+.server-stock{font-variant-numeric:tabular-nums}
