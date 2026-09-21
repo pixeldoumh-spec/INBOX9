@@ -1,5 +1,6 @@
 import { applySecurityHeaders, requestId, rateLimitAsync, enforceSameOrigin, validateBodySize } from '../_lib/security.js';
 import { getService } from '../_lib/catalog.js';
+import { getSyntheticServer } from '../_lib/synthetic-servers.js';
 import { getPersistedService } from '../_lib/service-repository.js';
 import { dbEnabled } from '../_lib/db.js';
 import { getSessionUser, getMockSession, requireUser } from '../_lib/auth.js';
@@ -28,6 +29,10 @@ export default async function handler(req, res) {
   try { validateBodySize(req); } catch (e) { return res.status(413).json({ error: e.message }); }
   const serviceId = req.body?.serviceId;
   if (!serviceId) return res.status(400).json({ error: 'Service id is required' });
+  const serverId = req.body?.serverId ? String(req.body.serverId).trim().toLowerCase() : null;
+  if (serverId && !getSyntheticServer(serverId)) {
+    return res.status(400).json({ error: 'Unknown synthetic server', code: 'UNKNOWN_SYNTHETIC_SERVER' });
+  }
   let idempotencyKey = null;
   if (dbEnabled()) {
     try { idempotencyKey = validateIdempotencyKey(req.headers?.['idempotency-key']); }
@@ -36,12 +41,12 @@ export default async function handler(req, res) {
   if (!dbEnabled()) {
     const service = getService(serviceId);
     if (!service) return res.status(400).json({ error: 'Unknown service' });
-    return res.status(201).json({ ...reserveMock(service), userId: user.id });
+    return res.status(201).json({ ...reserveMock({ ...service, serverId }), userId: user.id });
   }
   const persistedService = await getPersistedService(serviceId);
   if (!persistedService || persistedService.active === false) return res.status(409).json({ error: 'Service is unavailable' });
   if (dbEnabled()) {
-    const requestHash = hashActivationRequest({ serviceId });
+    const requestHash = hashActivationRequest({ serviceId, serverId });
     try {
       const claim = await claimActivationKey(user.id, idempotencyKey, requestHash);
       if (claim.state === 'completed') {
@@ -53,7 +58,7 @@ export default async function handler(req, res) {
         return res.status(409).json({ error: 'An activation request with this Idempotency-Key is already in progress', code: 'IDEMPOTENCY_IN_PROGRESS' });
       }
       try {
-        const result = await createActivation(persistedService, user.id, { idempotencyKey, requestHash });
+        const result = await createActivation(persistedService, user.id, { idempotencyKey, requestHash }, { serverId });
         return res.status(201).json({ ...result.activation, walletBalancePaise: result.balancePaise });
       } catch (error) {
         if (error.code && ['INSUFFICIENT_BALANCE','OUT_OF_STOCK','SERVICE_UNAVAILABLE','NO_PROVIDER'].includes(error.code)) {

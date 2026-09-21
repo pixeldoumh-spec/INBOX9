@@ -23,6 +23,7 @@ function mapActivation(row) {
     expiresAt: new Date(row.expires_at).getTime(),
     ...(row.refund_paise == null ? {} : { refundPaise: row.refund_paise }),
     ...(row.provider_id ? { providerId: row.provider_id } : {}),
+    ...(row.provider_metadata?.serverId ? { serverId: row.provider_metadata.serverId } : {}),
   };
 }
 
@@ -31,7 +32,7 @@ function makeId() {
 }
 
 
-export async function createActivation(service, userId, idempotency = null) {
+export async function createActivation(service, userId, idempotency = null, options = {}) {
   // Provider reservation happens outside the DB transaction so network calls do not
   // hold database locks. The transaction re-reads the service row and uses that
   // authoritative snapshot for price, currency, availability, country, and stock.
@@ -65,6 +66,7 @@ export async function createActivation(service, userId, idempotency = null) {
       pricePaise: Number(latestService.rows[0].price_paise),
       stock: Number(latestService.rows[0].stock),
       active: Boolean(latestService.rows[0].active),
+      serverId: options.serverId || null,
     });
 
     try {

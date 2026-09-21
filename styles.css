@@ -24,3 +24,41 @@
 @media(max-width:600px){.admin-kpi-grid{grid-template-columns:1fr}.admin-service-form{grid-template-columns:1fr 1fr}.admin-service-form .buy-btn{grid-column:1/-1}.admin-actions{flex-direction:column;align-items:flex-start}.admin-tabs .filter-btn{padding:8px 9px}}
 
 .security-overlay{position:fixed;inset:0;background:rgba(3,6,10,.72);backdrop-filter:blur(7px);display:grid;place-items:center;padding:18px;z-index:60}.security-modal{width:min(620px,100%);overflow:hidden;border:1px solid #283242;border-radius:18px;background:#0c121a;box-shadow:0 30px 90px rgba(0,0,0,.48)}.security-body{padding:18px}.security-form{display:grid;gap:13px}.security-form label{display:grid;gap:7px;color:#cbd3df;font-size:11px;font-weight:700}.security-form input{width:100%;box-sizing:border-box;height:40px;padding:0 12px;border:1px solid #293242;border-radius:10px;background:#090d14;color:#f4f7fb;outline:none}.security-form input:focus{border-color:#6d7cff;box-shadow:0 0 0 3px rgba(109,124,255,.12)}.security-form .primary-btn{margin-top:4px;justify-content:center}.security-divider{height:1px;background:#1b2531;margin:18px 0}.security-danger{display:flex;align-items:center;justify-content:space-between;gap:14px}.security-danger strong{font-size:11px}.security-danger p{margin:5px 0 0;color:#6f7c90;font-size:10px;line-height:1.5}.security-danger .buy-btn{flex:none}.user-card .icon-btn{flex:none}
+
+
+/* Synthetic server-chunk marketplace */
+.service-grid{display:grid;grid-template-columns:1fr;gap:12px}
+.market-service-group{background:linear-gradient(180deg,#0d141d,#0a1017);border:1px solid #202c3b;border-radius:16px;overflow:hidden;transition:.18s}
+.market-service-group:hover{border-color:#2c3d55}
+.market-service-group.expanded{border-color:#34568b;box-shadow:0 14px 40px rgba(0,0,0,.2)}
+.service-group-header{width:100%;border:0;background:transparent;color:inherit;display:flex;align-items:center;gap:12px;padding:15px;text-align:left}
+.service-group-header:hover{background:#0f1722}
+.service-brand-icon{height:42px;width:42px;border-radius:12px;background:#111a28;border-color:#273754;color:#cfe0ff}
+.service-group-copy{min-width:0;flex:1;display:flex;flex-direction:column;gap:3px}
+.service-group-copy .service-category{font-size:8px}
+.service-group-copy>strong{font:600 15px 'Space Grotesk';color:#edf3fa}
+.service-group-copy small{color:#69778b;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.service-group-chevron{height:30px;width:30px;border:1px solid #263345;border-radius:8px;background:#0d151f;color:#7f9dcc;display:grid;place-items:center;font-size:14px;flex:none}
+.server-panel{border-top:1px solid #1c2837;padding:12px;background:#091018}
+.synthetic-note{display:flex;align-items:center;gap:10px;padding:11px 12px;border:1px dashed #273954;border-radius:12px;background:#0b121b;margin-bottom:10px}
+.synthetic-note-icon{height:30px;width:30px;border-radius:9px;background:#101e35;color:#6ea1ff;display:grid;place-items:center;font-size:14px;flex:none}
+.synthetic-note strong,.synthetic-note span{display:block}
+.synthetic-note strong{font-size:11px;color:#dbe6f5}
+.synthetic-note span{margin-top:3px;color:#6d7a8f;font-size:9px;line-height:1.5}
+.server-list{display:grid;gap:9px}
+.server-row{display:grid;grid-template-columns:52px minmax(0,1fr) auto auto;gap:12px;align-items:center;background:#090f18;border:1px solid #1d2938;border-radius:14px;padding:11px 12px}
+.server-row:hover{border-color:#304766;background:#0b121d}
+.server-number{height:40px;width:40px;border-radius:50%;display:grid;place-items:center;background:#dce5ee;color:#0b1420;font-weight:700;font-size:12px}
+.server-info{min-width:0}
+.server-name{font:600 13px 'Space Grotesk';color:#e4ebf4}
+.server-stock{margin-top:4px;color:#718095;font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.server-price{font:700 14px 'Space Grotesk';color:#dfe7ef;white-space:nowrap}
+.server-buy{min-width:82px;padding:0 13px}
+@media(max-width:620px){
+  .service-group-copy>strong{font-size:14px}
+  .service-group-copy small{white-space:normal;line-height:1.35}
+  .server-row{grid-template-columns:44px minmax(0,1fr) auto;gap:9px;padding:10px}
+  .server-number{height:36px;width:36px;font-size:11px}
+  .server-price{grid-column:2;grid-row:2;font-size:13px}
+  .server-buy{grid-column:3;grid-row:1 / span 2;min-width:72px;height:36px}
+}
