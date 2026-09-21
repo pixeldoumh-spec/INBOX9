@@ -30,8 +30,8 @@ Issue 9 closes the pre-deployment engineering backlog by adding a repeatable loc
 
 ### Important deployment boundary
 
-The certification above is a local/mock integration certification. It does not prove live PostgreSQL concurrency, live Redis rate limiting, real provider behavior, UPI/bank reconciliation, or Vercel runtime behavior. Those require staging credentials and real infrastructure.
+The certification above is a local/mock integration certification. It does not prove live PostgreSQL concurrency, live Redis rate limiting, real provider behavior, UPI/bank reconciliation, or deployment platform runtime behavior. Those require staging credentials and real infrastructure.
 
 ### Release decision
 
-Issue 9 is closed for the codebase. Production deployment remains blocked until the final staging certification is executed against the actual PostgreSQL, shared rate limiter, Vercel environment, and approved provider/payment integrations.
+Issue 9 is closed for the codebase. Production deployment remains blocked until the final staging certification is executed against the actual PostgreSQL, shared rate limiter, deployment platform environment, and approved provider/payment integrations.
