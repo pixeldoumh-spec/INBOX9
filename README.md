@@ -7,7 +7,7 @@ India-only OTP marketplace powered by an internal synthetic number and OTP engin
 - 832 supplied India service catalog entries.
 - Responsive marketplace, active-number, orders, wallet and API screens.
 - LocalStorage-backed demo session state.
-- Vercel-compatible /api functions.
+- Deployment-agnostic Node API runtime.
 - Single internal synthetic fulfillment engine for numbers and OTP lifecycle, with durable per-service slot reservations and 11-server partitioning.
 - Synthetic inventory is presented as 11 server chunks per service, partitioning 5,000 slots into six 455-slot chunks and five 454-slot chunks. Selecting a server constrains synthetic slot allocation to that chunk.
 - Active synthetic slots are reserved transactionally in PostgreSQL; duplicate slot claims are rejected and retried, and terminal activation states release the reservation.
@@ -34,7 +34,7 @@ Browser UI
   └── /api calls
           │
           ▼
-   Vercel Node Functions
+   Node API runtime
           │
           ▼
    Internal Synthetic Engine
@@ -44,13 +44,9 @@ Browser UI
 Production persistence, auth, wallet ledger and rate limits use PostgreSQL/Redis and are not faked in production.
 ```
 
-## Vercel
+The repository contains a plain Node-based HTTP runtime with API route modules. It does not require a specific hosting provider. Deployment-specific infrastructure should be configured at the hosting layer.
 
-Import the repository root into Vercel. The frontend is in `public/`; API routes are in `api/`. See `docs/DEPLOYMENT.md`.
-
-Vercel environment variables must be used for database, cache, session, cron, and application secrets; never commit secrets.
-
-## Sprint 3 — Wallet & UPI Recharge
+## Wallet & UPI Recharge
 
 Recharge is manual UPI verification: users pay to `8106204597@ptyes`, submit the UTR, and the wallet remains Pending until an authorized admin approves the request. Amounts are limited to ₹100–₹5,000. The supplied QR is served at `/payment-qr.jpg`.
 
@@ -66,7 +62,7 @@ Admin recharge queue:
 - `GET /api/admin/recharges`
 - `POST /api/admin/recharges/:id` with `{ "decision": "approve" }` or `{ "decision": "reject", "reason": "..." }`
 
-## Sprint 5 — Admin Operations
+## Admin Operations
 
 The admin control center is available only to accounts whose database role is `admin`.
 
