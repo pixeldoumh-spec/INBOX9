@@ -631,17 +631,23 @@ async function loadServerStats(serviceId) {
 function syntheticServers() { return SYNTHETIC_SERVERS; }
 
 function serverRows(service, stats = SYNTHETIC_SERVERS) {
-  const disabled = service.pricePaise > state.balancePaise;
-  return stats.map((server) => `
+  return stats.map((server) => {
+    const availableCount = Number(server.availableCount ?? server.capacity);
+    const insufficientBalance = service.pricePaise > state.balancePaise;
+    const unavailable = service.stock <= 0 || availableCount <= 0;
+    const disabled = insufficientBalance || unavailable;
+    const actionLabel = insufficientBalance ? 'Top up' : unavailable ? 'Unavailable' : 'Buy';
+    return `
     <div class="server-row">
       <div class="server-number" aria-hidden="true">${server.name.replace("Server ", "")}</div>
       <div class="server-info">
         <div class="server-name">${server.name}</div>
-        <div class="server-stock">• ${Number(server.availableCount ?? server.capacity).toLocaleString()} available of ${server.capacity.toLocaleString()} · #${server.startSlot.toLocaleString()}–${server.endSlot.toLocaleString()}</div>
+        <div class="server-stock">• ${availableCount.toLocaleString()} available of ${server.capacity.toLocaleString()} · #${server.startSlot.toLocaleString()}–${server.endSlot.toLocaleString()}</div>
       </div>
       <strong class="server-price">${money(service.pricePaise)}</strong>
-      <button class="buy-btn server-buy" type="button" data-buy-server-service="${esc(service.id)}" data-buy-server="${server.id}" ${disabled ? "disabled aria-disabled=\"true\"" : ""}>${disabled ? "Top up" : "Buy"}</button>
-    </div>`).join("");
+      <button class="buy-btn server-buy" type="button" data-buy-server-service="${esc(service.id)}" data-buy-server="${server.id}" ${disabled ? 'disabled aria-disabled="true"' : ''}>${actionLabel}</button>
+    </div>`;
+  }).join('');
 }
 
 function serviceCard(service) {
