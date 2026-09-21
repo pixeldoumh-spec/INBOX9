@@ -1,10 +1,8 @@
 import { applySecurityHeaders, requestId, rateLimitAsync, enforceSameOrigin, validateBodySize } from '../_lib/security.js';
-import { getService } from '../_lib/catalog.js';
 import { getPersistedService } from '../_lib/service-repository.js';
 import { dbEnabled } from '../_lib/db.js';
 import { getSessionUser, getMockSession, requireUser } from '../_lib/auth.js';
 import { createActivation, listActivations } from '../_lib/activation-repository.js';
-import { reserveMock } from '../_lib/mock.js';
 import { validateIdempotencyKey, hashActivationRequest, claimActivationKey, completeActivationKey, failActivationKey, markActivationKeyStuckSafe } from '../_lib/idempotency.js';
 
 async function currentUser(req) {
@@ -33,11 +31,7 @@ export default async function handler(req, res) {
     try { idempotencyKey = validateIdempotencyKey(req.headers?.['idempotency-key']); }
     catch (error) { return res.status(400).json({ error: error.message, code: error.code }); }
   }
-  if (!dbEnabled()) {
-    const service = getService(serviceId);
-    if (!service) return res.status(400).json({ error: 'Unknown service' });
-    return res.status(201).json({ ...reserveMock(service), userId: user.id });
-  }
+  if (!dbEnabled()) return res.status(503).json({ error: 'Activation database is not configured', code: 'DATABASE_UNAVAILABLE' });
   const persistedService = await getPersistedService(serviceId);
   if (!persistedService || persistedService.active === false) return res.status(409).json({ error: 'Service is unavailable' });
   if (dbEnabled()) {

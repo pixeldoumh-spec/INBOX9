@@ -21,7 +21,6 @@ export function normalizeProviderActivation(value) {
     otp: value.otp == null ? null : String(value.otp),
     createdAt: Number(value.createdAt),
     expiresAt: Number(value.expiresAt),
-    mockOtpAt: value.mockOtpAt == null ? null : Number(value.mockOtpAt),
-    metadata: value.metadata && typeof value.metadata === 'object' ? value.metadata : {},
+      metadata: value.metadata && typeof value.metadata === 'object' ? value.metadata : {},
   };
 }

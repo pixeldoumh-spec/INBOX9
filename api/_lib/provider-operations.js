@@ -17,7 +17,6 @@ function activationPayload(row, { providerStatus = row.status } = {}) {
     otp: row.otp,
     createdAt: new Date(row.created_at).getTime(),
     expiresAt: new Date(row.expires_at).getTime(),
-    mockOtpAt: row.mock_otp_at ? new Date(row.mock_otp_at).getTime() : null,
     metadata: row.provider_metadata || {},
   };
 }

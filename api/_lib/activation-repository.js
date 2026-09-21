@@ -95,11 +95,11 @@ export async function createActivation(service, userId, idempotency = null) {
         await client.query(`UPDATE services SET stock=stock-1,updated_at=NOW() WHERE id=$1`, [service.id]);
         const result = await client.query(
           `INSERT INTO activations
-            (id,user_id,service_id,service_name,country,phone_number,price_paise,currency,status,otp,created_at,expires_at,mock_otp_at,provider_id,provider_activation_id,provider_metadata)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) RETURNING *`,
+(id,user_id,service_id,service_name,country,phone_number,price_paise,currency,status,otp,created_at,expires_at,provider_id,provider_activation_id,provider_metadata)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) RETURNING *`,
           [id,userId,service.id,serviceName,country,reserved.number,pricePaise,currency,
-           reserved.status || 'Active',reserved.otp,now,expiresAt,
-           reserved.mockOtpAt ? new Date(reserved.mockOtpAt) : null,provider.id,reserved.providerActivationId,JSON.stringify(reserved.metadata || {})]
+    reserved.status || 'Active',reserved.otp,now,expiresAt,
+    provider.id,reserved.providerActivationId,JSON.stringify(reserved.metadata || {})]
         );
         const activation = mapActivation(result.rows[0]);
         const balancePaise = await getBalanceForClient(client, userId);
@@ -151,8 +151,7 @@ function providerActivationPayload(row) {
     otp: row.otp,
     createdAt: new Date(row.created_at).getTime(),
     expiresAt: new Date(row.expires_at).getTime(),
-    mockOtpAt: row.mock_otp_at ? new Date(row.mock_otp_at).getTime() : null,
-    metadata: row.provider_metadata || {},
+      metadata: row.provider_metadata || {},
   };
 }
 

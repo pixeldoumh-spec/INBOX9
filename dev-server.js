@@ -3,7 +3,6 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { services, getService } from './api/_lib/catalog.js';
-import { reserveMock, getMock, cancelMock } from './api/_lib/mock.js';
 import { setMockSession, getMockSession, mockUser, passwordHash, verifyPassword } from './api/_lib/auth.js';
 import { applySecurityHeaders, requestId } from './api/_lib/security.js';
 
@@ -203,26 +202,19 @@ async function apiRoute(req, res, url) {
       }
       const balance = demoBalance(req);
     if (balance < service.pricePaise) return send(res, 402, { error: 'Insufficient wallet balance. Please recharge first.', code: 'INSUFFICIENT_BALANCE' });
-    const activation = reserveMock(service);
-    setDemoBalance(req, balance - service.pricePaise);
-    const email = demoKey(req); const ledger = demoLedger.get(email) || []; ledger.unshift({ id:`LED-DEMO-${Date.now()}`, email, type:'debit', amountPaise:service.pricePaise, referenceType:'activation', referenceId:activation.id, description:`Activation • ${service.name}`, createdAt:Date.now() }); demoLedger.set(email, ledger);
-    const response = { ...activation, walletBalancePaise: balance - service.pricePaise };
-    if (req.headers['idempotency-key']) demoActivationIdempotency.set(`${demoKey(req)}:${String(req.headers['idempotency-key']).trim()}`, { requestHash: JSON.stringify({ serviceId: service.id }), response });
-    return send(res, 201, response);
+    return send(res, 503, { error: 'Activation provider is not configured', code: 'PROVIDER_UNAVAILABLE' });
     } catch (error) { return send(res, error.message === 'Payload too large' ? 413 : 400, { error: error.message }); }
   }
   const activationMatch = url.pathname.match(/^\/api\/activations\/([^/]+)$/);
   if (activationMatch && req.method === 'GET') {
     if (!getMockSession(req)) return send(res, 401, { error: 'Authentication required' });
-    const item = getMock(activationMatch[1]);
-    return item ? send(res, 200, item) : send(res, 404, { error: 'Activation not found' });
+    return send(res, 503, { error: 'Activation provider is not configured', code: 'PROVIDER_UNAVAILABLE' });
   }
   const cancelMatch = url.pathname.match(/^\/api\/activations\/([^/]+)\/cancel$/);
   if (cancelMatch && req.method === 'POST') {
     if (!getMockSession(req)) return send(res, 401, { error: 'Authentication required' });
-    const item = cancelMock(cancelMatch[1]);
-    if (!item) return send(res, 404, { error: 'Activation not found' });
-    const balance = demoBalance(req) + Number(item.pricePaise || 0);
+    return send(res, 503, { error: 'Activation provider is not configured', code: 'PROVIDER_UNAVAILABLE' });
+    const balance = demoBalance(req);
     setDemoBalance(req, balance);
     const email = demoKey(req); const ledger = demoLedger.get(email) || []; ledger.unshift({ id:`LED-DEMO-${Date.now()}`, email, type:'credit', amountPaise:Number(item.pricePaise||0), referenceType:'activation_refund', referenceId:item.id, description:`Activation refund • ${item.service||''}`, createdAt:Date.now() }); demoLedger.set(email, ledger);
     return send(res, 200, { ...item, refundPaise: item.refundPaise ?? item.pricePaise, walletBalancePaise: balance });
