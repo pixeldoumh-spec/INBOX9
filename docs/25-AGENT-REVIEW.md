@@ -10,7 +10,7 @@ This is a structured 25-track engineering review. It is not a claim that 25 sepa
 | 04 | Frontend architecture | Move browser state to a single state model with persistence | Done |
 | 05 | Accessibility | Keyboard focus, labels, buttons, mobile navigation | Done |
 | 06 | Frontend security | HTML escaping and removal of inline event-handler dependence | Done |
-| 07 | API design | Separate Vercel Functions from local development server | Done |
+| 07 | API design | Separate Node API runtime from local development server | Done |
 | 08 | Server validation | Validate service IDs and request size | Done |
 | 09 | Money correctness | Represent INR prices as paise integers | Done |
 | 10 | Activation lifecycle | Define reserve / active / completed / expired / refunded states | Done |
@@ -25,7 +25,7 @@ This is a structured 25-track engineering review. It is not a claim that 25 sepa
 | 19 | Security headers | Add baseline browser hardening headers | Done |
 | 20 | Abuse prevention | Rate limiting / quotas required before real traffic | Planned |
 | 21 | Testing | Node syntax + API smoke + lifecycle tests | Done |
-| 22 | Vercel | Vercel-compatible public directory + /api Functions | Done |
+| 22 | deployment platform | deployment-agnostic public directory + /api Functions | Done |
 | 23 | Performance | Avoid unnecessary dependencies and render only active panel on tick | Done |
 | 24 | Documentation | Setup, provider contract, security, deployment docs | Done |
 | 25 | Release engineering | Pre-deploy checklist and explicit mock-only gate | Done |
