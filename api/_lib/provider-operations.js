@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import { getPool, withTransaction } from './db.js';
 import { getProviderAdapter } from './provider-registry.js';
 import { creditRefund, getBalanceForClient } from './wallet-repository.js';
+import { releaseSyntheticSlot } from './synthetic-inventory-repository.js';
 
 function id() { return `POP-${crypto.randomUUID()}`; }
 
@@ -61,6 +62,7 @@ export async function completeCancellation(operationId, success, errorMessage = 
     await client.query(`UPDATE provider_operations SET status='Succeeded', attempts=attempts+1, last_error=NULL, updated_at=NOW(), completed_at=NOW() WHERE id=$1`, [operationId]);
     const updated = await client.query(`UPDATE activations SET status='Refunded',refund_paise=price_paise,updated_at=NOW() WHERE id=$1 AND status='CancellationPending' RETURNING *`, [row.activation_id]);
     if (updated.rowCount) {
+      await releaseSyntheticSlot(client, row.activation_id);
       await client.query(`UPDATE services SET stock=stock+1,updated_at=NOW() WHERE id=$1`, [row.service_id]);
       await creditRefund(client, row.user_id, Number(row.price_paise), row.activation_id, `${row.service_name} activation refund`);
     }
@@ -195,6 +197,7 @@ async function finalizeExpirationOperation(operationId, outcome) {
          WHERE id=$1 AND status='ExpirationPending'
          RETURNING *`, [row.activation_id, outcome.otp ?? row.otp ?? null]
       );
+      if (updated.rowCount) await releaseSyntheticSlot(client, row.activation_id);
       return { activationId: row.activation_id, status: 'Completed', activation: updated.rows[0] };
     }
 
@@ -205,6 +208,7 @@ async function finalizeExpirationOperation(operationId, outcome) {
        RETURNING *`, [row.activation_id, outcome.otp ?? row.otp ?? null]
     );
     if (updated.rowCount) {
+      await releaseSyntheticSlot(client, row.activation_id);
       // Inventory is restored exactly once by the guarded ExpirationPending -> Expired transition.
       await client.query(
         `UPDATE services SET stock=stock+1, updated_at=NOW()
