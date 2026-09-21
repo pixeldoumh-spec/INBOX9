@@ -7,7 +7,7 @@ test('purchase flow is a three-step customer-facing state machine', async () => 
   assert.match(app, /purchaseFlow:\s*\{/);
   assert.match(app, /step:\s*'service'/);
   assert.match(app, /step:\s*'review'/);
-  assert.match(app, /step:\s*'activation'/);
+  assert.match(app, /step:\s*'activation'|purchaseFlow\.step\s*=\s*'activation'/);
   assert.match(app, /function openPurchaseReview\(/);
   assert.match(app, /async function confirmPurchase\(/);
   assert.match(app, /data-purchase-confirm/);
