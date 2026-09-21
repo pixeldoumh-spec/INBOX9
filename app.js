@@ -772,7 +772,7 @@ function buyPage() {
   const list = filteredMarketServices();
   return `<div class="section-head"><div><span class="kicker">INDIA / +91</span><h2>Choose a service</h2></div><span class="result-note market-result-count" aria-live="polite">${esc(marketResultText(list.length, Math.min(state.marketVisibleCount, list.length)))}</span></div>
     <div class="controls"><div class="toolbar"><label class="search-box" aria-label="Search services"><span>⌕</span><input id="service-search" value="${esc(state.search)}" placeholder="Search 832 services…" autocomplete="off" spellcheck="false"><kbd>/</kbd></label><div class="category-scroll" role="group" aria-label="Service categories">${categories.map((category) => `<button class="filter-btn ${state.category === category ? "selected" : ""}" type="button" data-category="${category}" aria-pressed="${state.category === category}">${category}<span class="filter-count">${(state.categoryCounts[category] || 0).toLocaleString()}</span></button>`).join("")}</div></div></div>
-    <div class="service-grid">${marketListMarkup(list)}</div>`;
+    <div class="service-grid">${marketListMarkup(list)}</div>${purchaseReviewModal()}`;
 }
 function activePage() {
   return `<div class="section-head with-action"><div><span class="kicker">LIVE SESSION</span><h2>Active numbers</h2></div><span class="status-chip">● ${state.active.length} active</span></div>${state.active.length ? `<div class="active-list">${state.active.map(activeCard).join('')}</div>` : `<div class="panel empty"><div class="empty-icon">▤</div><h3>No active numbers</h3><p>Reserve a number from the marketplace and the activation will appear here.</p></div>`}`;
@@ -876,7 +876,30 @@ function bindMarketplaceEvents() {
       return;
     }
     const buyButton = event.target.closest("[data-buy-server-service]");
-    if (buyButton && root.contains(buyButton)) buy(buyButton.dataset.buyServerService, buyButton.dataset.buyServer);
+    if (buyButton && root.contains(buyButton)) {
+      openPurchaseReview(buyButton.dataset.buyServerService, buyButton.dataset.buyServer);
+      return;
+    }
+
+    const purchaseClose = event.target.closest("[data-purchase-close]");
+    if (purchaseClose && root.contains(purchaseClose)) {
+      closePurchaseReview();
+      return;
+    }
+
+    const purchaseConfirm = event.target.closest("[data-purchase-confirm]");
+    if (purchaseConfirm && root.contains(purchaseConfirm)) {
+      void confirmPurchase();
+      return;
+    }
+
+    const purchaseWallet = event.target.closest("[data-purchase-wallet]");
+    if (purchaseWallet && root.contains(purchaseWallet)) {
+      resetPurchaseFlow();
+      state.page = 'wallet';
+      render();
+      return;
+    }
   });
 }
 
@@ -884,6 +907,10 @@ document.addEventListener('keydown', (event) => {
   if (event.key === '/' && !['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) {
     event.preventDefault();
     document.getElementById('service-search')?.focus();
+    return;
+  }
+  if (event.key === 'Escape' && state.purchaseFlow.step === 'review' && !state.purchaseFlow.submitting) {
+    closePurchaseReview();
   }
 });
 
