@@ -33,22 +33,19 @@ SELECT
   'SLOT-' || a.id,
   a.service_id,
   (a.provider_metadata->>'slot')::integer,
-  COALESCE(
-    a.provider_metadata->>'serverId',
-    CASE
-      WHEN (a.provider_metadata->>'slot')::integer BETWEEN 1 AND 455 THEN 'server-1'
-      WHEN (a.provider_metadata->>'slot')::integer BETWEEN 456 AND 910 THEN 'server-2'
-      WHEN (a.provider_metadata->>'slot')::integer BETWEEN 911 AND 1365 THEN 'server-3'
-      WHEN (a.provider_metadata->>'slot')::integer BETWEEN 1366 AND 1820 THEN 'server-4'
-      WHEN (a.provider_metadata->>'slot')::integer BETWEEN 1821 AND 2275 THEN 'server-5'
-      WHEN (a.provider_metadata->>'slot')::integer BETWEEN 2276 AND 2730 THEN 'server-6'
-      WHEN (a.provider_metadata->>'slot')::integer BETWEEN 2731 AND 3184 THEN 'server-7'
-      WHEN (a.provider_metadata->>'slot')::integer BETWEEN 3185 AND 3638 THEN 'server-8'
-      WHEN (a.provider_metadata->>'slot')::integer BETWEEN 3639 AND 4092 THEN 'server-9'
-      WHEN (a.provider_metadata->>'slot')::integer BETWEEN 4093 AND 4546 THEN 'server-10'
-      WHEN (a.provider_metadata->>'slot')::integer BETWEEN 4547 AND 5000 THEN 'server-11'
-    END
-  ),
+  CASE
+    WHEN (a.provider_metadata->>'slot')::integer BETWEEN 1 AND 455 THEN 'server-1'
+    WHEN (a.provider_metadata->>'slot')::integer BETWEEN 456 AND 910 THEN 'server-2'
+    WHEN (a.provider_metadata->>'slot')::integer BETWEEN 911 AND 1365 THEN 'server-3'
+    WHEN (a.provider_metadata->>'slot')::integer BETWEEN 1366 AND 1820 THEN 'server-4'
+    WHEN (a.provider_metadata->>'slot')::integer BETWEEN 1821 AND 2275 THEN 'server-5'
+    WHEN (a.provider_metadata->>'slot')::integer BETWEEN 2276 AND 2730 THEN 'server-6'
+    WHEN (a.provider_metadata->>'slot')::integer BETWEEN 2731 AND 3184 THEN 'server-7'
+    WHEN (a.provider_metadata->>'slot')::integer BETWEEN 3185 AND 3638 THEN 'server-8'
+    WHEN (a.provider_metadata->>'slot')::integer BETWEEN 3639 AND 4092 THEN 'server-9'
+    WHEN (a.provider_metadata->>'slot')::integer BETWEEN 4093 AND 4546 THEN 'server-10'
+    WHEN (a.provider_metadata->>'slot')::integer BETWEEN 4547 AND 5000 THEN 'server-11'
+  END
   a.id,
   'Reserved',
   a.created_at
