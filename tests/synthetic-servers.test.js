@@ -13,10 +13,10 @@ test('synthetic capacity is partitioned into 11 contiguous server chunks', () =>
   }
 });
 
-test('server capacities are 455 except the final 450-slot chunk', () => {
+test('server capacities distribute 5,000 slots as evenly as possible', () => {
   const servers = listSyntheticServers();
-  assert.deepEqual(servers.slice(0, 10).map((s) => s.capacity), Array(10).fill(455));
-  assert.equal(servers[10].capacity, 450);
+  assert.deepEqual(servers.map((s) => s.capacity), [...Array(6).fill(455), ...Array(5).fill(454)]);
+  assert.equal(Math.max(...servers.map((s) => s.capacity)) - Math.min(...servers.map((s) => s.capacity)), 1);
 });
 
 test('every synthetic slot maps to exactly one server', () => {
