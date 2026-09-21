@@ -30,7 +30,7 @@ If the function crashes after provider release but before final DB commit, the d
 `FOR UPDATE SKIP LOCKED` is used to claim due activations. Finalization locks only the operation/activation during the short DB transaction. A guarded `ExpirationPending -> Expired` transition prevents duplicate stock increments.
 
 ### 7. Scheduled execution
-The existing Vercel cron endpoint `/api/internal-provider-reconcile` now runs:
+The existing scheduled job endpoint `/api/internal-provider-reconcile` now runs:
 - pending user/provider cancellations
 - expiring activation reconciliation
 - activation idempotency cleanup
