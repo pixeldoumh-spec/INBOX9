@@ -4,8 +4,10 @@ import { getProviderAdapter } from './provider-registry.js';
 import { beginCancellation, completeCancellation } from './provider-operations.js';
 import { debitForActivation, getBalanceForClient } from './wallet-repository.js';
 import { completeActivationKey, markActivationKeyStuckSafe } from './idempotency.js';
+import { claimSyntheticSlot, releaseSyntheticSlot } from './synthetic-inventory-repository.js';
 
 const TTL_MS = 3 * 60 * 1000;
+const SYNTHETIC_SLOT_RESERVATION_ATTEMPTS = 8;
 
 function mapActivation(row) {
   if (!row) return null;
@@ -33,76 +35,109 @@ function makeId() {
 
 
 export async function createActivation(service, userId, idempotency = null, options = {}) {
-  // Provider reservation happens outside the DB transaction so network calls do not
-  // hold database locks. The transaction re-reads the service row and uses that
-  // authoritative snapshot for price, currency, availability, country, and stock.
-  // If anything fails after reservation, provider cancellation is attempted as
-  // compensation.
   const pool = await getPool();
   if (!pool) throw new Error('DATABASE_URL is not configured');
-  let reserved = null;
-  let provider = null;
-  try {
-    const latestService = await pool.query(
-      `SELECT id,name,category,currency,price_paise,country,availability,stock,active
-       FROM services WHERE id=$1`,
-      [service.id]
-    );
-    if (!latestService.rowCount || !latestService.rows[0].active) {
-      const e = new Error('Service is unavailable'); e.code = 'SERVICE_UNAVAILABLE'; throw e;
-    }
-    const providerRoute = await pool.query(
-      `SELECT p.id,p.name,p.adapter_key,p.priority
-       FROM service_provider_routes r JOIN providers p ON p.id=r.provider_id
-       WHERE r.service_id=$1 AND r.active=TRUE AND p.active=TRUE
-       ORDER BY r.priority ASC,p.priority ASC,p.id ASC LIMIT 1`, [service.id]
-    );
-    if (!providerRoute.rowCount) { const e = new Error('No active provider is configured for this service'); e.code = 'NO_PROVIDER'; throw e; }
-    provider = providerRoute.rows[0];
-    const adapter = getProviderAdapter(provider.adapter_key);
-    reserved = await adapter.reserveNumber({
-      ...service,
-      ...latestService.rows[0],
-      pricePaise: Number(latestService.rows[0].price_paise),
-      stock: Number(latestService.rows[0].stock),
-      active: Boolean(latestService.rows[0].active),
-      serverId: options.serverId || null,
-    });
 
+  let provider = null;
+  let reserved = null;
+
+  const providerRoute = await pool.query(
+    `SELECT p.id,p.name,p.adapter_key,p.priority
+       FROM service_provider_routes r JOIN providers p ON p.id=r.provider_id
+      WHERE r.service_id=$1 AND r.active=TRUE AND p.active=TRUE
+      ORDER BY r.priority ASC,p.priority ASC,p.id ASC LIMIT 1`,
+    [service.id]
+  );
+  if (!providerRoute.rowCount) {
+    const error = new Error('No active provider is configured for this service');
+    error.code = 'NO_PROVIDER';
+    throw error;
+  }
+  provider = providerRoute.rows[0];
+  const adapter = getProviderAdapter(provider.adapter_key);
+
+  for (let attempt = 1; attempt <= SYNTHETIC_SLOT_RESERVATION_ATTEMPTS; attempt += 1) {
     try {
+      const latestService = await pool.query(
+        `SELECT id,name,category,currency,price_paise,country,availability,stock,active
+           FROM services WHERE id=$1`,
+        [service.id]
+      );
+      if (!latestService.rowCount || !latestService.rows[0].active) {
+        const error = new Error('Service is unavailable');
+        error.code = 'SERVICE_UNAVAILABLE';
+        throw error;
+      }
+
+      reserved = await adapter.reserveNumber({
+        ...service,
+        ...latestService.rows[0],
+        pricePaise: Number(latestService.rows[0].price_paise),
+        stock: Number(latestService.rows[0].stock),
+        active: Boolean(latestService.rows[0].active),
+        serverId: options.serverId || null,
+      });
+
       return await withTransaction(async (client) => {
         const serviceRow = await client.query(
           `SELECT id,name,category,currency,price_paise,country,availability,stock,active
-           FROM services WHERE id=$1 FOR UPDATE`,
+             FROM services WHERE id=$1 FOR UPDATE`,
           [service.id]
         );
         if (!serviceRow.rowCount || !serviceRow.rows[0].active) {
-          const e = new Error('Service is unavailable'); e.code = 'SERVICE_UNAVAILABLE'; throw e;
+          const error = new Error('Service is unavailable');
+          error.code = 'SERVICE_UNAVAILABLE';
+          throw error;
         }
         const dbService = serviceRow.rows[0];
         if (Number(dbService.stock) <= 0) {
-          const e = new Error('This service is currently out of stock'); e.code = 'OUT_OF_STOCK'; throw e;
+          const error = new Error('This service is currently out of stock');
+          error.code = 'OUT_OF_STOCK';
+          throw error;
         }
+
         const now = new Date();
         const expiresAt = new Date(reserved.expiresAt || now.getTime() + TTL_MS);
-        const id = `ORD-${crypto.randomUUID()}`;
+        const activationId = makeId();
         const pricePaise = Number(dbService.price_paise);
         const serviceName = dbService.name;
         const currency = dbService.currency || 'INR';
         const country = dbService.country || 'IN';
         if (country !== 'IN' || currency !== 'INR') {
-          const e = new Error('Only India / INR services are supported'); e.code = 'SERVICE_UNAVAILABLE'; throw e;
+          const error = new Error('Only India / INR services are supported');
+          error.code = 'SERVICE_UNAVAILABLE';
+          throw error;
         }
-        await debitForActivation(client, userId, pricePaise, id, `${serviceName} activation`);
-        await client.query(`UPDATE services SET stock=stock-1,updated_at=NOW() WHERE id=$1`, [service.id]);
-        const result = await client.query(
+
+        await debitForActivation(client, userId, pricePaise, activationId, `${serviceName} activation`);
+        await client.query(
           `INSERT INTO activations
             (id,user_id,service_id,service_name,country,phone_number,price_paise,currency,status,otp,created_at,expires_at,mock_otp_at,provider_id,provider_activation_id,provider_metadata)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) RETURNING *`,
-          [id,userId,service.id,serviceName,country,reserved.number,pricePaise,currency,
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
+           RETURNING *`,
+          [activationId,userId,service.id,serviceName,country,reserved.number,pricePaise,currency,
            reserved.status || 'Active',reserved.otp,now,expiresAt,
            reserved.mockOtpAt ? new Date(reserved.mockOtpAt) : null,provider.id,reserved.providerActivationId,JSON.stringify(reserved.metadata || {})]
         );
+
+        if (provider.adapter_key === 'synthetic') {
+          const slot = Number(reserved.metadata?.slot);
+          const serverId = String(reserved.metadata?.serverId || '').trim().toLowerCase();
+          await claimSyntheticSlot(client, {
+            activationId,
+            serviceId: service.id,
+            slot,
+            serverId,
+            reservedAt: now,
+          });
+        }
+
+        await client.query(
+          `UPDATE services SET stock=stock-1,updated_at=NOW() WHERE id=$1`,
+          [service.id]
+        );
+
+        const result = await client.query('SELECT * FROM activations WHERE id=$1', [activationId]);
         const activation = mapActivation(result.rows[0]);
         const balancePaise = await getBalanceForClient(client, userId);
         if (idempotency?.idempotencyKey) {
@@ -111,30 +146,40 @@ export async function createActivation(service, userId, idempotency = null, opti
         return { activation, balancePaise };
       });
     } catch (error) {
-      let compensated = false;
-      try {
-        await adapter.cancelActivation({ providerActivationId: reserved.providerActivationId, activation: reserved });
-        compensated = true;
-      } catch {}
-      if (idempotency?.idempotencyKey) {
-        if (compensated) {
-          const poolForFailure = await getPool();
-          if (poolForFailure) {
-            await poolForFailure.query(
-              `UPDATE activation_idempotency SET status='Failed', error_code=$3, error_message=$4, updated_at=NOW() WHERE user_id=$1 AND idempotency_key=$2 AND status='Processing'`,
-              [userId, idempotency.idempotencyKey, String(error.code || 'ACTIVATION_FAILED').slice(0,80), String(error.message || 'Activation failed').slice(0,500)]
-            );
+      if (error.code === 'SYNTHETIC_SLOT_CONFLICT' && provider.adapter_key === 'synthetic' && attempt < SYNTHETIC_SLOT_RESERVATION_ATTEMPTS) {
+        continue;
+      }
+
+      if (reserved?.providerActivationId) {
+        let compensated = false;
+        try {
+          await adapter.cancelActivation({ providerActivationId: reserved.providerActivationId, activation: reserved });
+          compensated = true;
+        } catch {}
+
+        if (idempotency?.idempotencyKey) {
+          if (compensated) {
+            const poolForFailure = await getPool();
+            if (poolForFailure) {
+              await poolForFailure.query(
+                `UPDATE activation_idempotency
+                    SET status='Failed', error_code=$3, error_message=$4, updated_at=NOW()
+                  WHERE user_id=$1 AND idempotency_key=$2 AND status='Processing'`,
+                [userId, idempotency.idempotencyKey, String(error.code || 'ACTIVATION_FAILED').slice(0,80), String(error.message || 'Activation failed').slice(0,500)]
+              );
+            }
+          } else {
+            await markActivationKeyStuckSafe(userId, idempotency.idempotencyKey, 'Provider compensation failed; manual/reconciliation action is required before retrying.');
           }
-        } else {
-          await markActivationKeyStuckSafe(userId, idempotency.idempotencyKey, 'Provider compensation failed; manual/reconciliation action is required before retrying.');
         }
       }
       throw error;
     }
-  } catch (error) {
-    if (error.code === 'INSUFFICIENT_BALANCE' || error.code === 'OUT_OF_STOCK' || error.code === 'NO_PROVIDER' || error.code === 'SERVICE_UNAVAILABLE') throw error;
-    throw error;
   }
+
+  const error = new Error('Synthetic inventory is temporarily unavailable; please retry.');
+  error.code = 'SYNTHETIC_INVENTORY_BUSY';
+  throw error;
 }
 
 export function shouldApplyProviderState(current, providerState) {
@@ -226,8 +271,10 @@ export async function getActivation(id, userId) {
     }
 
     const row = updated.rows[0];
+    if (providerState.status === 'Expired' || providerState.status === 'Completed') {
+      await releaseSyntheticSlot(client, row.id);
+    }
     if (providerState.status === 'Expired') {
-      // Only the Active -> Expired transition restores inventory.
       await client.query(
         'UPDATE services SET stock=stock+1,updated_at=NOW() WHERE id=$1',
         [row.service_id]
