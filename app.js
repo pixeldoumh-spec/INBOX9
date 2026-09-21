@@ -760,7 +760,9 @@ function renderBuyCatalog() {
   const list = filteredMarketServices();
   const grid = root.querySelector(".service-grid");
   const result = root.querySelector(".market-result-count");
+  const purchaseRoot = root.querySelector(".purchase-flow-root");
   if (grid) grid.innerHTML = marketListMarkup(list);
+  if (purchaseRoot) purchaseRoot.innerHTML = purchaseReviewModal();
   if (result) result.textContent = marketResultText(list.length, Math.min(state.marketVisibleCount, list.length));
   root.querySelectorAll("[data-category]").forEach((node) => {
     node.classList.toggle("selected", node.dataset.category === state.category);
@@ -772,7 +774,8 @@ function buyPage() {
   const list = filteredMarketServices();
   return `<div class="section-head"><div><span class="kicker">INDIA / +91</span><h2>Choose a service</h2></div><span class="result-note market-result-count" aria-live="polite">${esc(marketResultText(list.length, Math.min(state.marketVisibleCount, list.length)))}</span></div>
     <div class="controls"><div class="toolbar"><label class="search-box" aria-label="Search services"><span>⌕</span><input id="service-search" value="${esc(state.search)}" placeholder="Search 832 services…" autocomplete="off" spellcheck="false"><kbd>/</kbd></label><div class="category-scroll" role="group" aria-label="Service categories">${categories.map((category) => `<button class="filter-btn ${state.category === category ? "selected" : ""}" type="button" data-category="${category}" aria-pressed="${state.category === category}">${category}<span class="filter-count">${(state.categoryCounts[category] || 0).toLocaleString()}</span></button>`).join("")}</div></div></div>
-    <div class="service-grid">${marketListMarkup(list)}</div>${purchaseReviewModal()}`;
+    <div class="service-grid">${marketListMarkup(list)}</div>
+    <div class="purchase-flow-root">${purchaseReviewModal()}</div>`;
 }
 function activePage() {
   return `<div class="section-head with-action"><div><span class="kicker">LIVE SESSION</span><h2>Active numbers</h2></div><span class="status-chip">● ${state.active.length} active</span></div>${state.active.length ? `<div class="active-list">${state.active.map(activeCard).join('')}</div>` : `<div class="panel empty"><div class="empty-icon">▤</div><h3>No active numbers</h3><p>Reserve a number from the marketplace and the activation will appear here.</p></div>`}`;
