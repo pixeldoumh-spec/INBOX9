@@ -1,70 +1,21 @@
-# Provider Integration Contract
+# INBOX9 Synthetic Fulfillment Engine
 
-INBOX9 keeps all upstream number-provider integrations behind a server-only adapter boundary.
+INBOX9 uses a single internal fulfillment engine. There are no runtime connections to third-party virtual-number or SMS/OTP providers.
 
-```text
-Browser
-  ↓
-INBOX9 API
-  ↓
-Provider Router
-  ↓
-Provider Adapter
-  ↓
-Authorized upstream API
-```
+## Engine contract
 
-## Adapter
+createProviderAdapter({ listServices, reserveNumber, getActivation, cancelActivation, health })
 
-```js
-createProviderAdapter({
-  listServices,
-  reserveNumber,
-  getActivation,
-  cancelActivation,
-  health
-})
-```
+The sole registered implementation is synthetic, backed by api/_lib/synthetic-otp.js and api/_lib/synthetic-provider.js.
 
-The adapter returns normalized activations containing:
+## Capacity
 
-```json
-{
-  "providerActivationId": "...",
-  "number": "+91 ...",
-  "status": "Active",
-  "otp": null,
-  "createdAt": 0,
-  "expiresAt": 0,
-  "metadata": {}
-}
-```
+The engine supports up to 5,000 synthetic slots per catalog service (380,000 across the current 76-service catalog) and generates activations on demand.
 
-## Routing
+## Deterministic OTPs
 
-Providers are stored in PostgreSQL and service routes are ordered by priority. The API selects the first active route for a service.
+OTP values are generated from service identity, synthetic slot, and activation nonce using a cryptographic hash. The same inputs produce the same six-digit OTP, which makes automated testing reproducible.
 
-The current production-safe development route is:
+## Lifecycle
 
-`all services → INBOX9 Mock Provider`
-
-No real provider credentials are included in the repository.
-
-## Transaction boundary
-
-Reservation is attempted before the wallet/database transaction so an upstream network call does not hold database locks. If persistence fails after reservation, INBOX9 calls the provider cancellation operation as compensation.
-
-Cancellation similarly requires a successful provider cancellation before issuing the wallet refund.
-
-## Production requirements
-
-Before activating any real adapter:
-
-- provider API must be authorized for the intended use
-- credentials must be server-side environment secrets
-- provider rate limits must be respected
-- requests need idempotency keys where supported
-- provider errors must be normalized
-- provider health must be monitored
-- audit logs must record lifecycle transitions
-- financial actions must remain inside INBOX9's authoritative wallet ledger
+The engine implements reserve, status, completion, expiry, cancellation, and health operations locally. No outbound provider network calls are performed by the activation lifecycle.

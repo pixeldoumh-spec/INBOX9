@@ -1,24 +1,19 @@
 {
   "name": "inbox9-india-otp",
   "private": true,
-  "version": "0.8.12",
+  "version": "0.8.13",
   "type": "module",
-  "engines": {
-    "node": ">=22"
-  },
+  "engines": { "node": ">=22" },
   "scripts": {
     "start": "node dev-server.js",
     "dev": "node dev-server.js",
-    "check": "node --check dev-server.js && node --check app.js && node --check api/health.js && node --check api/services.js && node --check api/auth/register.js && node --check api/auth/login.js && node --check api/auth/logout.js && node --check api/auth/me.js && node --check api/activations/index.js && node --check "api/activations/[id].js" && node --check "api/activations/[id]/cancel.js" && node --check api/_lib/catalog.js && node --check api/_lib/mock.js && node --check api/_lib/provider.js && node --check api/_lib/db.js && node --check api/_lib/auth.js && node --check api/_lib/activation-repository.js && node --check api/_lib/db-migrate.js && node --check scripts/migrate.js && node --check api/_lib/service-repository.js && node --check api/_lib/wallet-repository.js && node --check api/wallet/index.js && node --check api/recharges/index.js && node --check api/admin/recharges/index.js && node --check "api/admin/recharges/[id].js" && node --check api/_lib/provider-repository.js && node --check api/_lib/mock-provider.js && node --check api/_lib/shelex-test-provider.js && node --check api/_lib/shelex-diagnostics.js && node --check api/_lib/provider-registry.js && node --check api/admin/providers.js && node --check api/admin/providers-health.js && node --check api/admin/overview.js && node --check api/admin/users.js && node --check api/admin/services.js && node --check "api/admin/services/[id].js" && node --check api/admin/activations.js && node --check api/admin/ledger.js && node --check api/admin/audit.js && node --check api/admin/recharges/index.js && node --check "api/admin/recharges/[id].js" && node --check api/_lib/admin-repository.js && node --check api/_lib/security.js && node --check scripts/verify-db.mjs && node --check scripts/staging-smoke.mjs && node --check api/_lib/idempotency.js && node --check api/_lib/provider-operations.js && node --check api/_lib/wallet-reconciliation.js && node --check api/admin/wallet-reconciliation.js && node --check api/admin/payment-reconciliation.js && node --check api/internal-provider-reconcile.js && node --check tests/provider-status.test.js && node --check api/auth/change-password.js && node --check api/auth/logout-all.js && node --check tests/auth-session.test.js && node --check api/_lib/synthetic-otp.js && node --check scripts/synthetic-inventory-smoke.mjs",
+    "check": "node --check dev-server.js && node --check app.js && node --check api/health.js && node --check api/services.js && node --check api/auth/register.js && node --check api/auth/login.js && node --check api/auth/logout.js && node --check api/auth/me.js && node --check api/activations/index.js && node --check "api/activations/[id].js" && node --check "api/activations/[id]/cancel.js" && node --check api/_lib/catalog.js && node --check api/_lib/mock.js && node --check api/_lib/provider.js && node --check api/_lib/synthetic-provider.js && node --check api/_lib/db.js && node --check api/_lib/auth.js && node --check api/_lib/activation-repository.js && node --check api/_lib/db-migrate.js && node --check scripts/migrate.js && node --check api/_lib/service-repository.js && node --check api/_lib/wallet-repository.js && node --check api/wallet/index.js && node --check api/recharges/index.js && node --check api/admin/recharges/index.js && node --check "api/admin/recharges/[id].js" && node --check api/_lib/provider-repository.js && node --check api/_lib/provider-registry.js && node --check api/admin/providers.js && node --check api/admin/providers-health.js && node --check api/admin/overview.js && node --check api/admin/users.js && node --check api/admin/services.js && node --check "api/admin/services/[id].js" && node --check api/admin/activations.js && node --check api/admin/ledger.js && node --check api/admin/audit.js && node --check api/admin/recharges/index.js && node --check "api/admin/recharges/[id].js" && node --check api/_lib/admin-repository.js && node --check api/_lib/security.js && node --check scripts/verify-db.mjs && node --check scripts/staging-smoke.mjs && node --check api/_lib/idempotency.js && node --check api/_lib/provider-operations.js && node --check api/_lib/wallet-reconciliation.js && node --check api/admin/wallet-reconciliation.js && node --check api/admin/payment-reconciliation.js && node --check api/internal-provider-reconcile.js && node --check tests/provider-status.test.js && node --check api/auth/change-password.js && node --check api/auth/logout-all.js && node --check tests/auth-session.test.js && node --check api/_lib/synthetic-otp.js && node --check scripts/synthetic-inventory-smoke.mjs",
     "test": "node --test tests/*.test.js",
     "db:migrate": "node scripts/migrate.js",
     "db:verify": "node scripts/verify-db.mjs",
     "staging:smoke": "node scripts/staging-smoke.mjs",
     "issue9:e2e": "node scripts/issue9-e2e.mjs",
-    "provider:shelex-smoke": "node scripts/shelex-smoke.mjs",
     "synthetic:smoke": "node scripts/synthetic-inventory-smoke.mjs"
   },
-  "dependencies": {
-    "pg": "^8.16.3"
-  }
+  "dependencies": { "pg": "^8.16.3" }
 }

@@ -21,17 +21,10 @@ export default async function handler(_req, res) {
   const cronSecretConfigured = Boolean(process.env.CRON_SECRET);
   const cronSecretManualFallbackConfigured = Boolean(process.env.INTERNAL_CRON_SECRET);
   const ready = databaseConfigured && databaseReachable && (!production || (sharedRateLimitConfigured && appOriginConfigured && cronSecretConfigured));
-  const body = {
-    ok: true,
-    ready,
-    mode: databaseConfigured ? 'postgres' : 'mock',
-    dependencies: {
-      database: { configured: databaseConfigured, reachable: databaseReachable },
-      sharedRateLimit: { configured: sharedRateLimitConfigured },
-      appOrigin: { configured: appOriginConfigured },
-      cronAuth: { configured: cronSecretConfigured, manualFallbackConfigured: cronSecretManualFallbackConfigured },
-    },
-    timestamp: new Date().toISOString(),
-  };
+  const body = { ok: true, ready, mode: databaseConfigured ? 'postgres' : 'local',
+    dependencies: { database: { configured: databaseConfigured, reachable: databaseReachable },
+      sharedRateLimit: { configured: sharedRateLimitConfigured }, appOrigin: { configured: appOriginConfigured },
+      cronAuth: { configured: cronSecretConfigured, manualFallbackConfigured: cronSecretManualFallbackConfigured } },
+    timestamp: new Date().toISOString() };
   return res.status(ready || !production ? 200 : 503).json(body);
 }
