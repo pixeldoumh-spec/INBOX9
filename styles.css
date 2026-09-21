@@ -96,3 +96,50 @@
 
 .server-loading{min-height:120px;display:grid;place-items:center;color:#75839a;font-size:11px;border:1px dashed #263244;border-radius:10px}
 .server-stock{font-variant-numeric:tabular-nums}
+
+/* Guided purchase flow */
+.purchase-overlay{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;padding:20px}
+.purchase-backdrop{position:absolute;inset:0;width:100%;height:100%;border:0;background:rgba(3,6,10,.72);backdrop-filter:blur(8px)}
+.purchase-sheet{position:relative;width:min(560px,100%);max-height:min(760px,calc(100vh - 40px));overflow:auto;background:linear-gradient(180deg,#111820,#0b1118);border:1px solid #2b3747;border-radius:20px;box-shadow:0 30px 100px rgba(0,0,0,.5);padding:22px}
+.purchase-sheet-top{display:flex;align-items:flex-start;justify-content:space-between;gap:14px}
+.purchase-sheet-top h2{font:600 25px 'Space Grotesk';margin:7px 0 0;letter-spacing:-.02em}
+.purchase-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:18px 0}
+.purchase-step{display:flex;align-items:center;justify-content:center;gap:7px;padding:9px 7px;border:1px solid #1e2936;background:#0d141c;border-radius:10px;color:#68768a;font-size:10px}
+.purchase-step b{height:20px;width:20px;border-radius:50%;display:grid;place-items:center;background:#17202b;color:#6e7d91;font-size:9px}
+.purchase-step.current{border-color:#33462f;color:#bdeeb1;background:#141d13}
+.purchase-step.current b,.purchase-step.done b{background:#24361f;color:#bcefae}
+.purchase-step.done{color:#8ba887}
+.purchase-service-card{display:flex;align-items:center;gap:12px;padding:14px;border:1px solid #202c39;background:#0c131b;border-radius:14px}
+.purchase-service-copy{display:flex;flex-direction:column;min-width:0}
+.purchase-service-copy strong{font:600 15px 'Space Grotesk';margin-top:3px;color:#edf3f8}
+.purchase-service-copy span:last-child{font-size:10px;color:#728096;margin-top:4px}
+.purchase-detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:12px 0}
+.purchase-detail-grid>div{padding:12px;border:1px solid #1b2633;background:#0b1219;border-radius:12px}
+.purchase-detail-grid span,.purchase-detail-grid small{display:block;color:#667488;font-size:9px}
+.purchase-detail-grid strong{display:block;margin:4px 0 2px;font-size:12px;color:#dce5ee}
+.purchase-trust{display:flex;gap:10px;align-items:flex-start;padding:13px;border:1px solid #26362a;background:#0e1710;border-radius:12px}
+.purchase-trust>span{height:22px;width:22px;border-radius:50%;background:#1c3020;color:#9ee48e;display:grid;place-items:center;flex:none;font-size:11px}
+.purchase-trust strong,.purchase-trust small{display:block}
+.purchase-trust strong{font-size:10px;color:#bceeb0}
+.purchase-trust small{font-size:9px;line-height:1.5;color:#6e7d70;margin-top:3px}
+.purchase-error{margin-top:10px;padding:11px 12px;border:1px solid #4a2b2d;background:#211416;color:#f1a8a8;border-radius:10px;font-size:10px;line-height:1.45}
+.purchase-actions{display:flex;gap:9px;margin-top:15px}
+.purchase-actions button{flex:1}
+.secondary-btn{height:42px;border:1px solid #2a3646;background:#0d141d;color:#aab6c6;border-radius:11px;font-size:11px;font-weight:700}
+.secondary-btn:hover{background:#121b26}
+.purchase-confirm-btn{height:42px}
+.purchase-activation-state{min-height:320px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.purchase-activation-state h3{font:600 18px 'Space Grotesk';margin:8px 0}
+.purchase-activation-state p{max-width:300px;margin:0;color:#748197;font-size:10px;line-height:1.6}
+.purchase-loader{height:42px;width:42px;border:3px solid #1b2633;border-top-color:#8df26b;border-radius:50%;animation:purchase-spin 1s linear infinite;margin-bottom:18px}
+@keyframes purchase-spin{to{transform:rotate(360deg)}}
+
+@media(max-width:620px){
+  .purchase-overlay{align-items:flex-end;padding:0}
+  .purchase-sheet{width:100%;max-height:92vh;border-radius:20px 20px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom))}
+  .purchase-sheet-top h2{font-size:21px}
+  .purchase-steps{gap:5px}
+  .purchase-step{font-size:9px;padding:8px 4px}
+  .purchase-detail-grid{grid-template-columns:1fr 1fr}
+  .purchase-actions{position:sticky;bottom:0;padding-top:10px;background:linear-gradient(180deg,rgba(11,17,24,0),#0b1118 24%)}
+}
