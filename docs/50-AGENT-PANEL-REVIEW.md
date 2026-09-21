@@ -18,7 +18,7 @@ The panel reviewed the current MVP as a complex full-stack product and treated t
 10. Accessibility engineer — WCAG
 11. Mobile web engineer — Android/mobile UX
 12. API designer — REST semantics
-13. Serverless engineer — Vercel Functions
+13. Serverless engineer — Node API runtime
 14. Node.js engineer — runtime correctness
 15. PostgreSQL engineer — persistence model
 16. Data-model engineer — entities/relationships
@@ -43,7 +43,7 @@ The panel reviewed the current MVP as a complex full-stack product and treated t
 35. Performance engineer — latency/bundle
 36. Caching engineer — cache strategy
 37. DevOps engineer — CI/CD
-38. Vercel deployment engineer — production config
+38. deployment engineer — production config
 39. Database migration engineer — schema evolution
 40. Backup/recovery engineer — durability
 41. SRE — availability/incident response
@@ -96,7 +96,7 @@ The panel reviewed the current MVP as a complex full-stack product and treated t
 
 ## Changes applied in this review
 
-- Added a Vercel-compatible `GET /api/activations/:id` function.
+- Added a deployment-agnostic `GET /api/activations/:id` function.
 - Added a server-only provider adapter contract.
 - Fixed package scripts so `dev` and `start` point to the same local preview server.
 - Added this 50-agent review and implementation roadmap.
@@ -113,7 +113,7 @@ The panel reviewed the current MVP as a complex full-stack product and treated t
 7. Payment integration and webhook reconciliation.
 8. Admin dashboard.
 9. Integration/e2e tests.
-10. CI + Vercel preview deployment.
+10. CI + deployment platform preview deployment.
 
 ## Release rule
 
