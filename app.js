@@ -23,7 +23,11 @@ const state = {
   pendingPurchaseKeys: {},
   purchaseBusy: new Set(),
   securityOpen: false,
-  expandedServiceId: null
+  expandedServiceId: null,
+  marketVisibleCount: 48,
+  categoryCounts: {},
+  serviceSearchIndex: [],
+  marketSearchTimer: null
 };
 
 const nav = [
@@ -41,6 +45,46 @@ function appNav() {
 }
 
 const categoryIcon = { Social: '◉', Productivity: '✦', Rummy: '◆', Games: '♟' };
+const MARKET_PAGE_SIZE = 48;
+const MARKET_MAX_SEARCH_RESULTS = 192;
+
+function normalizeSearchText(value) {
+  return String(value ?? '').toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g, '').trim();
+}
+
+function prepareServiceCatalog() {
+  const services = Array.isArray(state.services) ? state.services : [];
+  state.serviceSearchIndex = services.map((service) => ({ service, text: normalizeSearchText(service.name) }));
+  state.categoryCounts = categories.reduce((counts, category) => {
+    counts[category] = category === 'All' ? services.length : services.filter((service) => service.category === category).length;
+    return counts;
+  }, {});
+}
+
+function filteredMarketServices() {
+  const query = normalizeSearchText(state.search);
+  const source = state.serviceSearchIndex.length
+    ? state.serviceSearchIndex
+    : (state.services || []).map((service) => ({ service, text: normalizeSearchText(service.name) }));
+  return source
+    .filter(({ service, text }) => (state.category === 'All' || service.category === state.category) && (!query || text.includes(query)))
+    .map(({ service }) => service);
+}
+
+function marketResultText(total, visible) {
+  if (!total) return 'No matching services';
+  return `Showing 1–${Math.min(total, visible)} of ${total} services · 11 servers/service`;
+}
+
+function scheduleMarketSearch(value) {
+  state.search = value;
+  window.clearTimeout(state.marketSearchTimer);
+  state.marketSearchTimer = window.setTimeout(() => {
+    state.marketVisibleCount = state.search ? MARKET_MAX_SEARCH_RESULTS : MARKET_PAGE_SIZE;
+    state.expandedServiceId = null;
+    renderBuyCatalog();
+  }, 60);
+}
 
 const seedOrders = [
   { id: 'ORD-240001', service: 'WhatsApp', number: '+91 9•••• 7312', pricePaise: 950, status: 'Completed', otp: '482 913', created: 'Today, 09:18' },
@@ -205,11 +249,14 @@ async function boot() {
     return;
   }
   try {
-    const payload = await api('/api/services');
+    const [payload, activationPayload, wallet] = await Promise.all([
+      api('/api/services'),
+      api('/api/activations'),
+      api('/api/wallet')
+    ]);
     state.services = Array.isArray(payload.services) ? payload.services : [];
-    const activationPayload = await api('/api/activations');
+    prepareServiceCatalog();
     if (activationPayload.persistent) syncFromServerActivations(activationPayload.activations);
-    const wallet = await api('/api/wallet');
     state.balancePaise = Number(wallet.balancePaise || 0);
     state.walletLedger = Array.isArray(wallet.ledger) ? wallet.ledger : [];
     state.recharges = Array.isArray(wallet.recharges) ? wallet.recharges : [];
@@ -558,10 +605,10 @@ function content() {
 
 function toggleService(serviceId) {
   state.expandedServiceId = state.expandedServiceId === serviceId ? null : serviceId;
-  render();
+  renderBuyCatalog();
 }
 
-function syntheticServers() {
+const SYNTHETIC_SERVERS = (() => {
   const capacity = 5000;
   const count = 11;
   const base = Math.floor(capacity / count);
@@ -573,45 +620,66 @@ function syntheticServers() {
     start += size;
     return server;
   });
-}
+})();
+
+function syntheticServers() { return SYNTHETIC_SERVERS; }
 
 function serverRows(service) {
   const disabled = service.pricePaise > state.balancePaise;
-  return syntheticServers().map((server) => `
+  return SYNTHETIC_SERVERS.map((server) => `
     <div class="server-row">
-      <div class="server-number" aria-hidden="true">${server.name.replace('Server ', '')}</div>
+      <div class="server-number" aria-hidden="true">${server.name.replace("Server ", "")}</div>
       <div class="server-info">
         <div class="server-name">${server.name}</div>
         <div class="server-stock">• ${server.capacity} synthetic slots · #${server.startSlot.toLocaleString()}–${server.endSlot.toLocaleString()}</div>
       </div>
       <strong class="server-price">${money(service.pricePaise)}</strong>
-      <button class="buy-btn server-buy" type="button" data-buy-server-service="${esc(service.id)}" data-buy-server="${server.id}" ${disabled ? 'disabled aria-disabled="true"' : ''}>${disabled ? 'Top up' : 'Buy'}</button>
-    </div>`).join('');
+      <button class="buy-btn server-buy" type="button" data-buy-server-service="${esc(service.id)}" data-buy-server="${server.id}" ${disabled ? "disabled aria-disabled=\"true\"" : ""}>${disabled ? "Top up" : "Buy"}</button>
+    </div>`).join("");
 }
 
-function serviceCard(service, index) {
-  const expanded = state.expandedServiceId ? state.expandedServiceId === service.id : index === 0;
-  return `<article class="market-service-group ${expanded ? 'expanded' : ''}">
-    <button class="service-group-header" type="button" data-toggle-service="${esc(service.id)}" aria-expanded="${expanded}">
+function serviceCard(service) {
+  const expanded = state.expandedServiceId === service.id;
+  return `<article class="market-service-group ${expanded ? "expanded" : ""}">
+    <button class="service-group-header" type="button" data-toggle-service="${esc(service.id)}" aria-expanded="${expanded}" aria-controls="servers-${esc(service.id)}">
       <span class="service-icon service-brand-icon">${iconFor(service.category)}</span>
       <span class="service-group-copy"><span class="service-category">${esc(service.category)}</span><strong>${esc(service.name)}</strong><small>from ${money(service.pricePaise)} · 11 synthetic servers · 5,000 total slots</small></span>
-      <span class="service-group-chevron" aria-hidden="true">${expanded ? '⌃' : '⌄'}</span>
+      <span class="service-group-chevron" aria-hidden="true">${expanded ? "⌃" : "⌄"}</span>
     </button>
-    ${expanded ? `<div class="server-panel">
+    ${expanded ? `<div class="server-panel" id="servers-${esc(service.id)}">
       <div class="synthetic-note"><span class="synthetic-note-icon">ϟ</span><div><strong>Synthetic server pools</strong><span>Every generated slot belongs to one server chunk. Selecting a server constrains the generator to that chunk.</span></div></div>
       <div class="server-list">${serverRows(service)}</div>
-    </div>` : ''}
+    </div>` : ""}
   </article>`;
 }
 
-function buyPage() {
-  const query = state.search.toLowerCase().trim();
-  const list = state.services.filter((service) => (state.category === 'All' || service.category === state.category) && (!query || service.name.toLowerCase().includes(query)));
-  return `<div class="section-head"><div><span class="kicker">INDIA / +91</span><h2>Choose a service</h2></div><span class="result-note">${list.length} services · 11 servers/service</span></div>
-    <div class="controls"><div class="toolbar"><label class="search-box" aria-label="Search services"><span>⌕</span><input id="service-search" value="${esc(state.search)}" placeholder="Search WhatsApp, YONO, Rummy…" autocomplete="off"><kbd>/</kbd></label><div class="category-scroll">${categories.map((category) => `<button class="filter-btn ${state.category === category ? 'selected' : ''}" type="button" data-category="${category}">${category}</button>`).join('')}</div></div></div>
-    <div class="service-grid">${list.map(serviceCard).join('')}</div>`;
+function marketListMarkup(list) {
+  const visible = list.slice(0, state.marketVisibleCount);
+  const loadMore = visible.length < list.length;
+  return `${visible.length ? visible.map(serviceCard).join("") : '<div class="market-empty panel"><div class="empty-icon">⌕</div><h3>No services match</h3><p>Try a different service name or category.</p></div>'}
+  ${loadMore ? `<div class="market-load-more-wrap"><button class="load-more-btn" type="button" data-load-more>Load more <span>${visible.length.toLocaleString()} / ${list.length.toLocaleString()}</span></button></div>` : ""}`;
 }
 
+function renderBuyCatalog() {
+  const root = document.getElementById("content");
+  if (!root || state.page !== "buy") return;
+  const list = filteredMarketServices();
+  const grid = root.querySelector(".service-grid");
+  const result = root.querySelector(".market-result-count");
+  if (grid) grid.innerHTML = marketListMarkup(list);
+  if (result) result.textContent = marketResultText(list.length, Math.min(state.marketVisibleCount, list.length));
+  root.querySelectorAll("[data-category]").forEach((node) => {
+    node.classList.toggle("selected", node.dataset.category === state.category);
+    node.setAttribute("aria-pressed", String(node.dataset.category === state.category));
+  });
+}
+
+function buyPage() {
+  const list = filteredMarketServices();
+  return `<div class="section-head"><div><span class="kicker">INDIA / +91</span><h2>Choose a service</h2></div><span class="result-note market-result-count">${esc(marketResultText(list.length, Math.min(state.marketVisibleCount, list.length)))}</span></div>
+    <div class="controls"><div class="toolbar"><label class="search-box" aria-label="Search services"><span>⌕</span><input id="service-search" value="${esc(state.search)}" placeholder="Search 832 services…" autocomplete="off" spellcheck="false"><kbd>/</kbd></label><div class="category-scroll" role="group" aria-label="Service categories">${categories.map((category) => `<button class="filter-btn ${state.category === category ? "selected" : ""}" type="button" data-category="${category}" aria-pressed="${state.category === category}">${category}<span class="filter-count">${(state.categoryCounts[category] || 0).toLocaleString()}</span></button>`).join("")}</div></div></div>
+    <div class="service-grid">${marketListMarkup(list)}</div>`;
+}
 function activePage() {
   return `<div class="section-head with-action"><div><span class="kicker">LIVE SESSION</span><h2>Active numbers</h2></div><span class="status-chip">● ${state.active.length} active</span></div>${state.active.length ? `<div class="active-list">${state.active.map(activeCard).join('')}</div>` : `<div class="panel empty"><div class="empty-icon">▤</div><h3>No active numbers</h3><p>Reserve a number from the marketplace and the activation will appear here.</p></div>`}`;
 }
@@ -670,9 +738,7 @@ function bindEvents() {
   document.querySelectorAll('[data-action="logout-all"]').forEach((node) => node.addEventListener('click', logoutAll));
   document.getElementById('change-password-form')?.addEventListener('submit', submitChangePassword);
   document.querySelectorAll('[data-page]').forEach((node) => node.addEventListener('click', () => setPage(node.dataset.page)));
-  document.querySelectorAll('[data-category]').forEach((node) => node.addEventListener('click', () => { state.category = node.dataset.category; render(); }));
-  document.querySelectorAll('[data-buy-server-service]').forEach((node) => node.addEventListener('click', () => buy(node.dataset.buyServerService, node.dataset.buyServer)));
-  document.querySelectorAll('[data-toggle-service]').forEach((node) => node.addEventListener('click', () => toggleService(node.dataset.toggleService)));
+  bindMarketplaceEvents();
   document.querySelectorAll('[data-cancel]').forEach((node) => node.addEventListener('click', () => cancelActivation(node.dataset.cancel)));
   document.querySelectorAll('[data-copy]').forEach((node) => node.addEventListener('click', async () => { try { await navigator.clipboard.writeText(node.dataset.copy); toast('OTP copied'); } catch { toast('Copy unavailable on this browser'); } }));
   document.querySelectorAll('[data-action="open-menu"]').forEach((node) => node.addEventListener('click', openMenu));
@@ -684,10 +750,41 @@ function bindEvents() {
   document.querySelectorAll('[data-admin-reject]').forEach((node) => node.addEventListener('click', () => { const reason = window.prompt('Reason for rejecting this recharge?', 'Payment could not be verified'); if (reason !== null) adminAction(`/api/admin/recharges/${encodeURIComponent(node.dataset.adminReject)}`, { decision: 'reject', reason }); }));
   document.querySelectorAll('[data-admin-service-form]').forEach((node) => node.addEventListener('submit', (event) => { event.preventDefault(); adminUpdateService(node.dataset.adminServiceForm, node); }));
   document.querySelectorAll('[data-recharge-amount]').forEach((node) => node.addEventListener('click', () => setRechargeAmount(node.dataset.rechargeAmount)));
-  const search = document.getElementById('service-search');
-  if (search) {
-    search.addEventListener('input', (event) => { state.search = event.target.value; render(); const input = document.getElementById('service-search'); input?.focus(); input?.setSelectionRange(state.search.length, state.search.length); });
-  }
+  bindMarketplaceEvents();
+}
+
+function bindMarketplaceEvents() {
+  const root = document.getElementById("content");
+  if (!root || root.dataset.marketBound === "true") return;
+  root.dataset.marketBound = "true";
+  root.addEventListener("input", (event) => {
+    if (event.target?.id === "service-search") scheduleMarketSearch(event.target.value);
+  });
+  root.addEventListener("click", (event) => {
+    const category = event.target.closest("[data-category]");
+    if (category && root.contains(category)) {
+      window.clearTimeout(state.marketSearchTimer);
+      state.category = category.dataset.category;
+      state.marketVisibleCount = MARKET_PAGE_SIZE;
+      state.expandedServiceId = null;
+      renderBuyCatalog();
+      return;
+    }
+    const toggle = event.target.closest("[data-toggle-service]");
+    if (toggle && root.contains(toggle)) {
+      toggleService(toggle.dataset.toggleService);
+      return;
+    }
+    const loadMore = event.target.closest("[data-load-more]");
+    if (loadMore && root.contains(loadMore)) {
+      const list = filteredMarketServices();
+      state.marketVisibleCount = Math.min(state.marketVisibleCount + MARKET_PAGE_SIZE, list.length);
+      renderBuyCatalog();
+      return;
+    }
+    const buyButton = event.target.closest("[data-buy-server-service]");
+    if (buyButton && root.contains(buyButton)) buy(buyButton.dataset.buyServerService, buyButton.dataset.buyServer);
+  });
 }
 
 document.addEventListener('keydown', (event) => {
