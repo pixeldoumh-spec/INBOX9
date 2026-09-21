@@ -722,7 +722,7 @@ function serverRows(service, stats = SYNTHETIC_SERVERS) {
         <div class="server-stock">• ${availableCount.toLocaleString()} available of ${server.capacity.toLocaleString()} · #${server.startSlot.toLocaleString()}–${server.endSlot.toLocaleString()}</div>
       </div>
       <strong class="server-price">${money(service.pricePaise)}</strong>
-      <button class="buy-btn server-buy" type="button" data-buy-server-service="${esc(service.id)}" data-buy-server="${server.id}" ${disabled ? 'disabled aria-disabled="true"' : ''}>${actionLabel}</button>
+      <button class="buy-btn server-buy" type="button" data-buy-server-service="${esc(service.id)}" data-buy-server="${server.id}" ${disabled ? 'disabled aria-disabled="true"' : ''}>${actionLabel === 'Buy' ? 'Select' : actionLabel}</button>
     </div>`;
   }).join('');
 }
@@ -737,11 +737,11 @@ function serviceCard(service) {
   return `<article class="market-service-group ${expanded ? "expanded" : ""}">
     <button class="service-group-header" type="button" data-toggle-service="${esc(service.id)}" aria-expanded="${expanded}" aria-controls="servers-${esc(service.id)}">
       <span class="service-icon service-brand-icon">${iconFor(service.category)}</span>
-      <span class="service-group-copy"><span class="service-category">${esc(service.category)}</span><strong>${esc(service.name)}</strong><small>from ${money(service.pricePaise)} · 11 synthetic servers · 5,000 total slots</small></span>
+      <span class="service-group-copy"><span class="service-category">${esc(service.category)}</span><strong>${esc(service.name)}</strong><small>from ${money(service.pricePaise)} · OTP in about 20 seconds</small></span>
       <span class="service-group-chevron" aria-hidden="true">${expanded ? "⌃" : "⌄"}</span>
     </button>
     ${expanded ? `<div class="server-panel" id="servers-${esc(service.id)}">
-      <div class="synthetic-note"><span class="synthetic-note-icon">ϟ</span><div><strong>Live synthetic server pools</strong><span>Availability is read from the same reservation state used by the activation engine.</span></div></div>
+      <div class="synthetic-note"><span class="synthetic-note-icon">ϟ</span><div><strong>Choose a server</strong><span>Availability updates automatically.</span></div></div>
       <div class="server-list">${serverContent}</div>
     </div>` : ""}
   </article>`;
