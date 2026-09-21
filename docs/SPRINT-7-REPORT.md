@@ -18,7 +18,7 @@ The following must be provisioned outside the source repository:
 
 1. Managed PostgreSQL database.
 2. Upstash Redis (or another shared Redis-compatible rate-limit service).
-3. Vercel project/environment variables.
+3. deployment platform project/environment variables.
 4. Authorized upstream provider credentials, when real provider integration is enabled.
 5. Production domain for `APP_ORIGIN`.
 
