@@ -1,7 +1,10 @@
+import crypto from 'node:crypto';
 import { getPool } from './db.js';
 import { getSyntheticServer, listSyntheticServers, SYNTHETIC_CAPACITY } from './synthetic-servers.js';
 
 export const SYNTHETIC_RESERVATION_STATUS = 'Reserved';
+
+function reservationId() { return `SLOT-${crypto.randomUUID()}`; }
 
 function assertSlot(slot) {
   const value = Number(slot);
@@ -50,10 +53,10 @@ export async function claimSyntheticSlot(client, { activationId, serviceId, slot
   const result = await client.query(
     `INSERT INTO synthetic_slot_reservations
        (id,service_id,slot_index,server_id,activation_id,status,reserved_at)
-     VALUES (gen_random_uuid()::text,$1,$2,$3,$4,'Reserved',COALESCE($5,NOW()))
+     VALUES ($1,$2,$3,$4,$5,'Reserved',COALESCE($6,NOW()))
      ON CONFLICT (service_id, slot_index) WHERE status='Reserved' DO NOTHING
      RETURNING id,service_id,slot_index,server_id,activation_id,status,reserved_at`,
-    [service, index, server.id, activation, reservedAt ? new Date(reservedAt) : null]
+    [reservationId(), service, index, server.id, activation, reservedAt ? new Date(reservedAt) : null]
   );
 
   if (!result.rowCount) {
