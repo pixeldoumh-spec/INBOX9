@@ -11,9 +11,12 @@ telecom inventory, or call third-party verification endpoints.
 The generator supports up to 5,000 synthetic identities per catalog service,
 for 4,160,000 synthetic identities across the current 832 services.
 
-Inventory is generated on demand rather than stored as 380,000 database rows.
-This keeps the test environment lightweight while allowing deterministic load
-simulation.
+Inventory is generated on demand rather than storing 4,160,000 slot rows.
+A durable reservation row is created only for an allocated synthetic slot, so the
+database tracks live ownership without materializing the entire pool. PostgreSQL
+enforces uniqueness for each (service, slot) while the activation is Reserved.
+Terminal activation states release the reservation; a collision is retried with
+a fresh synthetic slot.
 
 ## Verification
 
@@ -23,12 +26,13 @@ Run:
 npm run synthetic:smoke
 ```
 
-The smoke script validates all 76 services, the selected per-service capacity,
-identity uniqueness, and deterministic OTP generation.
+The smoke script validates all 832 services, the selected per-service capacity,
+identity uniqueness, deterministic OTP generation, and the 11-server partition.
 
 ## Accuracy note
 
 This is a deterministic rules-based simulator, not an ML model. Because the
 output is derived from a cryptographic hash and covered by exact contract tests,
-we can validate 100% reproducibility/correctness of the simulator's expected
-outputs. No real-world SMS delivery accuracy is implied.
+we can validate reproducibility of the simulator's expected outputs. Durable
+slot reservations additionally make concurrent allocation state database-authoritative.
+No real-world SMS delivery accuracy is implied.
