@@ -46,7 +46,7 @@ function appNav() {
 
 const categoryIcon = { Social: '◉', Productivity: '✦', Rummy: '◆', Games: '♟' };
 const MARKET_PAGE_SIZE = 48;
-const MARKET_MAX_SEARCH_RESULTS = 192;
+const MARKET_MAX_SEARCH_RESULTS = 96;
 
 function normalizeSearchText(value) {
   return String(value ?? '').toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g, '').trim();
@@ -676,7 +676,7 @@ function renderBuyCatalog() {
 
 function buyPage() {
   const list = filteredMarketServices();
-  return `<div class="section-head"><div><span class="kicker">INDIA / +91</span><h2>Choose a service</h2></div><span class="result-note market-result-count">${esc(marketResultText(list.length, Math.min(state.marketVisibleCount, list.length)))}</span></div>
+  return `<div class="section-head"><div><span class="kicker">INDIA / +91</span><h2>Choose a service</h2></div><span class="result-note market-result-count" aria-live="polite">${esc(marketResultText(list.length, Math.min(state.marketVisibleCount, list.length)))}</span></div>
     <div class="controls"><div class="toolbar"><label class="search-box" aria-label="Search services"><span>⌕</span><input id="service-search" value="${esc(state.search)}" placeholder="Search 832 services…" autocomplete="off" spellcheck="false"><kbd>/</kbd></label><div class="category-scroll" role="group" aria-label="Service categories">${categories.map((category) => `<button class="filter-btn ${state.category === category ? "selected" : ""}" type="button" data-category="${category}" aria-pressed="${state.category === category}">${category}<span class="filter-count">${(state.categoryCounts[category] || 0).toLocaleString()}</span></button>`).join("")}</div></div></div>
     <div class="service-grid">${marketListMarkup(list)}</div>`;
 }
@@ -750,7 +750,6 @@ function bindEvents() {
   document.querySelectorAll('[data-admin-reject]').forEach((node) => node.addEventListener('click', () => { const reason = window.prompt('Reason for rejecting this recharge?', 'Payment could not be verified'); if (reason !== null) adminAction(`/api/admin/recharges/${encodeURIComponent(node.dataset.adminReject)}`, { decision: 'reject', reason }); }));
   document.querySelectorAll('[data-admin-service-form]').forEach((node) => node.addEventListener('submit', (event) => { event.preventDefault(); adminUpdateService(node.dataset.adminServiceForm, node); }));
   document.querySelectorAll('[data-recharge-amount]').forEach((node) => node.addEventListener('click', () => setRechargeAmount(node.dataset.rechargeAmount)));
-  bindMarketplaceEvents();
 }
 
 function bindMarketplaceEvents() {
