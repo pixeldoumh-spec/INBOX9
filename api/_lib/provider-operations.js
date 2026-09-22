@@ -2,7 +2,7 @@ import crypto from 'node:crypto';
 import { getPool, withTransaction } from './db.js';
 import { getProviderAdapter } from './provider-registry.js';
 import { creditRefund, getBalanceForClient } from './wallet-repository.js';
-import { releaseSyntheticSlot, shouldRestoreSyntheticStock } from './synthetic-inventory-repository.js';
+import { releaseSyntheticSlot, shouldRestoreSyntheticStock, shouldRequireSyntheticReservation } from './synthetic-inventory-repository.js';
 
 function id() { return `POP-${crypto.randomUUID()}`; }
 
@@ -199,7 +199,7 @@ async function finalizeExpirationOperation(operationId, outcome) {
       );
       if (updated.rowCount) {
         const released = await releaseSyntheticSlot(client, row.activation_id);
-        if (!released) {
+        if (!released && shouldRequireSyntheticReservation(row.provider_metadata)) {
           throw new Error('Synthetic inventory reservation is missing for completed activation');
         }
         if (shouldRestoreSyntheticStock('Completed')) {
@@ -220,7 +220,7 @@ async function finalizeExpirationOperation(operationId, outcome) {
     );
     if (updated.rowCount) {
       const released = await releaseSyntheticSlot(client, row.activation_id);
-      if (!released) {
+      if (!released && shouldRequireSyntheticReservation(row.provider_metadata)) {
         throw new Error('Synthetic inventory reservation is missing for expired activation');
       }
       // Inventory is restored exactly once by the guarded ExpirationPending -> Expired transition.
