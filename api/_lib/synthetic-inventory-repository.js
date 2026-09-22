@@ -4,6 +4,10 @@ import { getSyntheticServer, listSyntheticServers, SYNTHETIC_CAPACITY } from './
 
 export const SYNTHETIC_RESERVATION_STATUS = 'Reserved';
 
+export function shouldRestoreSyntheticStock(status) {
+  return status === 'Completed' || status === 'Expired';
+}
+
 function reservationId() { return `SLOT-${crypto.randomUUID()}`; }
 
 function assertSlot(slot) {
