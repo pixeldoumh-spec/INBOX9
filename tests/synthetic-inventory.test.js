@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import { listSyntheticServers, SYNTHETIC_SERVER_COUNT, SYNTHETIC_CAPACITY, getSyntheticServer } from '../api/_lib/synthetic-servers.js';
-import { claimSyntheticSlot, shouldRestoreSyntheticStock } from '../api/_lib/synthetic-inventory-repository.js';
+import { claimSyntheticSlot, shouldRestoreSyntheticStock, shouldRequireSyntheticReservation } from '../api/_lib/synthetic-inventory-repository.js';
 
 test('synthetic servers partition 5,000 slots into exactly 11 contiguous chunks', () => {
   const servers = listSyntheticServers();
@@ -76,4 +76,13 @@ test('synthetic slot claim surfaces durable uniqueness conflicts', async () => {
     }),
     error => error?.code === 'SYNTHETIC_SLOT_CONFLICT'
   );
+});
+
+
+test('synthetic terminal release requirement distinguishes modern and legacy activations', () => {
+  assert.equal(shouldRequireSyntheticReservation({ engine: 'synthetic', slot: 1 }), true);
+  assert.equal(shouldRequireSyntheticReservation({ engine: 'synthetic', slot: 5000 }), true);
+  assert.equal(shouldRequireSyntheticReservation({ engine: 'synthetic', slot: 0 }), false);
+  assert.equal(shouldRequireSyntheticReservation({ engine: 'synthetic-local', slot: 1 }), false);
+  assert.equal(shouldRequireSyntheticReservation({}), false);
 });
