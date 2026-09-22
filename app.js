@@ -798,7 +798,28 @@ function render() {
 }
 
 function hero() {
-  return `<section class="hero-strip"><div><span class="eyebrow">✦ FAST ACTIVATIONS</span><h1>Virtual numbers, built for speed.</h1><p>Choose a service, reserve a number, and receive the verification message in one place.</p></div><div class="hero-metric"><span>Live inventory</span><strong>${state.services.length.toLocaleString()}</strong><small>services · 5,000 slots/service · OTP in 20 sec</small></div></section>`;
+  const activeCount = state.active.length;
+  const serviceCount = state.services.length;
+  return `<section class="hero-strip premium-hero">
+    <div class="hero-copy">
+      <div class="hero-eyebrow"><span class="pulse-dot"></span><span>LIVE MARKETPLACE</span><span class="hero-eyebrow-sep">/</span><span>FAST ACTIVATIONS</span></div>
+      <h1>Get a number. Get your code. Keep moving.</h1>
+      <p>Pick a service, choose a server, and track the activation from one focused workspace.</p>
+      <div class="hero-actions">
+        <button class="primary-btn hero-primary" type="button" data-page="buy">Browse services <span>→</span></button>
+        <button class="ghost-btn" type="button" data-page="wallet">Add funds <span>+</span></button>
+      </div>
+    </div>
+    <div class="hero-dashboard">
+      <div class="hero-live"><span class="live-dot"></span><strong>Marketplace live</strong><span>24/7</span></div>
+      <div class="hero-stat-grid">
+        <div class="hero-stat"><span>Services</span><strong>${state.services.length.toLocaleString()}</strong><small>ready to browse</small></div>
+        <div class="hero-stat"><span>Servers / service</span><strong>11</strong><small>distributed capacity</small></div>
+        <div class="hero-stat"><span>Code timing</span><strong>20s</strong><small>automatic delivery</small></div>
+        <div class="hero-stat"><span>Active now</span><strong>${activeCount}</strong><small>${activeCount === 1 ? 'activation' : 'activations'}</small></div>
+      </div>
+    </div>
+  </section>`;
 }
 
 function content() {
@@ -858,17 +879,32 @@ function serviceCard(service) {
   const expanded = state.expandedServiceId === service.id;
   const stats = state.marketServerStats[service.id];
   const loading = Boolean(state.marketServerLoading[service.id]);
+  const availability = Math.max(0, Number(service.stock || 0));
+  const availabilityState = availability <= 0 ? 'sold-out' : availability < 100 ? 'limited' : 'ready';
+  const availabilityLabel = availability <= 0 ? 'Sold out' : availability < 100 ? 'Limited' : 'Ready';
   const serverContent = loading
     ? '<div class="server-loading">Checking live inventory…</div>'
     : serverRows(service, stats?.length ? stats : MARKET_SERVERS);
   return `<article class="market-service-group ${expanded ? "expanded" : ""}">
     <button class="service-group-header" type="button" data-toggle-service="${esc(service.id)}" aria-expanded="${expanded}" aria-controls="servers-${esc(service.id)}">
       <span class="service-icon service-brand-icon">${iconFor(service.category)}</span>
-      <span class="service-group-copy"><span class="service-category">${esc(service.category)}</span><strong>${esc(service.name)}</strong><small>from ${money(service.pricePaise)} · OTP in about 20 seconds</small></span>
-      <span class="service-group-chevron" aria-hidden="true">${expanded ? "⌃" : "⌄"}</span>
+      <span class="service-group-copy">
+        <span class="service-category">${esc(service.category)}</span>
+        <strong>${esc(service.name)}</strong>
+        <small>Fast activation · OTP in about 20 seconds</small>
+      </span>
+      <span class="service-group-meta">
+        <span class="availability-pill ${availabilityState}"><span></span>${availabilityLabel}</span>
+        <span class="service-price">${money(service.pricePaise)}</span>
+        <span class="service-group-chevron" aria-hidden="true">${expanded ? "⌃" : "⌄"}</span>
+      </span>
     </button>
     ${expanded ? `<div class="server-panel" id="servers-${esc(service.id)}">
-      <div class="server-note"><span class="server-note-icon">ϟ</span><div><strong>Choose a server</strong><span>Availability updates automatically.</span></div></div>
+      <div class="server-panel-head">
+        <div><span class="kicker">SERVER SELECTION</span><strong>Choose a server</strong></div>
+        <span class="server-panel-count">${availability.toLocaleString()} total available</span>
+      </div>
+      <div class="server-note"><span class="server-note-icon">ϟ</span><div><strong>Availability updates automatically</strong><span>Select a server below to continue.</span></div></div>
       <div class="server-list">${serverContent}</div>
     </div>` : ""}
   </article>`;
@@ -900,10 +936,22 @@ function renderBuyCatalog() {
 
 function buyPage() {
   const list = filteredMarketServices();
-  return `<div class="section-head"><div><span class="kicker">MARKETPLACE / +91</span><h2>Choose a service</h2></div><span class="result-note market-result-count" aria-live="polite">${esc(marketResultText(list.length, Math.min(state.marketVisibleCount, list.length)))}</span></div>
-    <div class="controls"><div class="toolbar"><label class="search-box" aria-label="Search services"><span>⌕</span><input id="service-search" value="${esc(state.search)}" placeholder="Search 832 services…" autocomplete="off" spellcheck="false"><kbd>/</kbd></label><div class="category-scroll-wrap"><div class="category-scroll" role="group" aria-label="Service categories">${categories.map((category) => `<button class="filter-btn ${state.category === category ? "selected" : ""}" type="button" data-category="${category}" aria-pressed="${state.category === category}">${category}<span class="filter-count">${(state.categoryCounts[category] || 0).toLocaleString()}</span></button>`).join("")}</div></div></div></div>
+  const showing = Math.min(state.marketVisibleCount, list.length);
+  return `<div class="market-page">
+    <div class="section-head market-section-head">
+      <div><span class="kicker">MARKETPLACE / +91</span><h2>Choose a service</h2><p class="section-subcopy">Browse ${state.services.length.toLocaleString()} services and select the server that fits your session.</p></div>
+      <div class="market-summary"><span class="summary-dot"></span><strong>${list.length.toLocaleString()}</strong><span>matches</span></div>
+    </div>
+    <div class="controls market-controls">
+      <div class="toolbar market-toolbar">
+        <label class="search-box premium-search" aria-label="Search services"><span class="search-glyph">⌕</span><input id="service-search" value="${esc(state.search)}" placeholder="Search ${state.services.length.toLocaleString()} services…" autocomplete="off" spellcheck="false"><kbd>/</kbd></label>
+        <div class="category-scroll-wrap"><div class="category-scroll" role="group" aria-label="Service categories">${categories.map((category) => `<button class="filter-btn ${state.category === category ? "selected" : ""}" type="button" data-category="${category}" aria-pressed="${state.category === category}"><span>${category}</span><span class="filter-count">${(state.categoryCounts[category] || 0).toLocaleString()}</span></button>`).join("")}</div></div>
+      </div>
+    </div>
+    <div class="market-results-bar"><span class="result-note market-result-count" aria-live="polite">${esc(marketResultText(list.length, showing))}</span><span class="market-hint">Tap a service to reveal servers</span></div>
     <div class="service-grid">${marketListMarkup(list)}</div>
-    <div class="purchase-flow-root">${purchaseReviewModal()}</div>`;
+    <div class="purchase-flow-root">${purchaseReviewModal()}</div>
+  </div>`;
 }
 function activePage() {
   return `<div class="section-head with-action"><div><span class="kicker">LIVE SESSION</span><h2>Active numbers</h2></div><span class="status-chip">● ${state.active.length} active</span></div>${state.active.length ? `<div class="active-list">${state.active.map(activeCard).join('')}</div>` : `<div class="panel empty"><div class="empty-icon">▤</div><h3>No active numbers</h3><p>Reserve a number from the marketplace and the activation will appear here.</p></div>`}`;
