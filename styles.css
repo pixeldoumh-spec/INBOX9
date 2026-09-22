@@ -147,6 +147,14 @@ html.overlay-open,body.overlay-open{overflow:hidden}.security-overlay{position:f
 }
 
 
+/* TASK-005 recharge verification controls */
+.admin-verify-fields{display:grid;grid-template-columns:repeat(3,minmax(120px,1fr));gap:8px;margin-bottom:8px}
+.admin-verify-fields label{display:flex;flex-direction:column;gap:4px;color:#738096;font-size:9px;text-transform:uppercase;letter-spacing:.06em}
+.admin-verify-fields label span{font-size:8px;text-transform:none;letter-spacing:0}
+.admin-verify-fields input{width:100%;box-sizing:border-box;height:34px;padding:0 9px;border:1px solid #293242;border-radius:8px;background:#090d14;color:#eef3f8;font-size:11px;outline:none}
+.admin-verify-fields input:focus{border-color:#6d7cff;box-shadow:0 0 0 3px rgba(109,124,255,.12)}
+@media(max-width:900px){.admin-verify-fields{grid-template-columns:1fr}.admin-verify-fields input{height:38px;font-size:12px}}
+
 /* TASK-003 mobile readability and browser ergonomics */
 .purchase-return-banner{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:13px 15px;margin-bottom:14px}.purchase-return-banner strong,.purchase-return-banner span{display:block}.purchase-return-banner strong{font-size:11px;color:#dce5ee}.purchase-return-banner span{margin-top:3px;color:#6e7b8f;font-size:9px}.purchase-return-banner .primary-btn{flex:none;height:36px;padding:0 13px}
 @media(max-width:620px){.orders-table{min-width:0}.orders-table thead{display:none}.orders-table tbody{display:grid}.orders-table tr{display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid #18212d;padding:8px 0}.orders-table td{display:grid;grid-template-columns:68px minmax(0,1fr);gap:8px;align-items:start;padding:8px 12px;border:0;min-width:0;font-size:11px}.orders-table td::before{content:attr(data-label);color:#657286;font-size:9px;text-transform:uppercase;letter-spacing:.08em}.orders-table td:last-child{grid-column:1/-1}.orders-table td strong{font-size:11px}.orders-table .table-status{font-size:11px}.table-panel{overflow-x:auto}}

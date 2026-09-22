@@ -1,7 +1,7 @@
 import { applySecurityHeaders, requestId, rateLimitAsync, enforceSameOrigin, validateBodySize } from '../_lib/security.js';
 import { dbEnabled } from '../_lib/db.js';
 import { getSessionUser, getMockSession, requireUser } from '../_lib/auth.js';
-import { createRecharge, listRecharges, MIN_RECHARGE_PAISE, MAX_RECHARGE_PAISE, UPI_ID } from '../_lib/wallet-repository.js';
+import { createRecharge, listRecharges, MIN_RECHARGE_PAISE, MAX_RECHARGE_PAISE, UPI_ID, isDuplicateUtrError } from '../_lib/wallet-repository.js';
 
 export default async function handler(req, res) {
   applySecurityHeaders(res);
@@ -27,7 +27,9 @@ export default async function handler(req, res) {
   try {
     return res.status(201).json(await createRecharge(user.id, amountPaise, utr));
   } catch (error) {
-    const duplicate = /already been submitted/i.test(error.message);
-    return res.status(duplicate ? 409 : 400).json({ error: error.message });
+    if (isDuplicateUtrError(error)) {
+      return res.status(409).json({ code: 'DUPLICATE_UTR', error: 'This UTR has already been submitted' });
+    }
+    return res.status(400).json({ error: error.message });
   }
 }

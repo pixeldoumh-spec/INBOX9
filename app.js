@@ -678,7 +678,7 @@ function adminOverviewPage() {
 }
 
 function adminRechargesPage() {
-  const rows = state.admin.recharges.length ? state.admin.recharges.map(r => `<tr><td class="mono">${esc(r.id)}</td><td>${esc(r.email)}</td><td><strong>${money(r.amountPaise)}</strong></td><td class="mono">${esc(r.utr)}</td><td>${esc(new Date(r.submittedAt).toLocaleString())}</td><td><div class="admin-actions"><button class="buy-btn" type="button" data-admin-approve="${esc(r.id)}">Approve</button><button class="text-danger admin-reject" type="button" data-admin-reject="${esc(r.id)}">Reject</button></div></td></tr>`).join('') : `<tr><td colspan="6"><div class="empty-mini">No pending recharge requests.</div></td></tr>`;
+  const rows = state.admin.recharges.length ? state.admin.recharges.map(r => `<tr><td class="mono">${esc(r.id)}</td><td>${esc(r.email)}</td><td><strong>${money(r.amountPaise)}</strong></td><td class="mono">${esc(r.utr)}</td><td>${esc(new Date(r.submittedAt).toLocaleString())}</td><td><div class="admin-verify-fields"><label>Verified amount<input type="number" min="100" max="5000" step="0.01" value="${(Number(r.amountPaise || 0) / 100).toFixed(2)}" data-admin-verified-amount></label><label>Verified UTR<input type="text" minlength="4" maxlength="64" value="${esc(r.utr)}" data-admin-verified-utr></label><label>External reference <span>(optional)</span><input type="text" maxlength="120" placeholder="Bank/payment ref" data-admin-external-reference></label></div><div class="admin-actions"><button class="buy-btn" type="button" data-admin-approve="${esc(r.id)}">Approve verified payment</button><button class="text-danger admin-reject" type="button" data-admin-reject="${esc(r.id)}">Reject</button></div></td></tr>`).join('') : `<tr><td colspan="6"><div class="empty-mini">No pending recharge requests.</div></td></tr>`;
   return `<div class="panel table-panel"><div class="panel-head"><div><h3>Pending UTR verification</h3><span>Verify the payment independently before approving.</span></div></div><table><thead><tr><th>Request</th><th>User</th><th>Amount</th><th>UTR</th><th>Submitted</th><th>Action</th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 
@@ -944,7 +944,15 @@ function bindEvents() {
   document.querySelectorAll('[data-action="reset"]').forEach((node) => node.addEventListener('click', resetDemo));
   document.getElementById('recharge-form')?.addEventListener('submit', submitRecharge);
   document.querySelectorAll('[data-admin-tab]').forEach((node) => node.addEventListener('click', () => loadAdminTab(node.dataset.adminTab)));
-  document.querySelectorAll('[data-admin-approve]').forEach((node) => node.addEventListener('click', () => adminAction(`/api/admin/recharges/${encodeURIComponent(node.dataset.adminApprove)}`, { decision: 'approve' })));
+  document.querySelectorAll('[data-admin-approve]').forEach((node) => node.addEventListener('click', () => {
+    const row = node.closest('tr');
+    const verifiedAmount = row?.querySelector('[data-admin-verified-amount]')?.value;
+    const verifiedUtr = row?.querySelector('[data-admin-verified-utr]')?.value;
+    const externalReference = row?.querySelector('[data-admin-external-reference]')?.value;
+    adminAction(`/api/admin/recharges/${encodeURIComponent(node.dataset.adminApprove)}`, {
+      decision: 'approve', verifiedAmount, verifiedUtr, externalReference
+    });
+  }));
   document.querySelectorAll('[data-admin-reject]').forEach((node) => node.addEventListener('click', () => { const reason = window.prompt('Reason for rejecting this recharge?', 'Payment could not be verified'); if (reason !== null) adminAction(`/api/admin/recharges/${encodeURIComponent(node.dataset.adminReject)}`, { decision: 'reject', reason }); }));
   document.querySelectorAll('[data-admin-service-form]').forEach((node) => node.addEventListener('submit', (event) => { event.preventDefault(); adminUpdateService(node.dataset.adminServiceForm, node); }));
   document.querySelectorAll('[data-recharge-amount]').forEach((node) => node.addEventListener('click', () => setRechargeAmount(node.dataset.rechargeAmount)));
