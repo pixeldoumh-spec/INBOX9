@@ -21,7 +21,7 @@ test('Indian-format synthetic number is deterministic and 10 digits', () => {
   const b = generateSyntheticIndianNumber('WhatsApp', 1);
   assert.equal(a, b);
   assert.match(a, /^\+91 [6-9]\d{4} \d{5}$/);
-  assert.equal(a.replace(/\D/g, '').length, 12);
+  assert.equal(a.replace('+91 ', '').replace(/\s/g, '').length, 10);
 });
 
 test('Indian-format synthetic number changes with synthetic identity inputs', () => {
