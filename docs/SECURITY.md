@@ -26,3 +26,10 @@ The mock implementation does not perform real third-party account verification o
 - Changing a password increments the session version, removes every prior session, and creates one fresh session for the current device.
 - The internal reconciliation cron removes expired/revoked session rows so stale session data does not accumulate.
 - Session tokens, hashes and password material are never returned to the browser or admin API.
+
+## TASK-006 hardening
+- Admin read endpoints now emit the common security headers and are rate limited.
+- The wallet reconciliation POST path enforces same-origin requests, payload limits and rate limiting.
+- PostgreSQL TLS certificate verification is enabled by default when SSL is enabled; provide `DATABASE_SSL_CA` for a private CA rather than disabling verification.
+- Login failures use a generic invalid-credentials response to reduce account-enumeration leakage.
+- The internal reconciliation job endpoint is POST-only and authenticates with `CRON_SECRET`.

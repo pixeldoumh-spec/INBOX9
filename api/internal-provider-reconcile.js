@@ -7,8 +7,8 @@ import { applySecurityHeaders, requestId } from './_lib/security.js';
 
 export default async function handler(req, res) {
   applySecurityHeaders(res); requestId(req, res);
-  if (!['GET','POST'].includes(req.method)) return res.status(405).json({ error: 'Method not allowed' });
-  const expected = process.env.CRON_SECRET || process.env.INTERNAL_CRON_SECRET;
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+  const expected = process.env.CRON_SECRET;
   const bearer = String(req.headers.authorization || '');
   const supplied = bearer.startsWith('Bearer ') ? bearer.slice(7).trim() : String(req.headers['x-inbox9-cron-secret'] || '');
   const valid = Boolean(expected && supplied && supplied.length === String(expected).length && crypto.timingSafeEqual(Buffer.from(supplied), Buffer.from(String(expected))));

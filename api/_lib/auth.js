@@ -167,9 +167,9 @@ export async function login(emailInput, password) {
       [email]
     );
     if (!result.rowCount) {
-      const notFound = new Error('Account not found. Please sign up first.');
-      notFound.code = 'ACCOUNT_NOT_FOUND';
-      throw notFound;
+      const invalid = new Error('Invalid email or password');
+      invalid.code = 'INVALID_CREDENTIALS';
+      throw invalid;
     }
     const row = result.rows[0];
     if (!row.active) {
