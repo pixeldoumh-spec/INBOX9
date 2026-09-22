@@ -722,8 +722,20 @@ function adminLedgerPage() {
   return `<div class="panel table-panel"><div class="panel-head"><div><h3>Wallet ledger</h3><span>Read-only immutable accounting history.</span></div></div><table><thead><tr><th>Entry</th><th>User</th><th>Type</th><th>Amount</th><th>Reference</th><th>Description</th><th>Created</th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 
+function providerUiName(provider) {
+  const adapterKey = String(provider?.adapterKey || '').trim().toLowerCase();
+  return adapterKey === 'synthetic' || /synthetic/i.test(String(provider?.name || ''))
+    ? 'Activation Service'
+    : String(provider?.name || 'Provider');
+}
+
+function providerUiKey(provider) {
+  const adapterKey = String(provider?.adapterKey || '').trim().toLowerCase();
+  return adapterKey === 'synthetic' ? 'Managed service' : String(provider?.adapterKey || '—');
+}
+
 function adminProvidersPage() {
-  const rows = state.admin.providers.length ? state.admin.providers.map(p => `<tr><td><strong>${esc(p.name)}</strong><small class="table-sub">${esc(p.adapterKey)}</small></td><td>${p.active ? 'Active' : 'Disabled'}</td><td>${p.routedServices}</td><td><span class="table-status ${p.healthy ? 'approved' : 'rejected'}">${p.healthy ? 'Healthy' : 'Unhealthy'}</span></td><td>${esc(p.error || p.message || '—')}</td></tr>`).join('') : `<tr><td colspan="5"><div class="empty-mini">No providers available.</div></td></tr>`;
+  const rows = state.admin.providers.length ? state.admin.providers.map(p => `<tr><td><strong>${esc(providerUiName(p))}</strong><small class="table-sub">${esc(providerUiKey(p))}</small></td><td>${p.active ? 'Active' : 'Disabled'}</td><td>${p.routedServices}</td><td><span class="table-status ${p.healthy ? 'approved' : 'rejected'}">${p.healthy ? 'Healthy' : 'Unhealthy'}</span></td><td>${esc(p.error || p.message || '—')}</td></tr>`).join('') : `<tr><td colspan="5"><div class="empty-mini">No providers available.</div></td></tr>`;
   return `<div class="panel table-panel"><div class="panel-head"><div><h3>Provider registry</h3><span>Routing and health status.</span></div></div><table><thead><tr><th>Provider</th><th>Status</th><th>Routes</th><th>Health</th><th>Details</th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 
@@ -763,7 +775,7 @@ function render() {
           ${appNav().map(([id, label, glyph]) => `<button class="nav-item ${state.page === id ? 'active' : ''}" type="button" data-page="${id}"><span>${glyph}</span>${label}${id === 'active' && state.active.length ? `<span class="count-badge">${state.active.length}</span>` : ''}</button>`).join('')}
         </nav>
         <div class="sidebar-spacer"></div>
-        <div class="trust-card"><span>✓</span><div><strong>Secure routing</strong><span>Protected provider layer</span></div></div>
+        <div class="trust-card"><span>✓</span><div><strong>Secure activation</strong><span>Protected service layer</span></div></div>
         <div class="user-card"><div class="avatar">PX</div><div class="user-copy"><strong>${esc(state.user?.email || "User")}</strong><span>${esc(state.user?.role || "user")} account</span></div><button class="icon-btn" type="button" aria-label="Account security" data-action="security">⌘</button><button class="icon-btn" type="button" aria-label="Sign out" data-action="logout">↪</button></div>
       </aside>
       ${state.mobileMenu ? '<button class="mobile-backdrop" type="button" aria-label="Close navigation" data-action="close-menu"></button>' : ''}
