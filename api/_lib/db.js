@@ -8,7 +8,7 @@ export async function getPool() {
       max: Number(process.env.DB_POOL_MAX || 5),
       idleTimeoutMillis: 10000,
       connectionTimeoutMillis: 5000,
-      ssl: process.env.DATABASE_SSL === 'false' ? false : (process.env.DATABASE_SSL_CA ? { rejectUnauthorized: true, ca: process.env.DATABASE_SSL_CA } : { rejectUnauthorized: false }),
+      ssl: process.env.DATABASE_SSL === 'false' ? false : (process.env.DATABASE_SSL_CA ? { rejectUnauthorized: true, ca: process.env.DATABASE_SSL_CA } : { rejectUnauthorized: process.env.DATABASE_SSL_REJECT_UNAUTHORIZED !== 'false' }),
     }));
   }
   return poolPromise;

@@ -1,12 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-test('Vercel cron endpoint accepts Authorization Bearer CRON_SECRET and legacy header fallback', async () => {
+test('reconciliation endpoint accepts only POST and Authorization Bearer CRON_SECRET', async () => {
   const fs = await import('node:fs/promises');
   const src = await fs.readFile(new URL('../api/internal-provider-reconcile.js', import.meta.url), 'utf8');
-  assert.match(src, /process\.env\.CRON_SECRET \|\| process\.env\.INTERNAL_CRON_SECRET/);
+  assert.match(src, /process\.env\.CRON_SECRET/);
+  assert.doesNotMatch(src, /INTERNAL_CRON_SECRET/);
+  assert.match(src, /req\.method !== 'POST'/);
   assert.match(src, /Bearer /);
-  assert.match(src, /x-inbox9-cron-secret/);
   assert.match(src, /timingSafeEqual/);
 });
 
