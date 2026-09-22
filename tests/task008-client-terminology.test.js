@@ -38,6 +38,21 @@ test('client remains explicit about the +91 display format without naming a coun
   assert.match(app, /MARKETPLACE \/ \+91/);
 });
 
+test('browser-facing API errors use neutral marketplace language', async () => {
+  const activationRoute = await fs.readFile(new URL('../api/activations/index.js', import.meta.url), 'utf8');
+  const serverRoute = await fs.readFile(new URL('../api/services/[id]/servers.js', import.meta.url), 'utf8');
+  const activationRepository = await fs.readFile(new URL('../api/_lib/activation-repository.js', import.meta.url), 'utf8');
+  for (const content of [activationRoute, serverRoute, activationRepository]) {
+    assert.doesNotMatch(content, /Only India \/ INR services are supported/);
+    assert.doesNotMatch(content, /Unknown synthetic server/);
+    assert.doesNotMatch(content, /Synthetic server inventory unavailable/);
+    assert.doesNotMatch(content, /Synthetic inventory is temporarily unavailable/);
+  }
+  assert.match(activationRoute, /Unknown server/);
+  assert.match(serverRoute, /Server inventory unavailable/);
+  assert.match(activationRepository, /Number inventory is temporarily unavailable/);
+});
+
 test('admin provider presentation does not expose implementation adapter names', async () => {
   const app = await readClient('app.js');
   assert.match(app, /function providerUiName\(provider\)/);
