@@ -23,6 +23,7 @@ const state = {
   pendingPurchaseKeys: {},
   purchaseBusy: new Set(),
   securityOpen: false,
+  dialogReturnFocus: null,
   expandedServiceId: null,
   marketVisibleCount: 48,
   categoryCounts: {},
@@ -35,7 +36,8 @@ const state = {
     serviceId: null,
     serverId: null,
     submitting: false,
-    error: ''
+    error: '',
+    returnAfterWallet: false
   }
 };
 
@@ -186,6 +188,45 @@ function resetDemo() {
 function openMenu() { state.mobileMenu = true; render(); }
 function closeMenu() { state.mobileMenu = false; render(); }
 
+function syncOverlayScrollLock() {
+  const purchaseOpen = state.page === 'buy' && ['review', 'activation'].includes(state.purchaseFlow?.step);
+  const locked = Boolean(state.securityOpen || purchaseOpen);
+  document.documentElement.classList.toggle('overlay-open', locked);
+  document.body.classList.toggle('overlay-open', locked);
+}
+
+function activeDialog() {
+  return document.querySelector('.purchase-sheet[role="dialog"], .security-modal[role="dialog"]');
+}
+
+function focusableInDialog(dialog) {
+  return [...dialog.querySelectorAll('button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])')]
+    .filter((node) => !node.hasAttribute('aria-hidden'));
+}
+
+function focusActiveDialog() {
+  const dialog = activeDialog();
+  if (!dialog) return;
+  const focusable = focusableInDialog(dialog);
+  (focusable[0] || dialog).focus();
+}
+
+function restoreDialogFocus() {
+  const target = state.dialogReturnFocus;
+  state.dialogReturnFocus = null;
+  if (!target) return;
+  if (target.kind === 'purchase') {
+    [...document.querySelectorAll('[data-toggle-service]')]
+      .find((item) => item.dataset.toggleService === target.serviceId)?.focus();
+  } else if (target.kind === 'security') {
+    document.querySelector('[data-action="security"]')?.focus();
+  }
+}
+
+function scheduleDialogFocus() {
+  window.setTimeout(() => { if (activeDialog()) focusActiveDialog(); }, 0);
+}
+
 async function submitAuth(event) {
   event.preventDefault();
   const form = event.currentTarget;
@@ -205,8 +246,17 @@ async function submitAuth(event) {
 }
 
 
-function openSecurity() { state.securityOpen = true; render(); }
-function closeSecurity() { state.securityOpen = false; render(); }
+function openSecurity() {
+  state.dialogReturnFocus = { kind: 'security' };
+  state.securityOpen = true;
+  render();
+  scheduleDialogFocus();
+}
+function closeSecurity() {
+  state.securityOpen = false;
+  render();
+  restoreDialogFocus();
+}
 
 async function submitChangePassword(event) {
   event.preventDefault();
@@ -279,7 +329,14 @@ async function boot() {
 }
 
 function resetPurchaseFlow() {
-  state.purchaseFlow = { step: 'service', serviceId: null, serverId: null, submitting: false, error: '' };
+  state.purchaseFlow = {
+    step: 'service',
+    serviceId: null,
+    serverId: null,
+    submitting: false,
+    error: '',
+    returnAfterWallet: false
+  };
 }
 
 function purchaseFlowData() {
@@ -296,14 +353,24 @@ function openPurchaseReview(serviceId, serverId) {
   const server = stats.find((item) => item.id === serverId);
   if (!service || !server) return;
   if (service.stock <= 0 || Number(server.availableCount ?? server.capacity) <= 0) return toast('That service is currently unavailable');
-  state.purchaseFlow = { step: 'review', serviceId, serverId, submitting: false, error: '' };
+  state.dialogReturnFocus = { kind: 'purchase', serviceId };
+  state.purchaseFlow = {
+    step: 'review',
+    serviceId,
+    serverId,
+    submitting: false,
+    error: '',
+    returnAfterWallet: false
+  };
   renderBuyCatalog();
+  scheduleDialogFocus();
 }
 
 function closePurchaseReview() {
   if (state.purchaseFlow.submitting) return;
   resetPurchaseFlow();
   renderBuyCatalog();
+  restoreDialogFocus();
 }
 
 function purchaseReviewModal() {
@@ -315,8 +382,8 @@ function purchaseReviewModal() {
   const activating = flow.step === 'activation' || flow.submitting;
   const available = Number(data.server.availableCount ?? data.server.capacity);
   const error = flow.error ? `<div class="purchase-error">${esc(flow.error)}</div>` : '';
-  if (activating) return `<div class="purchase-overlay" role="presentation"><div class="purchase-backdrop"></div><section class="purchase-sheet purchase-sheet-loading" role="dialog" aria-modal="true" aria-labelledby="purchase-title"><div class="purchase-sheet-top"><div><span class="kicker">STEP 3 OF 3</span><h2 id="purchase-title">Getting your number</h2></div></div><div class="purchase-steps" aria-label="Purchase progress"><span class="purchase-step done"><b>1</b> Service</span><span class="purchase-step done"><b>2</b> Review</span><span class="purchase-step current"><b>3</b> Track</span></div><div class="purchase-activation-state"><div class="purchase-loader" aria-hidden="true"></div><span class="service-category">ACTIVATION</span><h3>Reserving your number…</h3><p>We're securing your activation now. Your live status will appear next.</p></div></section></div>`;
-  return `<div class="purchase-overlay" role="presentation"><button class="purchase-backdrop" type="button" aria-label="Close purchase review" data-purchase-close></button><section class="purchase-sheet" role="dialog" aria-modal="true" aria-labelledby="purchase-title"><div class="purchase-sheet-top"><div><span class="kicker">STEP 2 OF 3</span><h2 id="purchase-title">Review your activation</h2></div><button class="icon-btn" type="button" aria-label="Close" data-purchase-close>×</button></div><div class="purchase-steps" aria-label="Purchase progress"><span class="purchase-step done"><b>1</b> Service</span><span class="purchase-step current"><b>2</b> Review</span><span class="purchase-step"><b>3</b> Track</span></div><div class="purchase-service-card"><div class="service-icon large">${iconFor(data.service.category)}</div><div class="purchase-service-copy"><span class="service-category">${esc(data.service.category)}</span><strong>${esc(data.service.name)}</strong><span>India (+91) · OTP in about 20 seconds</span></div></div><div class="purchase-detail-grid"><div><span>Server</span><strong>${esc(data.server.name)}</strong><small>${available.toLocaleString()} available</small></div><div><span>Price</span><strong>${money(data.pricePaise)}</strong><small>One activation</small></div><div><span>Current balance</span><strong>${money(state.balancePaise)}</strong><small>Wallet balance</small></div><div><span>After purchase</span><strong>${money(data.afterBalancePaise)}</strong><small>Remaining balance</small></div></div><div class="purchase-trust"><span>✓</span><div><strong>Your number appears immediately</strong><small>The verification code will appear automatically about 20 seconds later.</small></div></div>${error}${insufficient ? `<div class="purchase-actions"><button class="secondary-btn" type="button" data-purchase-close>Back</button><button class="primary-btn" type="button" data-purchase-wallet>Add funds</button></div>` : `<div class="purchase-actions"><button class="secondary-btn" type="button" data-purchase-close>Back</button><button class="primary-btn purchase-confirm-btn" type="button" data-purchase-confirm>Confirm &amp; Get Number <span>→</span></button></div>`}</section></div>`;
+  if (activating) return `<div class="purchase-overlay" role="presentation"><div class="purchase-backdrop"></div><section class="purchase-sheet purchase-sheet-loading" role="dialog" aria-modal="true" aria-labelledby="purchase-title" tabindex="-1"><div class="purchase-sheet-top"><div><span class="kicker">STEP 3 OF 3</span><h2 id="purchase-title">Getting your number</h2></div></div><div class="purchase-steps" aria-label="Purchase progress"><span class="purchase-step done"><b>1</b> Service</span><span class="purchase-step done"><b>2</b> Review</span><span class="purchase-step current"><b>3</b> Track</span></div><div class="purchase-activation-state"><div class="purchase-loader" aria-hidden="true"></div><span class="service-category">ACTIVATION</span><h3>Reserving your number…</h3><p>We're securing your activation now. Your live status will appear next.</p></div></section></div>`;
+  return `<div class="purchase-overlay" role="presentation"><button class="purchase-backdrop" type="button" aria-label="Close purchase review" data-purchase-close></button><section class="purchase-sheet" role="dialog" aria-modal="true" aria-labelledby="purchase-title" tabindex="-1"><div class="purchase-sheet-top"><div><span class="kicker">STEP 2 OF 3</span><h2 id="purchase-title">Review your activation</h2></div><button class="icon-btn" type="button" aria-label="Close" data-purchase-close>×</button></div><div class="purchase-steps" aria-label="Purchase progress"><span class="purchase-step done"><b>1</b> Service</span><span class="purchase-step current"><b>2</b> Review</span><span class="purchase-step"><b>3</b> Track</span></div><div class="purchase-service-card"><div class="service-icon large">${iconFor(data.service.category)}</div><div class="purchase-service-copy"><span class="service-category">${esc(data.service.category)}</span><strong>${esc(data.service.name)}</strong><span>India (+91) · OTP in about 20 seconds</span></div></div><div class="purchase-detail-grid"><div><span>Server</span><strong>${esc(data.server.name)}</strong><small>${available.toLocaleString()} available</small></div><div><span>Price</span><strong>${money(data.pricePaise)}</strong><small>One activation</small></div><div><span>Current balance</span><strong>${money(state.balancePaise)}</strong><small>Wallet balance</small></div><div><span>After purchase</span><strong>${money(data.afterBalancePaise)}</strong><small>Remaining balance</small></div></div><div class="purchase-trust"><span>✓</span><div><strong>Your number appears immediately</strong><small>The verification code will appear automatically about 20 seconds later.</small></div></div>${error}${insufficient ? `<div class="purchase-actions"><button class="secondary-btn" type="button" data-purchase-close>Back</button><button class="primary-btn" type="button" data-purchase-wallet>Add funds</button></div>` : `<div class="purchase-actions"><button class="secondary-btn" type="button" data-purchase-close>Back</button><button class="primary-btn purchase-confirm-btn" type="button" data-purchase-confirm>Confirm &amp; Get Number <span>→</span></button></div>`}</section></div>`;
 }
 
 async function confirmPurchase() {
@@ -331,6 +398,7 @@ async function confirmPurchase() {
   state.purchaseFlow.submitting = true;
   state.purchaseFlow.error = '';
   renderBuyCatalog();
+  scheduleDialogFocus();
   await buy(data.service.id, data.server.id);
 }
 
@@ -458,30 +526,53 @@ function setRechargeAmount(amount) {
 }
 
 let lastActivationSync = 0;
-async function tick() {
-  if (!state.user || !state.active.length) { if (state.page === 'active') renderActiveOnly(); return; }
-  const now = Date.now();
-  if (now - lastActivationSync < 2500) { if (state.page === 'active') renderActiveOnly(); return; }
-  lastActivationSync = now;
-  const current = [...state.active];
-  for (const item of current) {
-    try {
-      const latest = await api(`/api/activations/${encodeURIComponent(item.id)}`);
-      const order = state.orders.find((entry) => entry.id === item.id);
-      if (order) { order.status = latest.status; order.otp = latest.otp || (isLiveActivation(latest) ? 'Waiting…' : '—'); }
-      const index = state.active.findIndex((entry) => entry.id === item.id);
-      if (isLiveActivation(latest)) {
-        if (index >= 0) state.active[index] = { ...state.active[index], ...latest };
-        else state.active.push(latest);
-      } else if (index >= 0) {
-        state.active.splice(index, 1);
-      }
-    } catch (error) {
-      if (!/Activation not found/i.test(error.message)) console.warn('activation.sync_failed', error.message);
+let activationSyncInFlight = false;
+
+async function syncActivationItem(item) {
+  try {
+    const latest = await api(`/api/activations/${encodeURIComponent(item.id)}`);
+    const order = state.orders.find((entry) => entry.id === item.id);
+    if (order) {
+      order.status = latest.status;
+      order.otp = latest.otp || (isLiveActivation(latest) ? 'Waiting…' : '—');
     }
+    const index = state.active.findIndex((entry) => entry.id === item.id);
+    if (isLiveActivation(latest)) {
+      if (index >= 0) state.active[index] = { ...state.active[index], ...latest };
+      else state.active.push(latest);
+    } else if (index >= 0) {
+      state.active.splice(index, 1);
+    }
+  } catch (error) {
+    if (!/Activation not found/i.test(error.message)) console.warn('activation.sync_failed', error.message);
   }
-  persist();
-  if (state.page === 'active') renderActiveOnly();
+}
+
+async function tick() {
+  if (!state.user || !state.active.length) {
+    if (state.page === 'active') renderActiveOnly();
+    return;
+  }
+  if (activationSyncInFlight) return;
+  const now = Date.now();
+  if (now - lastActivationSync < 2500) {
+    if (state.page === 'active') renderActiveOnly();
+    return;
+  }
+  lastActivationSync = now;
+  activationSyncInFlight = true;
+  try {
+    const current = [...state.active];
+    const concurrency = 4;
+    for (let start = 0; start < current.length; start += concurrency) {
+      const batch = current.slice(start, start + concurrency);
+      await Promise.all(batch.map((item) => syncActivationItem(item)));
+    }
+    persist();
+    if (state.page === 'active') renderActiveOnly();
+  } finally {
+    activationSyncInFlight = false;
+  }
 }
 
 
@@ -627,11 +718,16 @@ function authPage() {
 }
 
 function securityModal() {
-  return `<div class="security-overlay" role="presentation"><section class="security-modal" role="dialog" aria-modal="true" aria-labelledby="security-title"><div class="panel-head"><div><h3 id="security-title">Account security</h3><span>7-day sessions • maximum 5 retained sessions by default</span></div><button class="icon-btn" type="button" aria-label="Close" data-action="close-security">×</button></div><div class="security-body"><form id="change-password-form" class="security-form"><label>Current password<input name="currentPassword" type="password" autocomplete="current-password" minlength="8" required></label><label>New password<input name="newPassword" type="password" autocomplete="new-password" minlength="8" maxlength="128" required></label><label>Confirm new password<input name="confirmPassword" type="password" autocomplete="new-password" minlength="8" maxlength="128" required></label><button class="primary-btn" type="submit">Change password</button></form><div class="security-divider"></div><div class="security-danger"><div><strong>Sign out all sessions</strong><p>This invalidates every active session on all devices and returns you to the login screen.</p></div><button class="buy-btn" type="button" data-action="logout-all">Sign out all</button></div></div></section></div>`;
+  return `<div class="security-overlay" role="presentation"><section class="security-modal" role="dialog" aria-modal="true" aria-labelledby="security-title" tabindex="-1"><div class="panel-head"><div><h3 id="security-title">Account security</h3><span>7-day sessions • maximum 5 retained sessions by default</span></div><button class="icon-btn" type="button" aria-label="Close" data-action="close-security">×</button></div><div class="security-body"><form id="change-password-form" class="security-form"><label>Current password<input name="currentPassword" type="password" autocomplete="current-password" minlength="8" required></label><label>New password<input name="newPassword" type="password" autocomplete="new-password" minlength="8" maxlength="128" required></label><label>Confirm new password<input name="confirmPassword" type="password" autocomplete="new-password" minlength="8" maxlength="128" required></label><button class="primary-btn" type="submit">Change password</button></form><div class="security-divider"></div><div class="security-danger"><div><strong>Sign out all sessions</strong><p>This invalidates every active session on all devices and returns you to the login screen.</p></div><button class="buy-btn" type="button" data-action="logout-all">Sign out all</button></div></div></section></div>`;
 }
 
 function render() {
-  if (!state.user) { document.getElementById('app').innerHTML = authPage(); bindEvents(); return; }
+  if (!state.user) {
+    syncOverlayScrollLock();
+    document.getElementById('app').innerHTML = authPage();
+    bindEvents();
+    return;
+  }
   if (state.page === 'admin' && state.user?.role !== 'admin') state.page = 'buy';
   const current = appNav().find(([id]) => id === state.page)?.[1] || 'Buy Number';
   document.getElementById('app').innerHTML = `
@@ -666,6 +762,8 @@ function render() {
       ${state.securityOpen ? securityModal() : ''}
     </div>`;
   bindEvents();
+  syncOverlayScrollLock();
+  if (state.securityOpen) scheduleDialogFocus();
 }
 
 function hero() {
@@ -764,6 +862,7 @@ function renderBuyCatalog() {
   if (grid) grid.innerHTML = marketListMarkup(list);
   if (purchaseRoot) purchaseRoot.innerHTML = purchaseReviewModal();
   if (result) result.textContent = marketResultText(list.length, Math.min(state.marketVisibleCount, list.length));
+  syncOverlayScrollLock();
   root.querySelectorAll("[data-category]").forEach((node) => {
     node.classList.toggle("selected", node.dataset.category === state.category);
     node.setAttribute("aria-pressed", String(node.dataset.category === state.category));
@@ -773,7 +872,7 @@ function renderBuyCatalog() {
 function buyPage() {
   const list = filteredMarketServices();
   return `<div class="section-head"><div><span class="kicker">INDIA / +91</span><h2>Choose a service</h2></div><span class="result-note market-result-count" aria-live="polite">${esc(marketResultText(list.length, Math.min(state.marketVisibleCount, list.length)))}</span></div>
-    <div class="controls"><div class="toolbar"><label class="search-box" aria-label="Search services"><span>⌕</span><input id="service-search" value="${esc(state.search)}" placeholder="Search 832 services…" autocomplete="off" spellcheck="false"><kbd>/</kbd></label><div class="category-scroll" role="group" aria-label="Service categories">${categories.map((category) => `<button class="filter-btn ${state.category === category ? "selected" : ""}" type="button" data-category="${category}" aria-pressed="${state.category === category}">${category}<span class="filter-count">${(state.categoryCounts[category] || 0).toLocaleString()}</span></button>`).join("")}</div></div></div>
+    <div class="controls"><div class="toolbar"><label class="search-box" aria-label="Search services"><span>⌕</span><input id="service-search" value="${esc(state.search)}" placeholder="Search 832 services…" autocomplete="off" spellcheck="false"><kbd>/</kbd></label><div class="category-scroll-wrap"><div class="category-scroll" role="group" aria-label="Service categories">${categories.map((category) => `<button class="filter-btn ${state.category === category ? "selected" : ""}" type="button" data-category="${category}" aria-pressed="${state.category === category}">${category}<span class="filter-count">${(state.categoryCounts[category] || 0).toLocaleString()}</span></button>`).join("")}</div></div></div></div>
     <div class="service-grid">${marketListMarkup(list)}</div>
     <div class="purchase-flow-root">${purchaseReviewModal()}</div>`;
 }
@@ -797,14 +896,16 @@ function activeCard(activation) {
 }
 
 function ordersPage() {
-  return `<div class="section-head"><div><span class="kicker">ACCOUNT ACTIVITY</span><h2>Order history</h2></div><span class="result-note">${state.orders.length} records</span></div><div class="panel table-panel"><table><thead><tr><th>Order</th><th>Service</th><th>Number</th><th>Status</th><th>OTP</th><th>Price</th><th>Created</th></tr></thead><tbody>${state.orders.map((order) => `<tr><td class="mono">${esc(order.id)}</td><td><strong>${esc(order.service)}</strong></td><td>${esc(order.number)}</td><td><span class="table-status ${order.status.toLowerCase()}">${esc(order.status)}</span></td><td>${esc(order.otp)}</td><td>${money(order.pricePaise)}</td><td>${esc(order.created)}</td></tr>`).join('')}</tbody></table></div>`;
+  return `<div class="section-head"><div><span class="kicker">ACCOUNT ACTIVITY</span><h2>Order history</h2></div><span class="result-note">${state.orders.length} records</span></div><div class="panel table-panel"><table class="orders-table"><thead><tr><th>Order</th><th>Service</th><th>Number</th><th>Status</th><th>OTP</th><th>Price</th><th>Created</th></tr></thead><tbody>${state.orders.map((order) => `<tr><td class="mono" data-label="Order">${esc(order.id)}</td><td data-label="Service"><strong>${esc(order.service)}</strong></td><td data-label="Number">${esc(order.number)}</td><td data-label="Status"><span class="table-status ${order.status.toLowerCase()}">${esc(order.status)}</span></td><td data-label="OTP">${esc(order.otp)}</td><td data-label="Price">${money(order.pricePaise)}</td><td data-label="Created">${esc(order.created)}</td></tr>`).join('')}</tbody></table></div>`;
 }
-
 function walletPage() {
   const qr = '/upi-qr.jpg';
+  const returnPurchase = state.purchaseFlow.returnAfterWallet && state.purchaseFlow.serviceId
+    ? '<div class="panel purchase-return-banner"><div><strong>Continue your activation</strong><span>Your selected service' + (state.purchaseFlow.serverId ? ' and server' : '') + ' is saved.</span></div><button class="primary-btn" type="button" data-return-purchase>Back to purchase</button></div>'
+    : '';
   const ledgerRows = state.walletLedger.length ? state.walletLedger.map(entry => `<div class="ledger-row ${entry.type === 'credit' ? 'positive' : ''}"><span>${entry.type === 'credit' ? '↘' : '↗'} ${esc(entry.description)}</span><strong>${entry.type === 'credit' ? '+' : '−'} ${money(entry.amountPaise)}</strong><small>${new Date(entry.createdAt).toLocaleString()}</small></div>`).join('') : '<div class="empty-mini">No wallet transactions yet.</div>';
   const rechargeRows = state.recharges.length ? state.recharges.map(item => `<div class="recharge-row"><div><strong>${money(item.amountPaise)}</strong><span class="table-status ${item.status.toLowerCase()}">${esc(item.status)}</span></div><code>${esc(item.utr)}</code><small>${new Date(item.submittedAt).toLocaleString()}</small></div>`).join('') : '<div class="empty-mini">No recharge requests yet.</div>';
-  return `<div class="section-head"><div><span class="kicker">WALLET / INR</span><h2>Recharge & Wallet</h2></div><span class="result-note">Min ₹100 · Max ₹5,000</span></div>
+  return `${returnPurchase}<div class="section-head"><div><span class="kicker">WALLET / INR</span><h2>Recharge & Wallet</h2></div><span class="result-note">Min ₹100 · Max ₹5,000</span></div>
     <div class="wallet-grid">
       <div class="balance-card"><div class="wallet-card-top"><span>AVAILABLE BALANCE</span><span>INR</span></div><strong>${money(state.balancePaise)}</strong><small>Your balance is secured by the INBOX9 accounting system.</small></div>
       <div class="panel wallet-info"><div class="info-icon">₹</div><div><h3>Recharge before buying numbers</h3><p>Pay by UPI, then submit your UTR. Your balance is credited only after payment verification.</p></div></div>
@@ -898,22 +999,59 @@ function bindMarketplaceEvents() {
 
     const purchaseWallet = event.target.closest("[data-purchase-wallet]");
     if (purchaseWallet && root.contains(purchaseWallet)) {
-      resetPurchaseFlow();
+      state.purchaseFlow.returnAfterWallet = true;
       state.page = 'wallet';
       render();
+      return;
+    }
+
+    const returnPurchase = event.target.closest("[data-return-purchase]");
+    if (returnPurchase) {
+      const serviceId = state.purchaseFlow.serviceId;
+      state.purchaseFlow.returnAfterWallet = false;
+      state.page = 'buy';
+      state.expandedServiceId = serviceId;
+      render();
+      if (serviceId) void loadServerStats(serviceId);
+      scheduleDialogFocus();
       return;
     }
   });
 }
 
 document.addEventListener('keydown', (event) => {
-  if (event.key === '/' && !['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) {
-    event.preventDefault();
-    document.getElementById('service-search')?.focus();
+  const dialog = activeDialog();
+  if (dialog) {
+    if (event.key === 'Escape') {
+      if (state.securityOpen) closeSecurity();
+      else if (state.purchaseFlow.step === 'review' && !state.purchaseFlow.submitting) closePurchaseReview();
+      return;
+    }
+    if (event.key === 'Tab') {
+      const focusable = focusableInDialog(dialog);
+      if (!focusable.length) {
+        event.preventDefault();
+        dialog.focus();
+        return;
+      }
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+      return;
+    }
     return;
   }
-  if (event.key === 'Escape' && state.purchaseFlow.step === 'review' && !state.purchaseFlow.submitting) {
-    closePurchaseReview();
+  if (event.key === '/' &&
+      !['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName) &&
+      window.matchMedia('(pointer: fine)').matches) {
+    event.preventDefault();
+    document.getElementById('service-search')?.focus();
   }
 });
 
