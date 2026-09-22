@@ -3,10 +3,11 @@ import assert from 'node:assert/strict';
 import { syntheticProvider } from '../api/_lib/synthetic-provider.js';
 import { normalizeProviderActivation } from '../api/_lib/provider.js';
 
-test('synthetic engine reserves a normalized India activation', async () => {
+test('synthetic engine reserves a normalized India-format activation', async () => {
   const activation = await syntheticProvider.reserveNumber({ id: 'whatsapp-0', name: 'WhatsApp', pricePaise: 950 });
   assert.match(activation.providerActivationId, /^SYN-/);
-  assert.match(activation.number, /^\+91 00000 \d{5}$/);
+  assert.match(activation.number, /^\+91 [6-9]\d{4} \d{5}$/);
+  assert.equal(activation.number.replace('+91 ', '').replace(/\s/g, '').length, 10);
   assert.equal(activation.status, 'Active');
   assert.ok(activation.expiresAt > activation.createdAt);
   assert.ok(activation.mockOtpAt > activation.createdAt);

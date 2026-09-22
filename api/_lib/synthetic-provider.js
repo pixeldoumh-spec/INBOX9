@@ -1,6 +1,6 @@
 import crypto from 'node:crypto';
 import { createProviderAdapter, normalizeProviderActivation } from './provider.js';
-import { generateSyntheticIdentity, generateSyntheticOtp, syntheticOtpTiming } from './synthetic-otp.js';
+import { generateSyntheticIdentity, generateSyntheticIndianNumber, generateSyntheticOtp, syntheticOtpTiming } from './synthetic-otp.js';
 import { SYNTHETIC_CAPACITY, getSyntheticServer, getServerForSlot } from './synthetic-servers.js';
 
 const TTL_MS = 3 * 60 * 1000;
@@ -11,7 +11,6 @@ function slot(server) {
   if (!server) return crypto.randomInt(1, CAPACITY + 1);
   return crypto.randomInt(server.startSlot, server.endSlot + 1);
 }
-function syntheticNumber(index) { return `+91 00000 ${String(index).padStart(5, '0')}`; }
 
 export const syntheticProvider = createProviderAdapter({
   async listServices() { return { provider: 'synthetic', healthy: true, capacityPerService: CAPACITY }; },
@@ -27,14 +26,29 @@ export const syntheticProvider = createProviderAdapter({
     const index = slot(server);
     const assignedServer = server || getServerForSlot(index, CAPACITY);
     const providerActivationId = id();
-    const mockOtpAt = createdAt + syntheticOtpTiming(service.id || service.name, index, providerActivationId);
+    const serviceKey = service.id || service.name;
+    const mockOtpAt = createdAt + syntheticOtpTiming(serviceKey, index, providerActivationId);
     return normalizeProviderActivation({
-      providerActivationId, number: syntheticNumber(index), status: 'Active', otp: null,
-      createdAt, expiresAt: createdAt + TTL_MS, mockOtpAt,
-      metadata: { engine: 'synthetic', country: 'IN', serviceId: service.id, slot: index, capacityPerService: CAPACITY,
-        serverId: assignedServer?.id || null, serverName: assignedServer?.name || null, serverCapacity: assignedServer?.capacity || null,
-        serverStartSlot: assignedServer?.startSlot || null, serverEndSlot: assignedServer?.endSlot || null,
-        identity: generateSyntheticIdentity(service.id || service.name, index, CAPACITY) },
+      providerActivationId,
+      number: generateSyntheticIndianNumber(serviceKey, index, CAPACITY),
+      status: 'Active',
+      otp: null,
+      createdAt,
+      expiresAt: createdAt + TTL_MS,
+      mockOtpAt,
+      metadata: {
+        engine: 'synthetic',
+        country: 'IN',
+        serviceId: service.id,
+        slot: index,
+        capacityPerService: CAPACITY,
+        serverId: assignedServer?.id || null,
+        serverName: assignedServer?.name || null,
+        serverCapacity: assignedServer?.capacity || null,
+        serverStartSlot: assignedServer?.startSlot || null,
+        serverEndSlot: assignedServer?.endSlot || null,
+        identity: generateSyntheticIdentity(serviceKey, index, CAPACITY)
+      },
     });
   },
   async getActivation({ activation }) {

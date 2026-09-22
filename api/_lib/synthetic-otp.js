@@ -3,6 +3,9 @@ import crypto from 'node:crypto';
 const DEFAULT_CAPACITY = 5000;
 const OTP_LENGTH = 6;
 const SYNTHETIC_OTP_DELAY_MS = 20_000;
+const INDIAN_MOBILE_START_DIGITS = ['6', '7', '8', '9'];
+const NATIONAL_MOBILE_NUMBER_LENGTH = 10;
+const NATIONAL_MOBILE_SUFFIX_MODULUS = 1_000_000_000n;
 
 function assertServiceKey(service) {
   const value = String(service ?? '').trim();
@@ -41,6 +44,23 @@ export function generateSyntheticIdentity(service, index, capacity = DEFAULT_CAP
   const n = assertIndex(index, cap);
   const serviceToken = digestHex(`service:${key}`).slice(0, 10).toUpperCase();
   return `SIM-IN-${serviceToken}-${String(n).padStart(4, '0')}`;
+}
+
+/**
+ * Generates an India-looking synthetic display number from the authoritative
+ * synthetic identity inputs. This is presentation data only: it is not an
+ * assigned telecom number and must never be used for real-world routing.
+ */
+export function generateSyntheticIndianNumber(service, index, capacity = DEFAULT_CAPACITY) {
+  const key = assertServiceKey(service);
+  const cap = normalizeCapacity(capacity);
+  const n = assertIndex(index, cap);
+  const identity = generateSyntheticIdentity(key, n, cap);
+  const hex = digestHex(`number:${identity}`);
+  const startDigit = INDIAN_MOBILE_START_DIGITS[Number.parseInt(hex.slice(0, 2), 16) % INDIAN_MOBILE_START_DIGITS.length];
+  const suffix = BigInt(`0x${hex.slice(2, 18)}`) % NATIONAL_MOBILE_SUFFIX_MODULUS;
+  const nationalNumber = `${startDigit}${String(suffix).padStart(NATIONAL_MOBILE_NUMBER_LENGTH - 1, '0')}`;
+  return `+91 ${nationalNumber.slice(0, 5)} ${nationalNumber.slice(5)}`;
 }
 
 /**
