@@ -37,3 +37,12 @@ test('client remains explicit about the +91 display format without naming a coun
   assert.match(app, /Number format: \+91/);
   assert.match(app, /MARKETPLACE \/ \+91/);
 });
+
+test('admin provider presentation does not expose implementation adapter names', async () => {
+  const app = await readClient('app.js');
+  assert.match(app, /function providerUiName\(provider\)/);
+  assert.match(app, /'Activation Service'/);
+  assert.match(app, /'Managed service'/);
+  assert.match(app, /provider\?\.id === 'provider-mock'/);
+  assert.doesNotMatch(app, /\bSYNTHETIC_SERVERS\b/);
+});
