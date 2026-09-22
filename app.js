@@ -58,6 +58,26 @@ function appNav() {
 const categoryIcon = { Social: '◉', Productivity: '✦', Rummy: '◆', Games: '♟' };
 const MARKET_PAGE_SIZE = 48;
 const MARKET_MAX_SEARCH_RESULTS = 96;
+const MARKET_CAPACITY = 5000;
+const MARKET_SERVER_COUNT = 11;
+const MARKET_SERVERS = (() => {
+  const base = Math.floor(MARKET_CAPACITY / MARKET_SERVER_COUNT);
+  const remainder = MARKET_CAPACITY % MARKET_SERVER_COUNT;
+  let cursor = 1;
+  return Array.from({ length: MARKET_SERVER_COUNT }, (_, index) => {
+    const capacity = base + (index < remainder ? 1 : 0);
+    const server = {
+      id: `server-${index + 1}`,
+      name: `Server ${index + 1}`,
+      ordinal: index + 1,
+      capacity,
+      startSlot: cursor,
+      endSlot: cursor + capacity - 1
+    };
+    cursor += capacity;
+    return server;
+  });
+})();
 
 function normalizeSearchText(value) {
   return String(value ?? '').toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g, '').trim();
@@ -341,7 +361,7 @@ function resetPurchaseFlow() {
 
 function purchaseFlowData() {
   const service = state.services.find((item) => item.id === state.purchaseFlow.serviceId);
-  const stats = state.marketServerStats[state.purchaseFlow.serviceId] || SYNTHETIC_SERVERS;
+  const stats = state.marketServerStats[state.purchaseFlow.serviceId] || MARKET_SERVERS;
   const server = stats.find((item) => item.id === state.purchaseFlow.serverId) || null;
   const pricePaise = Number(service?.pricePaise || 0);
   return { service, server, pricePaise, afterBalancePaise: Math.max(0, state.balancePaise - pricePaise) };
@@ -349,7 +369,7 @@ function purchaseFlowData() {
 
 function openPurchaseReview(serviceId, serverId) {
   const service = state.services.find((item) => item.id === serviceId);
-  const stats = state.marketServerStats[serviceId] || SYNTHETIC_SERVERS;
+  const stats = state.marketServerStats[serviceId] || MARKET_SERVERS;
   const server = stats.find((item) => item.id === serverId);
   if (!service || !server) return;
   if (service.stock <= 0 || Number(server.availableCount ?? server.capacity) <= 0) return toast('That service is currently unavailable');
@@ -383,7 +403,7 @@ function purchaseReviewModal() {
   const available = Number(data.server.availableCount ?? data.server.capacity);
   const error = flow.error ? `<div class="purchase-error">${esc(flow.error)}</div>` : '';
   if (activating) return `<div class="purchase-overlay" role="presentation"><div class="purchase-backdrop"></div><section class="purchase-sheet purchase-sheet-loading" role="dialog" aria-modal="true" aria-labelledby="purchase-title" tabindex="-1"><div class="purchase-sheet-top"><div><span class="kicker">STEP 3 OF 3</span><h2 id="purchase-title">Getting your number</h2></div></div><div class="purchase-steps" aria-label="Purchase progress"><span class="purchase-step done"><b>1</b> Service</span><span class="purchase-step done"><b>2</b> Review</span><span class="purchase-step current"><b>3</b> Track</span></div><div class="purchase-activation-state"><div class="purchase-loader" aria-hidden="true"></div><span class="service-category">ACTIVATION</span><h3>Reserving your number…</h3><p>We're securing your activation now. Your live status will appear next.</p></div></section></div>`;
-  return `<div class="purchase-overlay" role="presentation"><button class="purchase-backdrop" type="button" aria-label="Close purchase review" data-purchase-close></button><section class="purchase-sheet" role="dialog" aria-modal="true" aria-labelledby="purchase-title" tabindex="-1"><div class="purchase-sheet-top"><div><span class="kicker">STEP 2 OF 3</span><h2 id="purchase-title">Review your activation</h2></div><button class="icon-btn" type="button" aria-label="Close" data-purchase-close>×</button></div><div class="purchase-steps" aria-label="Purchase progress"><span class="purchase-step done"><b>1</b> Service</span><span class="purchase-step current"><b>2</b> Review</span><span class="purchase-step"><b>3</b> Track</span></div><div class="purchase-service-card"><div class="service-icon large">${iconFor(data.service.category)}</div><div class="purchase-service-copy"><span class="service-category">${esc(data.service.category)}</span><strong>${esc(data.service.name)}</strong><span>India (+91) · OTP in about 20 seconds</span></div></div><div class="purchase-detail-grid"><div><span>Server</span><strong>${esc(data.server.name)}</strong><small>${available.toLocaleString()} available</small></div><div><span>Price</span><strong>${money(data.pricePaise)}</strong><small>One activation</small></div><div><span>Current balance</span><strong>${money(state.balancePaise)}</strong><small>Wallet balance</small></div><div><span>After purchase</span><strong>${money(data.afterBalancePaise)}</strong><small>Remaining balance</small></div></div><div class="purchase-trust"><span>✓</span><div><strong>Your number appears immediately</strong><small>The verification code will appear automatically about 20 seconds later.</small></div></div>${error}${insufficient ? `<div class="purchase-actions"><button class="secondary-btn" type="button" data-purchase-close>Back</button><button class="primary-btn" type="button" data-purchase-wallet>Add funds</button></div>` : `<div class="purchase-actions"><button class="secondary-btn" type="button" data-purchase-close>Back</button><button class="primary-btn purchase-confirm-btn" type="button" data-purchase-confirm>Confirm &amp; Get Number <span>→</span></button></div>`}</section></div>`;
+  return `<div class="purchase-overlay" role="presentation"><button class="purchase-backdrop" type="button" aria-label="Close purchase review" data-purchase-close></button><section class="purchase-sheet" role="dialog" aria-modal="true" aria-labelledby="purchase-title" tabindex="-1"><div class="purchase-sheet-top"><div><span class="kicker">STEP 2 OF 3</span><h2 id="purchase-title">Review your activation</h2></div><button class="icon-btn" type="button" aria-label="Close" data-purchase-close>×</button></div><div class="purchase-steps" aria-label="Purchase progress"><span class="purchase-step done"><b>1</b> Service</span><span class="purchase-step current"><b>2</b> Review</span><span class="purchase-step"><b>3</b> Track</span></div><div class="purchase-service-card"><div class="service-icon large">${iconFor(data.service.category)}</div><div class="purchase-service-copy"><span class="service-category">${esc(data.service.category)}</span><strong>${esc(data.service.name)}</strong><span>Number format: +91 · OTP in about 20 seconds</span></div></div><div class="purchase-detail-grid"><div><span>Server</span><strong>${esc(data.server.name)}</strong><small>${available.toLocaleString()} available</small></div><div><span>Price</span><strong>${money(data.pricePaise)}</strong><small>One activation</small></div><div><span>Current balance</span><strong>${money(state.balancePaise)}</strong><small>Wallet balance</small></div><div><span>After purchase</span><strong>${money(data.afterBalancePaise)}</strong><small>Remaining balance</small></div></div><div class="purchase-trust"><span>✓</span><div><strong>Your number appears immediately</strong><small>The verification code will appear automatically about 20 seconds later.</small></div></div>${error}${insufficient ? `<div class="purchase-actions"><button class="secondary-btn" type="button" data-purchase-close>Back</button><button class="primary-btn" type="button" data-purchase-wallet>Add funds</button></div>` : `<div class="purchase-actions"><button class="secondary-btn" type="button" data-purchase-close>Back</button><button class="primary-btn purchase-confirm-btn" type="button" data-purchase-confirm>Confirm &amp; Get Number <span>→</span></button></div>`}</section></div>`;
 }
 
 async function confirmPurchase() {
@@ -714,7 +734,7 @@ function adminAuditPage() {
 
 function authPage() {
   const register = state.authMode === 'register';
-  return `<div class="auth-shell"><div class="auth-card"><div class="brand-row auth-brand"><div class="brand-mark">ϟ</div><div><div class="brand-name">INBOX9</div><div class="brand-sub">INDIA OTP</div></div></div><span class="kicker">SECURE ACCOUNT</span><h1>${register ? 'Create your account' : 'Welcome back'}</h1><p class="auth-copy">${register ? 'Create an account to access your India-only marketplace.' : 'Sign in to continue to your INBOX9 dashboard.'}</p><form id="auth-form"><label>Email<input name="email" type="email" autocomplete="email" required placeholder="you@example.com"></label><label>Password<input name="password" type="password" autocomplete="${register ? 'new-password' : 'current-password'}" minlength="8" required placeholder="Minimum 8 characters"></label>${register ? '<label>Confirm password<input name="confirm" type="password" autocomplete="new-password" minlength="8" required placeholder="Repeat your password"></label>' : ''}<button class="primary-btn auth-submit" type="submit">${register ? 'Create account' : 'Sign in'}</button></form><div class="auth-switch">${register ? 'Already have an account?' : 'New to INBOX9?'} <button type="button" data-auth-mode="${register ? 'login' : 'register'}">${register ? 'Sign in' : 'Create account'}</button></div><div class="auth-note">Your account is protected with email and password. Secure access is required for every session.</div></div></div>`;
+  return `<div class="auth-shell"><div class="auth-card"><div class="brand-row auth-brand"><div class="brand-mark">ϟ</div><div><div class="brand-name">INBOX9</div><div class="brand-sub">OTP MARKETPLACE</div></div></div><span class="kicker">SECURE ACCOUNT</span><h1>${register ? 'Create your account' : 'Welcome back'}</h1><p class="auth-copy">${register ? 'Create an account to access the marketplace.' : 'Sign in to continue to your INBOX9 dashboard.'}</p><form id="auth-form"><label>Email<input name="email" type="email" autocomplete="email" required placeholder="you@example.com"></label><label>Password<input name="password" type="password" autocomplete="${register ? 'new-password' : 'current-password'}" minlength="8" required placeholder="Minimum 8 characters"></label>${register ? '<label>Confirm password<input name="confirm" type="password" autocomplete="new-password" minlength="8" required placeholder="Repeat your password"></label>' : ''}<button class="primary-btn auth-submit" type="submit">${register ? 'Create account' : 'Sign in'}</button></form><div class="auth-switch">${register ? 'Already have an account?' : 'New to INBOX9?'} <button type="button" data-auth-mode="${register ? 'login' : 'register'}">${register ? 'Sign in' : 'Create account'}</button></div><div class="auth-note">Your account is protected with email and password. Secure access is required for every session.</div></div></div>`;
 }
 
 function securityModal() {
@@ -735,7 +755,7 @@ function render() {
       <aside class="sidebar ${state.mobileMenu ? 'open' : ''}" aria-label="Primary navigation">
         <div class="brand-row">
           <div class="brand-mark" aria-hidden="true">ϟ</div>
-          <div><div class="brand-name">INBOX9</div><div class="brand-sub">INDIA OTP</div></div>
+          <div><div class="brand-name">INBOX9</div><div class="brand-sub">OTP MARKETPLACE</div></div>
           <button class="close-mobile" type="button" aria-label="Close menu" data-action="close-menu">×</button>
         </div>
         <div class="country-pill"><span class="flag">🇮🇳</span><b>India</b><span class="live-dot"></span><span class="live-text">LIVE</span></div>
@@ -767,7 +787,7 @@ function render() {
 }
 
 function hero() {
-  return `<section class="hero-strip"><div><span class="eyebrow">✦ FAST ACTIVATIONS</span><h1>India-only numbers, built for speed.</h1><p>Choose a service, reserve a number, and receive the verification message in one place.</p></div><div class="hero-metric"><span>Synthetic inventory</span><strong>${state.services.length.toLocaleString()}</strong><small>services · 5,000 slots/service · OTP in 20 sec</small></div></section>`;
+  return `<section class="hero-strip"><div><span class="eyebrow">✦ FAST ACTIVATIONS</span><h1>Virtual numbers, built for speed.</h1><p>Choose a service, reserve a number, and receive the verification message in one place.</p></div><div class="hero-metric"><span>Live inventory</span><strong>${state.services.length.toLocaleString()}</strong><small>services · 5,000 slots/service · OTP in 20 sec</small></div></section>`;
 }
 
 function content() {
@@ -803,9 +823,7 @@ async function loadServerStats(serviceId) {
   }
 }
 
-function syntheticServers() { return SYNTHETIC_SERVERS; }
-
-function serverRows(service, stats = SYNTHETIC_SERVERS) {
+function serverRows(service, stats = MARKET_SERVERS) {
   return stats.map((server) => {
     const availableCount = Number(server.availableCount ?? server.capacity);
     const insufficientBalance = service.pricePaise > state.balancePaise;
@@ -830,8 +848,8 @@ function serviceCard(service) {
   const stats = state.marketServerStats[service.id];
   const loading = Boolean(state.marketServerLoading[service.id]);
   const serverContent = loading
-    ? '<div class="server-loading">Checking live synthetic inventory…</div>'
-    : serverRows(service, stats?.length ? stats : SYNTHETIC_SERVERS);
+    ? '<div class="server-loading">Checking live inventory…</div>'
+    : serverRows(service, stats?.length ? stats : MARKET_SERVERS);
   return `<article class="market-service-group ${expanded ? "expanded" : ""}">
     <button class="service-group-header" type="button" data-toggle-service="${esc(service.id)}" aria-expanded="${expanded}" aria-controls="servers-${esc(service.id)}">
       <span class="service-icon service-brand-icon">${iconFor(service.category)}</span>
@@ -839,7 +857,7 @@ function serviceCard(service) {
       <span class="service-group-chevron" aria-hidden="true">${expanded ? "⌃" : "⌄"}</span>
     </button>
     ${expanded ? `<div class="server-panel" id="servers-${esc(service.id)}">
-      <div class="synthetic-note"><span class="synthetic-note-icon">ϟ</span><div><strong>Choose a server</strong><span>Availability updates automatically.</span></div></div>
+      <div class="server-note"><span class="server-note-icon">ϟ</span><div><strong>Choose a server</strong><span>Availability updates automatically.</span></div></div>
       <div class="server-list">${serverContent}</div>
     </div>` : ""}
   </article>`;
@@ -871,7 +889,7 @@ function renderBuyCatalog() {
 
 function buyPage() {
   const list = filteredMarketServices();
-  return `<div class="section-head"><div><span class="kicker">INDIA / +91</span><h2>Choose a service</h2></div><span class="result-note market-result-count" aria-live="polite">${esc(marketResultText(list.length, Math.min(state.marketVisibleCount, list.length)))}</span></div>
+  return `<div class="section-head"><div><span class="kicker">MARKETPLACE / +91</span><h2>Choose a service</h2></div><span class="result-note market-result-count" aria-live="polite">${esc(marketResultText(list.length, Math.min(state.marketVisibleCount, list.length)))}</span></div>
     <div class="controls"><div class="toolbar"><label class="search-box" aria-label="Search services"><span>⌕</span><input id="service-search" value="${esc(state.search)}" placeholder="Search 832 services…" autocomplete="off" spellcheck="false"><kbd>/</kbd></label><div class="category-scroll-wrap"><div class="category-scroll" role="group" aria-label="Service categories">${categories.map((category) => `<button class="filter-btn ${state.category === category ? "selected" : ""}" type="button" data-category="${category}" aria-pressed="${state.category === category}">${category}<span class="filter-count">${(state.categoryCounts[category] || 0).toLocaleString()}</span></button>`).join("")}</div></div></div></div>
     <div class="service-grid">${marketListMarkup(list)}</div>
     <div class="purchase-flow-root">${purchaseReviewModal()}</div>`;
