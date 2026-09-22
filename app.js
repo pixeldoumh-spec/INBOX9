@@ -758,7 +758,6 @@ function render() {
           <div><div class="brand-name">INBOX9</div><div class="brand-sub">OTP MARKETPLACE</div></div>
           <button class="close-mobile" type="button" aria-label="Close menu" data-action="close-menu">×</button>
         </div>
-        <div class="country-pill"><span class="flag">🇮🇳</span><b>India</b><span class="live-dot"></span><span class="live-text">LIVE</span></div>
         <div class="nav-label">MARKET</div>
         <nav>
           ${appNav().map(([id, label, glyph]) => `<button class="nav-item ${state.page === id ? 'active' : ''}" type="button" data-page="${id}"><span>${glyph}</span>${label}${id === 'active' && state.active.length ? `<span class="count-badge">${state.active.length}</span>` : ''}</button>`).join('')}
