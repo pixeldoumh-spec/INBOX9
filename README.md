@@ -46,6 +46,10 @@ Production persistence, auth, wallet ledger and rate limits use PostgreSQL/Redis
 
 The repository contains a plain Node-based HTTP runtime with API route modules. It does not require a specific hosting provider. Deployment-specific infrastructure should be configured at the hosting layer.
 
+## Deployment policy
+
+INBOX9 is not being deployed to Vercel. Keep the repository hosting-agnostic and do not add Vercel-specific files, configuration, adapters, dependencies, or scripts (including `vercel.json` or `.vercel/`). Hosting-specific configuration belongs outside the repository unless the project direction changes.
+
 ## Wallet & UPI Recharge
 
 Recharge is manual UPI verification: users pay to `8106204597@ptyes`, submit the UTR, and the wallet remains Pending until an authorized admin approves the request. Amounts are limited to ₹100–₹5,000. The supplied QR is served at `/payment-qr.jpg`.
