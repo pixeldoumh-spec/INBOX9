@@ -5,7 +5,10 @@ on:
     - cron: "*/5 * * * *"
   workflow_dispatch:
 
-permissions: {}
+# This job checks out the private repository to run the repository-owned
+# reconciliation client. Grant the minimum required repository permission.
+permissions:
+  contents: read
 
 jobs:
   reconcile:
