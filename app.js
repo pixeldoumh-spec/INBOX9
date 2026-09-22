@@ -901,7 +901,7 @@ function serviceCard(service) {
     </button>
     ${expanded ? `<div class="server-panel" id="servers-${esc(service.id)}">
       <div class="server-panel-head">
-        <div><span class="kicker">SERVER SELECTION</span><strong>Choose your capacity lane</strong></div>
+        <div><span class="kicker">SERVER SELECTION</span><strong>Choose a server</strong></div>
         <span class="server-panel-count">${availability.toLocaleString()} total available</span>
       </div>
       <div class="server-note"><span class="server-note-icon">ϟ</span><div><strong>Availability updates automatically</strong><span>Select a server below to continue.</span></div></div>
