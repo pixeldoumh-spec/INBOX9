@@ -35,6 +35,31 @@ async function ensureWallet(client, userId) {
   await client.query('INSERT INTO wallets (user_id) VALUES ($1) ON CONFLICT (user_id) DO NOTHING', [userId]);
 }
 
+export function normalizeVerification(verification = {}) {
+  const rawAmount = verification.amountPaise;
+  const amountPaise = rawAmount == null || rawAmount === '' ? null : Number(rawAmount);
+  if (amountPaise != null && (!Number.isInteger(amountPaise) || amountPaise <= 0)) {
+    throw new Error('Verified payment amount is invalid');
+  }
+
+  const utr = verification.utr == null || verification.utr === '' ? null : String(verification.utr).trim();
+  if (utr != null && !/^[A-Za-z0-9._-]{4,64}$/.test(utr)) {
+    throw new Error('Verified UTR is invalid');
+  }
+
+  const rawExternalReference = verification.externalReference == null
+    ? ''
+    : String(verification.externalReference).trim().slice(0, 120);
+  const externalReference = rawExternalReference || null;
+
+  return { amountPaise, utr, externalReference };
+}
+
+export function isDuplicateUtrError(error) {
+  return error?.code === 'DUPLICATE_UTR'
+    || (error?.code === '23505' && error?.constraint === 'uq_recharge_utr');
+}
+
 export async function getWallet(userId) {
   const pool = await getPool();
   if (!pool) throw new Error('DATABASE_URL is not configured');
@@ -70,11 +95,21 @@ export async function createRecharge(userId, amountPaise, utr) {
   return withTransaction(async client => {
     const existing = await client.query('SELECT id FROM recharge_requests WHERE LOWER(utr)=LOWER($1)', [normalizedUtr]);
     if (existing.rowCount) throw new Error('This UTR has already been submitted');
-    const result = await client.query(
-      `INSERT INTO recharge_requests (id,user_id,amount_paise,utr,payment_method,upi_id)
-       VALUES ($1,$2,$3,$4,'UPI',$5) RETURNING *`,
-      [id('RCH'), userId, amountPaise, normalizedUtr, UPI_ID]
-    );
+    let result;
+    try {
+      result = await client.query(
+        `INSERT INTO recharge_requests (id,user_id,amount_paise,utr,payment_method,upi_id)
+         VALUES ($1,$2,$3,$4,'UPI',$5) RETURNING *`,
+        [id('RCH'), userId, amountPaise, normalizedUtr, UPI_ID]
+      );
+    } catch (error) {
+      if (error?.code === '23505' && error?.constraint === 'uq_recharge_utr') {
+        const duplicate = new Error('This UTR has already been submitted');
+        duplicate.code = 'DUPLICATE_UTR';
+        throw duplicate;
+      }
+      throw error;
+    }
     await client.query(
       `INSERT INTO payment_reconciliation_events (id,recharge_id,event_type,actor_user_id,observed_amount_paise,observed_utr,notes)
        VALUES ($1,$2,'submitted',$3,$4,$5,'Customer submitted UPI recharge for review')`,
@@ -129,10 +164,12 @@ export async function reviewRecharge(idValue, adminUserId, decision, rejectionRe
       return mapRecharge(result.rows[0]);
     }
 
-    const observedAmount = verification.amountPaise == null ? null : Number(verification.amountPaise);
-    const observedUtr = verification.utr == null ? null : String(verification.utr).trim();
-    if (observedAmount != null && (!Number.isInteger(observedAmount) || observedAmount <= 0)) throw new Error('Verified payment amount is invalid');
-    if (observedUtr != null && !/^[A-Za-z0-9._-]{4,64}$/.test(observedUtr)) throw new Error('Verified UTR is invalid');
+    const normalized = normalizeVerification(verification);
+    if (decision === 'approve' && (normalized.amountPaise == null || normalized.utr == null)) {
+      throw new Error('Verified payment amount and UTR are required before approval');
+    }
+    const observedAmount = normalized.amountPaise;
+    const observedUtr = normalized.utr;
     if (observedAmount != null && observedAmount !== Number(row.amount_paise)) throw new Error('Verified payment amount does not match the recharge amount');
     if (observedUtr != null && observedUtr.toLowerCase() !== String(row.utr).toLowerCase()) throw new Error('Verified UTR does not match the submitted UTR');
 
@@ -151,21 +188,21 @@ export async function reviewRecharge(idValue, adminUserId, decision, rejectionRe
     const result = await client.query(
       `UPDATE recharge_requests SET status='Approved', reviewed_at=NOW(), reviewed_by=$2,
          verified_amount_paise=$3, verified_utr=$4, external_reference=$5
-       WHERE id=$1 RETURNING *`, [idValue, adminUserId, observedAmount ?? amount, observedUtr ?? row.utr, verification.externalReference ?? null]
+       WHERE id=$1 RETURNING *`, [idValue, adminUserId, observedAmount, observedUtr, normalized.externalReference]
     );
     await client.query(
       `INSERT INTO payment_reconciliation_events (id,recharge_id,event_type,actor_user_id,observed_amount_paise,observed_utr,external_reference,notes)
        VALUES ($1,$2,'verified',$3,$4,$5,$6,'Payment details verified before wallet credit')`,
-      [id('PAY'), idValue, adminUserId, observedAmount ?? amount, observedUtr ?? row.utr, verification.externalReference ?? null]
+      [id('PAY'), idValue, adminUserId, observedAmount, observedUtr, normalized.externalReference]
     );
     await client.query(
       `INSERT INTO payment_reconciliation_events (id,recharge_id,event_type,actor_user_id,observed_amount_paise,observed_utr,external_reference,notes)
        VALUES ($1,$2,'approved',$3,$4,$5,$6,'Wallet credited after payment verification')`,
-      [id('PAY'), idValue, adminUserId, observedAmount ?? amount, observedUtr ?? row.utr, verification.externalReference ?? null]
+      [id('PAY'), idValue, adminUserId, observedAmount, observedUtr, normalized.externalReference]
     );
     await recordAuditTx(client, adminUserId, 'recharge.approve', 'recharge', idValue, {
       status: result.rows[0].status, amountPaise: Number(result.rows[0].amount_paise), utr: result.rows[0].utr,
-      verifiedAmountPaise: observedAmount ?? amount, verifiedUtr: observedUtr ?? row.utr, externalReference: verification.externalReference ?? null
+      verifiedAmountPaise: observedAmount, verifiedUtr: observedUtr, externalReference: normalized.externalReference
     });
     return mapRecharge(result.rows[0]);
   });
@@ -179,19 +216,22 @@ export async function flagRecharge(idValue, adminUserId, reason, verification = 
     if (!locked.rowCount) throw new Error('Recharge request not found');
     const row = locked.rows[0];
     if (row.status !== 'Pending') throw new Error('Only pending recharge requests can be flagged');
+    const normalized = normalizeVerification(verification);
     const result = await client.query(
       `UPDATE recharge_requests SET flagged_at=NOW(), flagged_by=$2, flag_reason=$3,
          verified_amount_paise=$4, verified_utr=$5, external_reference=$6
        WHERE id=$1 RETURNING *`,
-      [idValue, adminUserId, cleanReason, verification.amountPaise ?? null, verification.utr ?? null, verification.externalReference ?? null]
+      [idValue, adminUserId, cleanReason, normalized.amountPaise, normalized.utr, normalized.externalReference]
     );
     await client.query(
       `INSERT INTO payment_reconciliation_events (id,recharge_id,event_type,actor_user_id,observed_amount_paise,observed_utr,external_reference,notes)
        VALUES ($1,$2,'flagged',$3,$4,$5,$6,$7)`,
-      [id('PAY'), idValue, adminUserId, verification.amountPaise ?? null, verification.utr ?? null, verification.externalReference ?? null, cleanReason]
+      [id('PAY'), idValue, adminUserId, normalized.amountPaise, normalized.utr, normalized.externalReference, cleanReason]
     );
     await recordAuditTx(client, adminUserId, 'recharge.flag', 'recharge', idValue, {
-      status: result.rows[0].status, amountPaise: Number(result.rows[0].amount_paise), utr: result.rows[0].utr, reason: cleanReason
+      status: result.rows[0].status, amountPaise: Number(result.rows[0].amount_paise), utr: result.rows[0].utr,
+      reason: cleanReason, observedAmountPaise: normalized.amountPaise, observedUtr: normalized.utr,
+      externalReference: normalized.externalReference
     });
     return mapRecharge(result.rows[0]);
   });

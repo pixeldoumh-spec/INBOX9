@@ -1,7 +1,7 @@
 import { applySecurityHeaders, requestId, rateLimitAsync, enforceSameOrigin } from '../../_lib/security.js';
 import { dbEnabled } from '../../_lib/db.js';
 import { getSessionUser, getMockSession, requireUser } from '../../_lib/auth.js';
-import { reviewRecharge, flagRecharge } from '../../_lib/wallet-repository.js';
+import { reviewRecharge, flagRecharge, isDuplicateUtrError } from '../../_lib/wallet-repository.js';
 
 export default async function handler(req, res) {
   applySecurityHeaders(res);
@@ -18,7 +18,7 @@ export default async function handler(req, res) {
   const verification = {
     amountPaise: req.body?.verifiedAmount == null ? null : Math.round(Number(req.body.verifiedAmount) * 100),
     utr: req.body?.verifiedUtr == null ? null : String(req.body.verifiedUtr).trim(),
-    externalReference: req.body?.externalReference == null ? null : String(req.body.externalReference).trim().slice(0, 120)
+    externalReference: req.body?.externalReference == null ? null : String(req.body.externalReference).trim()
   };
   try {
     const recharge = decision === 'flag'
@@ -26,6 +26,10 @@ export default async function handler(req, res) {
       : await reviewRecharge(id, user.id, decision, req.body?.reason, verification);
     return res.status(200).json({ recharge });
   } catch (error) {
-    return res.status(400).json({ error: error.message });
+    if (isDuplicateUtrError(error)) {
+      return res.status(409).json({ code: 'DUPLICATE_UTR', error: 'This UTR has already been submitted' });
+    }
+    const status = Number(error?.statusCode);
+    return res.status(status >= 400 && status < 500 ? status : 400).json({ code: error?.code || undefined, error: error.message });
   }
 }
