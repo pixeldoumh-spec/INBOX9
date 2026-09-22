@@ -27,6 +27,6 @@ export default async function handler(req, res) {
     return res.status(200).json({ serviceId, servers: await listSyntheticServerStats(serviceId), persistent: true });
   } catch (error) {
     console.error('synthetic.server_stats_failed', error);
-    return res.status(503).json({ error: 'Synthetic server inventory unavailable' });
+    return res.status(503).json({ error: 'Server inventory unavailable' });
   }
 }
