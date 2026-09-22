@@ -4,7 +4,7 @@ import { getProviderAdapter } from './provider-registry.js';
 import { beginCancellation, completeCancellation } from './provider-operations.js';
 import { debitForActivation, getBalanceForClient } from './wallet-repository.js';
 import { completeActivationKey, markActivationKeyStuckSafe } from './idempotency.js';
-import { claimSyntheticSlot, releaseSyntheticSlot, shouldRestoreSyntheticStock } from './synthetic-inventory-repository.js';
+import { claimSyntheticSlot, releaseSyntheticSlot, shouldRestoreSyntheticStock, shouldRequireSyntheticReservation } from './synthetic-inventory-repository.js';
 
 const TTL_MS = 3 * 60 * 1000;
 const SYNTHETIC_SLOT_RESERVATION_ATTEMPTS = 8;
@@ -273,7 +273,7 @@ export async function getActivation(id, userId) {
     const row = updated.rows[0];
     if (providerState.status === 'Expired' || providerState.status === 'Completed') {
       const released = await releaseSyntheticSlot(client, row.id);
-      if (!released) {
+      if (!released && shouldRequireSyntheticReservation(row.provider_metadata)) {
         throw new Error('Synthetic inventory reservation is missing for terminal activation');
       }
       if (shouldRestoreSyntheticStock(providerState.status)) {
