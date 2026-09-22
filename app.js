@@ -723,15 +723,15 @@ function adminLedgerPage() {
 }
 
 function providerUiName(provider) {
-  const adapterKey = String(provider?.adapterKey || '').trim().toLowerCase();
-  return adapterKey === 'synthetic' || /synthetic/i.test(String(provider?.name || ''))
+  return provider?.id === 'provider-mock'
     ? 'Activation Service'
     : String(provider?.name || 'Provider');
 }
 
 function providerUiKey(provider) {
-  const adapterKey = String(provider?.adapterKey || '').trim().toLowerCase();
-  return adapterKey === 'synthetic' ? 'Managed service' : String(provider?.adapterKey || '—');
+  return provider?.id === 'provider-mock'
+    ? 'Managed service'
+    : String(provider?.adapterKey || '—');
 }
 
 function adminProvidersPage() {
