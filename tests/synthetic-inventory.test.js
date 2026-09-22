@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import { listSyntheticServers, SYNTHETIC_SERVER_COUNT, SYNTHETIC_CAPACITY, getSyntheticServer } from '../api/_lib/synthetic-servers.js';
-import { claimSyntheticSlot } from '../api/_lib/synthetic-inventory-repository.js';
+import { claimSyntheticSlot, shouldRestoreSyntheticStock, shouldRequireSyntheticReservation } from '../api/_lib/synthetic-inventory-repository.js';
 
 test('synthetic servers partition 5,000 slots into exactly 11 contiguous chunks', () => {
   const servers = listSyntheticServers();
@@ -52,4 +52,37 @@ test('synthetic inventory migration defines durable uniqueness and release state
   assert.match(sql, /status='Reserved'/);
   assert.match(sql, /status IN \('Reserved','Released'\)/);
   assert.match(sql, /Backfill existing active synthetic activations/);
+});
+
+
+test('synthetic terminal stock contract restores availability after Completed or Expired', () => {
+  assert.equal(shouldRestoreSyntheticStock('Completed'), true);
+  assert.equal(shouldRestoreSyntheticStock('Expired'), true);
+  assert.equal(shouldRestoreSyntheticStock('Active'), false);
+  assert.equal(shouldRestoreSyntheticStock('Refunded'), false);
+  assert.equal(shouldRestoreSyntheticStock('Cancelled'), false);
+});
+
+test('synthetic slot claim surfaces durable uniqueness conflicts', async () => {
+  const fakeClient = {
+    query: async () => ({ rowCount: 0, rows: [] }),
+  };
+  await assert.rejects(
+    () => claimSyntheticSlot(fakeClient, {
+      activationId: 'ORD-CONFLICT',
+      serviceId: 'whatsapp-0',
+      slot: 1,
+      serverId: 'server-1',
+    }),
+    error => error?.code === 'SYNTHETIC_SLOT_CONFLICT'
+  );
+});
+
+
+test('synthetic terminal release requirement distinguishes modern and legacy activations', () => {
+  assert.equal(shouldRequireSyntheticReservation({ engine: 'synthetic', slot: 1 }), true);
+  assert.equal(shouldRequireSyntheticReservation({ engine: 'synthetic', slot: 5000 }), true);
+  assert.equal(shouldRequireSyntheticReservation({ engine: 'synthetic', slot: 0 }), false);
+  assert.equal(shouldRequireSyntheticReservation({ engine: 'synthetic-local', slot: 1 }), false);
+  assert.equal(shouldRequireSyntheticReservation({}), false);
 });

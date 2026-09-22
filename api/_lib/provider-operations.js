@@ -2,7 +2,7 @@ import crypto from 'node:crypto';
 import { getPool, withTransaction } from './db.js';
 import { getProviderAdapter } from './provider-registry.js';
 import { creditRefund, getBalanceForClient } from './wallet-repository.js';
-import { releaseSyntheticSlot } from './synthetic-inventory-repository.js';
+import { releaseSyntheticSlot, shouldRestoreSyntheticStock, shouldRequireSyntheticReservation } from './synthetic-inventory-repository.js';
 
 function id() { return `POP-${crypto.randomUUID()}`; }
 
@@ -197,7 +197,18 @@ async function finalizeExpirationOperation(operationId, outcome) {
          WHERE id=$1 AND status='ExpirationPending'
          RETURNING *`, [row.activation_id, outcome.otp ?? row.otp ?? null]
       );
-      if (updated.rowCount) await releaseSyntheticSlot(client, row.activation_id);
+      if (updated.rowCount) {
+        const released = await releaseSyntheticSlot(client, row.activation_id);
+        if (!released && shouldRequireSyntheticReservation(row.provider_metadata)) {
+          throw new Error('Synthetic inventory reservation is missing for completed activation');
+        }
+        if (shouldRestoreSyntheticStock('Completed')) {
+          await client.query(
+            'UPDATE services SET stock=stock+1, updated_at=NOW() WHERE id=$1',
+            [row.service_id]
+          );
+        }
+      }
       return { activationId: row.activation_id, status: 'Completed', activation: updated.rows[0] };
     }
 
@@ -208,12 +219,17 @@ async function finalizeExpirationOperation(operationId, outcome) {
        RETURNING *`, [row.activation_id, outcome.otp ?? row.otp ?? null]
     );
     if (updated.rowCount) {
-      await releaseSyntheticSlot(client, row.activation_id);
+      const released = await releaseSyntheticSlot(client, row.activation_id);
+      if (!released && shouldRequireSyntheticReservation(row.provider_metadata)) {
+        throw new Error('Synthetic inventory reservation is missing for expired activation');
+      }
       // Inventory is restored exactly once by the guarded ExpirationPending -> Expired transition.
-      await client.query(
-        `UPDATE services SET stock=stock+1, updated_at=NOW()
-         WHERE id=$1`, [row.service_id]
-      );
+      if (shouldRestoreSyntheticStock('Expired')) {
+        await client.query(
+          `UPDATE services SET stock=stock+1, updated_at=NOW()
+           WHERE id=$1`, [row.service_id]
+        );
+      }
     }
     return { activationId: row.activation_id, status: 'Expired', activation: updated.rows[0] };
   });

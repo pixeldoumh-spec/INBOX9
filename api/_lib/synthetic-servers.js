@@ -46,13 +46,3 @@ export function getServerForSlot(slot, capacity = SYNTHETIC_CAPACITY) {
   }
   return listSyntheticServers(capacity).find((server) => n >= server.startSlot && n <= server.endSlot) || null;
 }
-
-export function randomSlotForServer(serverId, capacity = SYNTHETIC_CAPACITY) {
-  const server = getSyntheticServer(serverId, capacity);
-  if (!server) {
-    const error = new Error(`Unknown synthetic server: ${serverId}`);
-    error.code = 'UNKNOWN_SYNTHETIC_SERVER';
-    throw error;
-  }
-  return server.startSlot + Math.floor(Math.random() * server.capacity);
-}
