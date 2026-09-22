@@ -87,3 +87,8 @@ The repository-level tests verify the contract without requiring a production da
 ## Result
 
 TASK-002 hardening is implemented on the dedicated branch. No production deployment configuration is required for these changes.
+
+
+## Legacy compatibility guard
+
+Terminal synthetic inventory release is required for current synthetic activations that carry the authoritative `engine=synthetic` + valid `slot` metadata. Historical/legacy activation rows without that metadata may not have a durable reservation; those rows must still be allowed to reach a terminal state rather than being blocked by a reservation assertion. The guarded transition remains the authority against duplicate stock restoration.
