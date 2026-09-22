@@ -8,6 +8,12 @@ export function shouldRestoreSyntheticStock(status) {
   return status === 'Completed' || status === 'Expired';
 }
 
+export function shouldRequireSyntheticReservation(metadata) {
+  const engine = String(metadata?.engine || '').trim().toLowerCase();
+  const slot = Number(metadata?.slot);
+  return engine === 'synthetic' && Number.isInteger(slot) && slot >= 1 && slot <= SYNTHETIC_CAPACITY;
+}
+
 function reservationId() { return `SLOT-${crypto.randomUUID()}`; }
 
 function assertSlot(slot) {
