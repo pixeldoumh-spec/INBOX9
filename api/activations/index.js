@@ -31,7 +31,7 @@ export default async function handler(req, res) {
   if (!serviceId) return res.status(400).json({ error: 'Service id is required' });
   const serverId = req.body?.serverId ? String(req.body.serverId).trim().toLowerCase() : null;
   if (serverId && !getSyntheticServer(serverId)) {
-    return res.status(400).json({ error: 'Unknown synthetic server', code: 'UNKNOWN_SYNTHETIC_SERVER' });
+    return res.status(400).json({ error: 'Unknown server', code: 'UNKNOWN_SYNTHETIC_SERVER' });
   }
   let idempotencyKey = null;
   if (dbEnabled()) {

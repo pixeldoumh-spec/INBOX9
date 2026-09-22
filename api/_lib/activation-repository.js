@@ -104,7 +104,7 @@ export async function createActivation(service, userId, idempotency = null, opti
         const currency = dbService.currency || 'INR';
         const country = dbService.country || 'IN';
         if (country !== 'IN' || currency !== 'INR') {
-          const error = new Error('Only India / INR services are supported');
+          const error = new Error('Service is unavailable');
           error.code = 'SERVICE_UNAVAILABLE';
           throw error;
         }
@@ -177,7 +177,7 @@ export async function createActivation(service, userId, idempotency = null, opti
     }
   }
 
-  const error = new Error('Synthetic inventory is temporarily unavailable; please retry.');
+  const error = new Error('Number inventory is temporarily unavailable; please retry.');
   error.code = 'SYNTHETIC_INVENTORY_BUSY';
   throw error;
 }

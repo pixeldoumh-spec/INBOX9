@@ -52,3 +52,12 @@ test('browser-facing API errors use neutral marketplace language', async () => {
   assert.match(serverRoute, /Server inventory unavailable/);
   assert.match(activationRepository, /Number inventory is temporarily unavailable/);
 });
+
+test('admin provider presentation does not expose implementation adapter names', async () => {
+  const app = await readClient('app.js');
+  assert.match(app, /function providerUiName\(provider\)/);
+  assert.match(app, /'Activation Service'/);
+  assert.match(app, /'Managed service'/);
+  assert.match(app, /provider\?\.id === 'provider-mock'/);
+  assert.doesNotMatch(app, /\bSYNTHETIC_SERVERS\b/);
+});
