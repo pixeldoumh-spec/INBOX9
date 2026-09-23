@@ -2,6 +2,7 @@ import { applySecurityHeaders, requestId, rateLimitAsync, enforceSameOrigin } fr
 import { dbEnabled } from '../../_lib/db.js';
 import { getSessionUser, getMockSession, requireUser } from '../../_lib/auth.js';
 import { reviewRecharge, flagRecharge, isDuplicateUtrError } from '../../_lib/wallet-repository.js';
+import { reviewMockRecharge } from '../../_lib/mock.js';
 
 export default async function handler(req, res) {
   applySecurityHeaders(res);
@@ -11,7 +12,16 @@ export default async function handler(req, res) {
   try { requireUser(user); } catch (e) { return res.status(401).json({ error: e.message }); }
   if (user.role !== 'admin') return res.status(403).json({ error: 'Admin access required' });
   if (!await rateLimitAsync(req, res, 'admin-recharge', 60, 60_000) || !enforceSameOrigin(req, res)) return;
-  if (!dbEnabled()) return res.status(503).json({ error: 'Admin recharge actions require PostgreSQL' });
+  if (!dbEnabled()) {
+    const id = req.query?.id || String(req.url || '').split('/').pop();
+    const decision = String(req.body?.decision || '').toLowerCase();
+    try {
+      const recharge = reviewMockRecharge(id, user, decision, req.body?.reason);
+      return res.status(200).json({ recharge, mode: 'mock' });
+    } catch (error) {
+      return res.status(error.statusCode || (error.code === 'DUPLICATE_UTR' ? 409 : 400)).json({ code: error.code, error: error.message });
+    }
+  }
   const id = req.query?.id || String(req.url || '').split('/').pop();
   const decision = String(req.body?.decision || '').toLowerCase();
   if (!['approve', 'reject', 'flag'].includes(decision)) return res.status(400).json({ error: 'Decision must be approve, reject or flag' });
