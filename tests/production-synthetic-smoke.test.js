@@ -88,7 +88,7 @@ test('synthetic production supports register, session, wallet and activation wit
     assert.match(String(activationBody.syntheticOtp), /^\d{6}$/);
     assert.ok(activationBody.mockOtpAt >= Date.now() + 19_000);
 
-    const logout = await request(server, '/api/auth/logout', { method: 'POST', headers: { cookie: session } });
+    const logout = await request(server, '/api/auth/logout', { method: 'POST', headers: { cookie: session, origin: 'http://127.0.0.1' } });
     assert.equal(logout.status, 200);
 
     const login = await request(server, '/api/auth/login', {
