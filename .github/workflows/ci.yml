@@ -32,6 +32,25 @@ jobs:
         with:
           node-version: 22
       - run: npm install --ignore-scripts
+      - name: Apply Supabase migrations to test PostgreSQL
+        env:
+          TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/inbox9_test
+        shell: bash
+        run: |
+          set -euo pipefail
+          for migration in $(find supabase/migrations -maxdepth 1 -type f -name '*.sql' | sort); do
+            echo "Applying $migration"
+            psql "$TEST_DATABASE_URL" --set ON_ERROR_STOP=1 --file "$migration"
+          done
+          services=$(psql "$TEST_DATABASE_URL" -Atc "SELECT COUNT(*) FROM services")
+          routes=$(psql "$TEST_DATABASE_URL" -Atc "SELECT COUNT(*) FROM service_provider_routes r JOIN providers p ON p.id=r.provider_id WHERE r.active=TRUE AND p.active=TRUE AND p.adapter_key='synthetic'")
+          validated=$(psql "$TEST_DATABASE_URL" -Atc "SELECT COUNT(*) FROM pg_constraint WHERE conname='activations_user_required' AND conrelid='public.activations'::regclass AND convalidated")
+          reservations_table=$(psql "$TEST_DATABASE_URL" -Atc "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='public' AND table_name='synthetic_slot_reservations'")
+          test "$services" = "832"
+          test "$routes" = "832"
+          test "$validated" = "1"
+          test "$reservations_table" = "1"
+
       - run: npm run check
       - run: npm test
       - run: npm run issue9:e2e

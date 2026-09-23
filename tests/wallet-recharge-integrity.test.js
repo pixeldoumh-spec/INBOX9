@@ -56,9 +56,9 @@ test('concurrent terminal review decisions serialize to exactly one outcome', { 
     await pool.query('DELETE FROM recharge_requests WHERE id=$1', [rechargeId]);
     await pool.query('DELETE FROM wallets WHERE user_id=$1', [userId]);
     await pool.query('DELETE FROM users WHERE id IN ($1,$2,$3)', [userId, adminA, adminB]);
-    await pool.query('INSERT INTO users (id,email,role) VALUES ($1,$2,\'user\'),($3,$4,\'admin\'),($5,$6,\'admin\')', [userId, `${userId}@example.com`, adminA, `${adminA}@example.com`, adminB, `${adminB}@example.com`]);
+    await pool.query('INSERT INTO users (id,email,password_hash,role) VALUES ($1,$2,\'test-fixture-hash\',\'user\'),($3,$4,\'test-fixture-hash\',\'admin\'),($5,$6,\'test-fixture-hash\',\'admin\')', [userId, `${userId}@example.com`, adminA, `${adminA}@example.com`, adminB, `${adminB}@example.com`]);
     await pool.query('INSERT INTO wallets (user_id,balance_paise) VALUES ($1,0)', [userId]);
-    await pool.query('INSERT INTO recharge_requests (id,user_id,amount_paise,utr) VALUES ($1,$2,50000,$3)', [rechargeId, userId, utr]);
+    await pool.query("INSERT INTO recharge_requests (id,user_id,amount_paise,utr,upi_id) VALUES ($1,$2,50000,$3,'test@upi')", [rechargeId, userId, utr]);
 
     const results = await Promise.allSettled([
       reviewRecharge(rechargeId, adminA, 'approve', '', { amountPaise: 50000, utr }),
@@ -77,13 +77,12 @@ test('concurrent terminal review decisions serialize to exactly one outcome', { 
     assert.equal(Number(ledger.rows[0].credits), recharge.rows[0].status === 'Approved' ? 50000 : 0);
     assert.equal(Number(wallet.rows[0].balance_paise), Number(ledger.rows[0].credits));
 
+    // wallet_ledger is intentionally immutable, so test cleanup must not DELETE
+    // ledger rows (or cascade through their owning users). This CI database is
+    // recreated per run and every fixture uses UUID-based IDs, so leaving the
+    // fixture rows in place is isolated and preserves the production invariant.
     await pool.query('DELETE FROM audit_logs WHERE actor_user_id IN ($1,$2)', [adminA, adminB]);
     await pool.query('DELETE FROM payment_reconciliation_events WHERE recharge_id=$1', [rechargeId]);
-    await pool.query('DELETE FROM recharge_requests WHERE id=$1', [rechargeId]);
-    await pool.query('DELETE FROM wallet_ledger WHERE user_id=$1', [userId]);
-    await pool.query('DELETE FROM wallets WHERE user_id=$1', [userId]);
-    await pool.query('DELETE FROM users WHERE id IN ($1,$2)', [userId, adminA]);
-    await pool.query('DELETE FROM users WHERE id=$1', [adminB]);
   } finally {
     await pool.end();
   }
