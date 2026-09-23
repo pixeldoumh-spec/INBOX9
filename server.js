@@ -31,6 +31,7 @@ import adminAudit from './api/admin/audit.js';
 import adminWalletReconciliation from './api/admin/wallet-reconciliation.js';
 import adminPaymentReconciliation from './api/admin/payment-reconciliation.js';
 import internalProviderReconcile from './api/internal-provider-reconcile.js';
+import { assertProductionConfiguration } from './api/_lib/runtime-config.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DEFAULT_PORT = Number(process.env.PORT || 4173);
@@ -263,6 +264,7 @@ export function createServer() {
 }
 
 export function startServer({ port = DEFAULT_PORT, host = process.env.HOST || '0.0.0.0' } = {}) {
+  assertProductionConfiguration();
   const server = createServer();
   server.listen(Number(port), host, () => {
     const address = server.address();
