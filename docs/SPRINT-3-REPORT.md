@@ -14,8 +14,8 @@ Implementation complete. Production database verification remains pending until 
 - Minimum recharge: ₹100
 - Maximum recharge: ₹5,000
 - Payment method: UPI
-- UPI ID: `8106204597@ptyes`
-- Supplied QR is served at `/payment-qr.jpg`.
+- The payment destination is deployment configuration and is intentionally not stored in source control.
+- The QR/payment asset is intentionally not stored in the repository.
 - User pays externally, then submits the UTR/transaction reference.
 - Submission creates a `Pending` recharge request.
 - Pending requests never credit the wallet.
@@ -67,5 +67,5 @@ Reject:
 - New account wallet starts at ₹0: PASS
 - Pending UTR does not credit wallet: PASS
 - Insufficient wallet blocks activation: PASS
-- QR asset served successfully: PASS
+- Payment destination/QR is deployment configuration, not repository content
 - Live PostgreSQL integration: PENDING infrastructure
