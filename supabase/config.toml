@@ -1,0 +1,11 @@
+# INBOX9 Supabase project configuration
+# The hosted GitHub integration uses supabase/migrations for schema deployment.
+# Project ref is kept in the deployment configuration, not in application secrets.
+project_id = "inbox9"
+
+[api]
+enabled = true
+schemas = ["public", "graphql_public"]
+
+[db]
+major_version = 17
