@@ -4,9 +4,11 @@ import fs from 'node:fs/promises';
 
 test('release ships exactly one canonical browser bundle', async () => {
   const root = new URL('..', import.meta.url);
-  const [html, app] = await Promise.all([
+  const [html, app, publicHtml, publicApp] = await Promise.all([
     fs.readFile(new URL('../index.html', import.meta.url), 'utf8'),
     fs.readFile(new URL('../app.js', import.meta.url), 'utf8'),
+    fs.readFile(new URL('../public/index.html', import.meta.url), 'utf8'),
+    fs.readFile(new URL('../public/app.js', import.meta.url), 'utf8'),
   ]);
   assert.match(html, /<script src="\/app\.js" defer><\/script>/);
   assert.doesNotMatch(html, /frontend\.js/);
@@ -14,9 +16,9 @@ test('release ships exactly one canonical browser bundle', async () => {
   assert.doesNotMatch(app, /seedOrders/);
   assert.doesNotMatch(app, /localStorage/);
   assert.doesNotMatch(app, /hasPersistedBalance/);
+  assert.equal(publicHtml, html);
+  assert.equal(publicApp, app);
   await assert.rejects(fs.access(new URL('../public/frontend.js', import.meta.url)));
-  await assert.rejects(fs.access(new URL('../public/app.js', import.meta.url)));
-  await assert.rejects(fs.access(new URL('../public/index.html', import.meta.url)));
   void root;
 });
 
