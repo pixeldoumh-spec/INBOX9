@@ -54,6 +54,7 @@ const exactRoutes = new Map([
   ['GET /api/admin/audit', adminAudit],
   ['GET /api/admin/wallet-reconciliation', adminWalletReconciliation],
   ['GET /api/admin/payment-reconciliation', adminPaymentReconciliation],
+  ['GET /api/cron/reconcile', internalProviderReconcile],
   ['POST /api/internal-provider-reconcile', internalProviderReconcile]
 ]);
 

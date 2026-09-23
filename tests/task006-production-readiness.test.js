@@ -3,15 +3,15 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 
 const adminReadRoutes = [
-  'api/admin/activations.js',
-  'api/admin/audit.js',
-  'api/admin/ledger.js',
-  'api/admin/overview.js',
-  'api/admin/providers-health.js',
-  'api/admin/providers.js',
-  'api/admin/recharges/index.js',
-  'api/admin/services.js',
-  'api/admin/users.js',
+  'api/admin/_activations.js',
+  'api/admin/_audit.js',
+  'api/admin/_ledger.js',
+  'api/admin/_overview.js',
+  'api/admin/_providers-health.js',
+  'api/admin/_providers.js',
+  'api/admin/recharges/_index.js',
+  'api/admin/_services.js',
+  'api/admin/_users.js',
 ];
 
 test('TASK-006 admin read routes apply common headers and rate limiting', async () => {
@@ -25,7 +25,7 @@ test('TASK-006 admin read routes apply common headers and rate limiting', async 
 });
 
 test('TASK-006 wallet reconciliation write route has CSRF, rate and payload guards', async () => {
-  const src = await fs.readFile(new URL('../api/admin/wallet-reconciliation.js', import.meta.url), 'utf8');
+  const src = await fs.readFile(new URL('../api/admin/_wallet-reconciliation.js', import.meta.url), 'utf8');
   assert.match(src, /applySecurityHeaders/);
   assert.match(src, /rateLimitAsync/);
   assert.match(src, /enforceSameOrigin/);
