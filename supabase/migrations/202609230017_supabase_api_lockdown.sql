@@ -2,7 +2,15 @@
 -- The browser talks to INBOX9 /api/*, not directly to Supabase PostgREST.
 BEGIN;
 
-DO $$
+-- Migration 015 adds services after the original provider cutover. Reassert routing
+-- here so every synthetic catalog entry has an active synthetic fulfillment route.
+INSERT INTO service_provider_routes(service_id,provider_id,priority,active)
+SELECT id,'provider-mock',10,TRUE
+FROM services
+ON CONFLICT (service_id,provider_id)
+DO UPDATE SET active=TRUE, priority=10;
+
+DO $
 DECLARE
   table_name TEXT;
 BEGIN
