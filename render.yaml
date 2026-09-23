@@ -4,7 +4,7 @@ services:
     runtime: node
     plan: free
     region: singapore
-    branch: migration/hosting-neutral-no-vercel
+    branch: main
     buildCommand: npm ci --ignore-scripts && npm run assets:sync
     startCommand: npm run db:migrate && npm start
     healthCheckPath: /api/health
