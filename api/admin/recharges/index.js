@@ -2,6 +2,7 @@ import { applySecurityHeaders, requestId, rateLimitAsync } from '../../_lib/secu
 import { dbEnabled } from '../../_lib/db.js';
 import { getSessionUser, getMockSession, requireUser } from '../../_lib/auth.js';
 import { listPendingRecharges } from '../../_lib/wallet-repository.js';
+import { listPendingMockRecharges } from '../../_lib/mock.js';
 
 export default async function handler(req, res) {
   applySecurityHeaders(res);
@@ -11,7 +12,7 @@ export default async function handler(req, res) {
   const user = dbEnabled() ? await getSessionUser(req) : getMockSession(req);
   try { requireUser(user); } catch (e) { return res.status(401).json({ error: e.message }); }
   if (user.role !== 'admin') return res.status(403).json({ error: 'Admin access required' });
-  if (!dbEnabled()) return res.status(200).json({ recharges: [], persistent: false });
+  if (!dbEnabled()) return res.status(200).json({ recharges: listPendingMockRecharges(), persistent: false });
   try { return res.status(200).json({ recharges: await listPendingRecharges(), persistent: true }); }
   catch (error) { return res.status(503).json({ error: 'Admin recharge queue unavailable' }); }
 }
