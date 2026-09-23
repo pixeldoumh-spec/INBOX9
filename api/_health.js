@@ -1,5 +1,6 @@
 import { applySecurityHeaders, requestId } from './_lib/security.js';
 import { getPool, dbEnabled } from './_lib/db.js';
+import { isSyntheticProduction } from './_lib/runtime-config.js';
 
 export default async function handler(_req, res) {
   applySecurityHeaders(res);
@@ -20,11 +21,14 @@ export default async function handler(_req, res) {
   const appOriginConfigured = Boolean(process.env.APP_ORIGIN);
   const cronSecretConfigured = Boolean(process.env.CRON_SECRET);
   const cronSecretManualFallbackConfigured = Boolean(process.env.INTERNAL_CRON_SECRET);
-  const ready = databaseConfigured && databaseReachable && (!production || (sharedRateLimitConfigured && appOriginConfigured && cronSecretConfigured));
+  const ready = isSyntheticProduction()
+    ? true
+    : databaseConfigured && databaseReachable && (!production || (sharedRateLimitConfigured && appOriginConfigured && cronSecretConfigured));
   const body = { ok: true, ready, mode: databaseConfigured ? 'postgres' : 'local',
     dependencies: { database: { configured: databaseConfigured, reachable: databaseReachable },
       sharedRateLimit: { configured: sharedRateLimitConfigured }, appOrigin: { configured: appOriginConfigured },
-      cronAuth: { configured: cronSecretConfigured, manualFallbackConfigured: cronSecretManualFallbackConfigured } },
+      cronAuth: { configured: cronSecretConfigured, manualFallbackConfigured: cronSecretManualFallbackConfigured },
+      syntheticRuntime: { enabled: isSyntheticProduction() } },
     timestamp: new Date().toISOString() };
   return res.status(ready || !production ? 200 : 503).json(body);
 }
