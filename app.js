@@ -285,6 +285,7 @@ async function submitAuth(event) {
     const endpoint = state.authMode === 'register' ? '/api/auth/register' : '/api/auth/login';
     const payload = await api(endpoint, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email, password }) });
     state.user = payload.user;
+    state.page = pageFromHash();
     loadPersisted();
     await loadCustomerData();
     toast(state.authMode === 'register' ? 'Account created' : 'Signed in');
@@ -589,8 +590,12 @@ async function buy(serviceId, serverId = null) {
     syncPageHash('active');
     resetPurchaseFlow();
     persist();
+    await loadCustomerData({ silent: true });
+    state.page = 'active';
+    syncPageHash('active');
+    resetPurchaseFlow();
     render();
-    toast(`${activation.service} • Number reserved`);
+    toast(activation.service + ' • Number reserved');
   } catch (error) {
     state.purchaseBusy.delete(purchaseKey);
     if (error.code === 'IDEMPOTENCY_IN_PROGRESS') {
@@ -645,6 +650,7 @@ async function cancelActivation(id) {
     const order = state.orders.find((entry) => entry.id === id);
     if (order) { order.status = 'Refunded'; order.otp = '—'; }
     persist();
+    await loadCustomerData({ silent: true });
     render();
     toast('Activation cancelled and wallet refunded');
   } catch (error) {
