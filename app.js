@@ -36,6 +36,7 @@ const state = {
   marketServerErrors: {},
   lastCatalogRefreshAt: 0,
   customerDataRefreshing: false,
+  liveProviders: {},
   tickTimer: null,
   purchaseFlow: {
     step: 'service',
@@ -369,6 +370,7 @@ async function loadCustomerData({ renderAfter = false, silent = false } = {}) {
 
   if (servicesResult.status === 'fulfilled') {
     state.services = Array.isArray(servicesResult.value.services) ? servicesResult.value.services : [];
+    state.liveProviders = servicesResult.value.liveProviders || {};
     prepareServiceCatalog();
   } else {
     failures.push(servicesResult.reason?.message || 'Service catalog unavailable');
@@ -404,6 +406,7 @@ async function refreshCatalog({ silent = false } = {}) {
   try {
     const payload = await api('/api/services');
     state.services = Array.isArray(payload.services) ? payload.services : [];
+    state.liveProviders = payload.liveProviders || {};
     prepareServiceCatalog();
     state.lastCatalogRefreshAt = Date.now();
     if (!silent && state.page === 'buy') renderBuyCatalog();
