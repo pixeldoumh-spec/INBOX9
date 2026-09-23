@@ -1089,13 +1089,6 @@ document.addEventListener('keydown', (event) => {
   }
 });
 
-boot()  try {
-    await loadCustomerData();
-  } finally {
-    activationSyncInFlight = false;
-  }
-}
-
 
 async function loadAdminTab(tab = state.adminTab) {
   if (state.user?.role !== 'admin') return;
