@@ -1,7 +1,7 @@
-import { applySecurityHeaders, requestId, rateLimitAsync, enforceSameOrigin, validateBodySize } from '../../_lib/security.js';
-import { dbEnabled } from '../../_lib/db.js';
-import { getSessionUser, requireAdmin } from '../../_lib/auth.js';
-import { getLatestWalletReconciliation, listOpenWalletReconciliationIssues, reconcileWallets } from '../../_lib/wallet-reconciliation.js';
+import { applySecurityHeaders, requestId, rateLimitAsync, enforceSameOrigin, validateBodySize } from '../_lib/security.js';
+import { dbEnabled } from '../_lib/db.js';
+import { getSessionUser, requireAdmin } from '../_lib/auth.js';
+import { getLatestWalletReconciliation, listOpenWalletReconciliationIssues, reconcileWallets } from '../_lib/wallet-reconciliation.js';
 
 export default async function handler(req, res) {
   applySecurityHeaders(res);
