@@ -814,8 +814,6 @@ function content() {
 }
 
 
-async 
-
 function serviceCard(service) {
   const availability = Math.max(0, Number(service.stock || 0));
   const availabilityState = availability <= 0 ? 'sold-out' : availability < 100 ? 'limited' : 'ready';
