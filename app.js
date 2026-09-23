@@ -455,6 +455,7 @@ function serverStatsMarkup(service) {
 }
 
 async function boot() {
+  state.page = pageFromHash();
   try {
     const session = await api('/api/auth/me');
     state.user = session.user;
@@ -564,8 +565,7 @@ async function buy(serviceId, serverId = null) {
   }
   if (state.balancePaise < (state.services.find((s) => s.id === serviceId)?.pricePaise || 0)) {
     resetPurchaseFlow();
-    state.page = 'wallet';
-    render();
+    setPage('wallet');
     toast('Insufficient wallet balance. Please recharge first.');
     return;
   }
@@ -586,6 +586,7 @@ async function buy(serviceId, serverId = null) {
     if (Number.isFinite(activation.walletBalancePaise)) state.balancePaise = activation.walletBalancePaise;
     else state.balancePaise = Math.max(0, state.balancePaise - Number(activation.pricePaise || 0));
     state.page = 'active';
+    syncPageHash('active');
     resetPurchaseFlow();
     persist();
     render();
@@ -952,7 +953,7 @@ function render() {
         </header>
         <section class="content-wrap">
           ${state.page === 'buy' ? hero() : ''}
-          ${state.error ? `<div class="panel" style="padding:14px;margin-bottom:16px;color:#ffb0b0">API error: ${esc(state.error)}</div>` : ''}
+          ${state.error ? `<div class="panel runtime-error" role="alert"><div><strong>Some live data could not be refreshed.</strong><span>${esc(state.error)}</span></div><button class="secondary-btn" type="button" data-action="refresh-customer">Retry</button></div>` : ''}
           <div id="content">${content()}</div>
         </section>
       </main>
@@ -1216,9 +1217,9 @@ function bindMarketplaceEvents() {
     if (returnPurchase) {
       const serviceId = state.purchaseFlow.serviceId;
       state.purchaseFlow.returnAfterWallet = false;
-      state.page = 'buy';
+      setPage('buy');
       state.expandedServiceId = serviceId;
-      render();
+      renderBuyCatalog();
       scheduleDialogFocus();
     }
   });
