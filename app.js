@@ -28,10 +28,14 @@ const state = {
   expandedServiceId: null,
   marketVisibleCount: 48,
   categoryCounts: {},
+  catalogCategories: ['All'],
   serviceSearchIndex: [],
   marketSearchTimer: null,
   marketServerStats: {},
   marketServerLoading: {},
+  marketServerErrors: {},
+  lastCatalogRefreshAt: 0,
+  customerDataRefreshing: false,
   tickTimer: null,
   purchaseFlow: {
     step: 'service',
@@ -49,7 +53,7 @@ const nav = [
   ['orders', 'Orders', '▤'],
   ['wallet', 'Wallet', '▱']
 ];
-const categories = ['All', 'Social', 'Productivity', 'Rummy', 'Games', 'Other'];
+const DEFAULT_CATEGORIES = ['Social', 'Productivity', 'Rummy', 'Games', 'Other'];
 
 function appNav() {
   return state.user?.role === 'admin'
@@ -67,9 +71,22 @@ function normalizeSearchText(value) {
 
 function prepareServiceCatalog() {
   const services = Array.isArray(state.services) ? state.services : [];
+  const categoryCounts = services.reduce((counts, service) => {
+    const category = String(service.category || 'Other').trim() || 'Other';
+    counts[category] = (counts[category] || 0) + 1;
+    return counts;
+  }, {});
+  const discoveredCategories = Object.keys(categoryCounts);
+  const orderedCategories = [
+    ...DEFAULT_CATEGORIES.filter((category) => categoryCounts[category] > 0),
+    ...discoveredCategories.filter((category) => !DEFAULT_CATEGORIES.includes(category))
+      .sort((a, b) => categoryCounts[b] - categoryCounts[a] || a.localeCompare(b))
+  ];
+  state.catalogCategories = ['All', ...orderedCategories];
+  if (!state.catalogCategories.includes(state.category)) state.category = 'All';
   state.serviceSearchIndex = services.map((service) => ({ service, text: normalizeSearchText(service.name) }));
-  state.categoryCounts = categories.reduce((counts, category) => {
-    counts[category] = category === 'All' ? services.length : services.filter((service) => service.category === category).length;
+  state.categoryCounts = state.catalogCategories.reduce((counts, category) => {
+    counts[category] = category === 'All' ? services.length : Number(categoryCounts[category] || 0);
     return counts;
   }, {});
 }
@@ -160,11 +177,54 @@ function toast(message) {
   state.toastTimer = setTimeout(() => node.remove(), 2300);
 }
 
-function setPage(page) {
-  state.page = page;
+const CUSTOMER_PAGES = new Set(['buy', 'active', 'orders', 'wallet', 'admin', 'api']);
+
+function pageFromHash() {
+  const raw = String(window.location.hash || '').replace(/^#/, '').trim().toLowerCase();
+  return CUSTOMER_PAGES.has(raw) ? raw : 'buy';
+}
+
+function syncPageHash(page, { replace = false } = {}) {
+  const target = page === 'buy' ? '' : `#${page}`;
+  if (window.location.hash === target || (target === '' && !window.location.hash)) return;
+  const url = `${window.location.pathname}${window.location.search}${target}`;
+  if (replace) window.history.replaceState({ page }, '', url);
+  else window.history.pushState({ page }, '', url);
+}
+
+function setPage(page, { syncUrl = true } = {}) {
+  const next = CUSTOMER_PAGES.has(page) ? page : 'buy';
+  if (next === 'admin' && state.user?.role !== 'admin') return;
+  state.page = next;
+  state.mobileMenu = false;
+  if (syncUrl) syncPageHash(next);
+  render();
+  if (next === 'admin' && state.user?.role === 'admin') void loadAdminTab(state.adminTab);
+  if (next === 'wallet') void refreshWallet().then(() => render());
+  if (next === 'buy') void refreshCatalog({ silent: true });
+}
+
+function handleHashNavigation() {
+  if (!state.user) return;
+  const next = pageFromHash();
+  if (next === 'admin' && state.user?.role !== 'admin') return setPage('buy', { syncUrl: true });
+  if (state.page === next) return;
+  state.page = next;
   state.mobileMenu = false;
   render();
-  if (page === 'admin' && state.user?.role === 'admin') loadAdminTab(state.adminTab);
+  if (next === 'admin' && state.user?.role === 'admin') void loadAdminTab(state.adminTab);
+}
+
+function handleSessionExpired() {
+  state.user = null;
+  state.active = [];
+  state.orders = [];
+  state.securityOpen = false;
+  resetPurchaseFlow();
+  state.page = 'buy';
+  syncPageHash('buy', { replace: true });
+  render();
+  toast('Your session expired. Please sign in again.');
 }
 
 function resetDemo() {
@@ -225,6 +285,7 @@ async function submitAuth(event) {
     const endpoint = state.authMode === 'register' ? '/api/auth/register' : '/api/auth/login';
     const payload = await api(endpoint, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email, password }) });
     state.user = payload.user;
+    state.page = pageFromHash();
     loadPersisted();
     await loadCustomerData();
     toast(state.authMode === 'register' ? 'Account created' : 'Signed in');
@@ -269,22 +330,31 @@ async function submitChangePassword(event) {
 
 async function logoutAll() {
   try { await api('/api/auth/logout-all', { method: 'POST' }); } catch (error) { toast(error.message); return; }
-  state.user = null;
-  state.active = [];
-  state.orders = [];
-  state.securityOpen = false;
-  render();
+  handleSessionSignedOut();
 }
 
 async function logout() {
   await api('/api/auth/logout', { method: 'POST' }).catch(() => null);
+  handleSessionSignedOut();
+}
+
+function handleSessionSignedOut() {
   state.user = null;
   state.active = [];
   state.orders = [];
+  state.walletLedger = [];
+  state.recharges = [];
+  state.securityOpen = false;
+  state.expandedServiceId = null;
+  resetPurchaseFlow();
+  state.page = 'buy';
+  syncPageHash('buy', { replace: true });
   render();
 }
 
-async function loadCustomerData() {
+async function loadCustomerData({ renderAfter = false, silent = false } = {}) {
+  if (!state.user) return false;
+  state.customerDataRefreshing = !silent;
   const results = await Promise.allSettled([
     api('/api/services'),
     api('/api/activations'),
@@ -292,6 +362,10 @@ async function loadCustomerData() {
   ]);
   const [servicesResult, activationsResult, walletResult] = results;
   const failures = [];
+  if (results.some((result) => result.status === 'rejected' && Number(result.reason?.status) === 401)) {
+    handleSessionExpired();
+    return false;
+  }
 
   if (servicesResult.status === 'fulfilled') {
     state.services = Array.isArray(servicesResult.value.services) ? servicesResult.value.services : [];
@@ -319,9 +393,77 @@ async function loadCustomerData() {
   }
 
   state.error = failures.join(' • ');
+  state.customerDataRefreshing = false;
+  state.lastCatalogRefreshAt = Date.now();
+  if (renderAfter) render();
+  return failures.length === 0;
+}
+
+async function refreshCatalog({ silent = false } = {}) {
+  if (!state.user) return false;
+  try {
+    const payload = await api('/api/services');
+    state.services = Array.isArray(payload.services) ? payload.services : [];
+    prepareServiceCatalog();
+    state.lastCatalogRefreshAt = Date.now();
+    if (!silent && state.page === 'buy') renderBuyCatalog();
+    return true;
+  } catch (error) {
+    if (Number(error.status) === 401) {
+      handleSessionExpired();
+      return false;
+    }
+    state.error = error.message || 'Service catalog unavailable';
+    if (!silent && state.page === 'buy') renderBuyCatalog();
+    return false;
+  }
+}
+
+async function toggleServiceCapacity(serviceId) {
+  if (state.expandedServiceId === serviceId) {
+    state.expandedServiceId = null;
+    renderBuyCatalog();
+    return;
+  }
+  state.expandedServiceId = serviceId;
+  state.marketServerErrors[serviceId] = '';
+  state.marketServerLoading[serviceId] = true;
+  renderBuyCatalog();
+  try {
+    state.marketServerStats[serviceId] = await api('/api/services/' + encodeURIComponent(serviceId) + '/servers');
+  } catch (error) {
+    if (Number(error.status) === 401) {
+      handleSessionExpired();
+      return;
+    }
+    state.marketServerErrors[serviceId] = error.message || 'Unable to load current capacity';
+  } finally {
+    state.marketServerLoading[serviceId] = false;
+    if (state.page === 'buy' && state.expandedServiceId === serviceId) renderBuyCatalog();
+  }
+}
+
+function serverStatsMarkup(service) {
+  if (state.marketServerLoading[service.id]) {
+    return '<div class="server-panel"><div class="server-loading">Loading live capacity…</div></div>';
+  }
+  const error = state.marketServerErrors[service.id];
+  if (error) {
+    return '<div class="server-panel"><div class="server-note"><span class="server-note-icon">!</span><div><strong>Capacity unavailable</strong><span>' + esc(error) + '</span></div></div></div>';
+  }
+  const payload = state.marketServerStats[service.id];
+  if (!payload) {
+    return '<div class="server-panel"><div class="server-note"><span class="server-note-icon">⌁</span><div><strong>Live capacity</strong><span>Expand the service to load current server capacity from INBOX9.</span></div></div></div>';
+  }
+  const servers = Array.isArray(payload.servers) ? payload.servers : [];
+  const totalAvailable = servers.reduce((sum, server) => sum + Number(server.availableCount || 0), 0);
+  const totalCapacity = servers.reduce((sum, server) => sum + Number(server.capacity || 0), 0);
+  const rows = servers.map((server) => '<div class="server-row"><div class="server-number">' + esc(String(server.id || '').replace(/^server-/i, '#') || '—') + '</div><div class="server-info"><div class="server-name">' + esc(server.name || 'Activation server') + '</div><div class="server-stock">' + Number(server.availableCount || 0).toLocaleString() + ' available · ' + Number(server.reservedCount || 0).toLocaleString() + ' reserved</div></div><div class="server-price">' + Number(server.capacity || 0).toLocaleString() + ' slots</div></div>').join('');
+  return '<div class="server-panel"><div class="server-note"><span class="server-note-icon">⌁</span><div><strong>Automatic allocation</strong><span>' + servers.length + ' servers · ' + totalAvailable.toLocaleString() + ' available of ' + totalCapacity.toLocaleString() + ' capacity. INBOX9 chooses the server automatically.</span></div></div><div class="server-list">' + rows + '</div></div>';
 }
 
 async function boot() {
+  state.page = pageFromHash();
   try {
     const session = await api('/api/auth/me');
     state.user = session.user;
@@ -341,6 +483,8 @@ async function boot() {
     render();
   }
   if (!state.tickTimer) state.tickTimer = window.setInterval(tick, 1000);
+  window.addEventListener('hashchange', handleHashNavigation);
+  window.addEventListener('popstate', handleHashNavigation);
 }
 
 function resetPurchaseFlow() {
@@ -431,8 +575,7 @@ async function buy(serviceId, serverId = null) {
   }
   if (state.balancePaise < (state.services.find((s) => s.id === serviceId)?.pricePaise || 0)) {
     resetPurchaseFlow();
-    state.page = 'wallet';
-    render();
+    setPage('wallet');
     toast('Insufficient wallet balance. Please recharge first.');
     return;
   }
@@ -453,10 +596,15 @@ async function buy(serviceId, serverId = null) {
     if (Number.isFinite(activation.walletBalancePaise)) state.balancePaise = activation.walletBalancePaise;
     else state.balancePaise = Math.max(0, state.balancePaise - Number(activation.pricePaise || 0));
     state.page = 'active';
+    syncPageHash('active');
     resetPurchaseFlow();
     persist();
+    await loadCustomerData({ silent: true });
+    state.page = 'active';
+    syncPageHash('active');
+    resetPurchaseFlow();
     render();
-    toast(`${activation.service} • Number reserved`);
+    toast(activation.service + ' • Number reserved');
   } catch (error) {
     state.purchaseBusy.delete(purchaseKey);
     if (error.code === 'IDEMPOTENCY_IN_PROGRESS') {
@@ -511,6 +659,7 @@ async function cancelActivation(id) {
     const order = state.orders.find((entry) => entry.id === id);
     if (order) { order.status = 'Refunded'; order.otp = '—'; }
     persist();
+    await loadCustomerData({ silent: true });
     render();
     toast('Activation cancelled and wallet refunded');
   } catch (error) {
@@ -528,6 +677,10 @@ async function refreshWallet() {
     state.rechargeUpiId = wallet.rechargeEnabled ? (wallet.upiId || null) : null;
     return wallet;
   } catch (error) {
+    if (Number(error.status) === 401) {
+      handleSessionExpired();
+      return null;
+    }
     toast(error.message);
     return null;
   }
@@ -602,12 +755,19 @@ async function syncActivationItem(item) {
 }
 
 async function tick() {
-  if (!state.user || !state.active.length) {
+  if (!state.user) {
+    if (state.page === 'active') renderActiveOnly();
+    return;
+  }
+  const now = Date.now();
+  if (now - state.lastCatalogRefreshAt > 60_000 && !state.customerDataRefreshing) {
+    void refreshCatalog({ silent: true });
+  }
+  if (!state.active.length) {
     if (state.page === 'active') renderActiveOnly();
     return;
   }
   if (activationSyncInFlight) return;
-  const now = Date.now();
   if (now - lastActivationSync < 2500) {
     if (state.page === 'active') renderActiveOnly();
     return;
@@ -621,7 +781,6 @@ async function tick() {
       const batch = current.slice(start, start + concurrency);
       await Promise.all(batch.map((item) => syncActivationItem(item)));
     }
-    persist();
     if (state.page === 'active') renderActiveOnly();
   } finally {
     activationSyncInFlight = false;
@@ -651,6 +810,10 @@ async function loadAdminTab(tab = state.adminTab) {
     if (key === 'overview') state.admin.overview = payload;
     else state.admin[key] = Array.isArray(payload[key]) ? payload[key] : [];
   } catch (error) {
+    if (Number(error.status) === 401) {
+      handleSessionExpired();
+      return;
+    }
     state.adminError = error.message;
   } finally {
     state.adminLoading = false;
@@ -815,11 +978,11 @@ function render() {
       <main class="main">
         <header class="topbar">
           <div class="breadcrumb"><button class="menu-btn icon-btn" type="button" aria-label="Open menu" data-action="open-menu">☰</button><span>Market</span><span>/</span><strong>${esc(current)}</strong></div>
-          <div class="top-actions"><button class="wallet-chip" type="button" data-page="wallet">▱ ${money(state.balancePaise)} <b>+</b></button><button class="icon-btn notification" type="button" aria-label="Notifications">♧<span></span></button></div>
+          <div class="top-actions"><button class="wallet-chip" type="button" data-page="wallet">▱ ${money(state.balancePaise)} <b>+</b></button><span class="topbar-live-status"><span class="live-dot"></span><span>Connected</span></span></div>
         </header>
         <section class="content-wrap">
           ${state.page === 'buy' ? hero() : ''}
-          ${state.error ? `<div class="panel" style="padding:14px;margin-bottom:16px;color:#ffb0b0">API error: ${esc(state.error)}</div>` : ''}
+          ${state.error ? `<div class="panel runtime-error" role="alert"><div><strong>Some live data could not be refreshed.</strong><span>${esc(state.error)}</span></div><button class="secondary-btn" type="button" data-action="refresh-customer">Retry</button></div>` : ''}
           <div id="content">${content()}</div>
         </section>
       </main>
@@ -844,10 +1007,10 @@ function hero() {
       </div>
     </div>
     <div class="hero-dashboard">
-      <div class="hero-live"><span class="live-dot"></span><strong>Marketplace live</strong><span>24/7</span></div>
+      <div class="hero-live"><span class="live-dot"></span><strong>Backend connected</strong><span>LIVE API</span></div>
       <div class="hero-stat-grid">
         <div class="hero-stat"><span>Services</span><strong>${state.services.length.toLocaleString()}</strong><small>ready to browse</small></div>
-        <div class="hero-stat"><span>Servers / service</span><strong>11</strong><small>distributed capacity</small></div>
+        <div class="hero-stat"><span>Allocation</span><strong>Auto</strong><small>server selected at purchase</small></div>
         <div class="hero-stat"><span>Code timing</span><strong>20s</strong><small>automatic delivery</small></div>
         <div class="hero-stat"><span>Active now</span><strong>${activeCount}</strong><small>${activeCount === 1 ? 'activation' : 'activations'}</small></div>
       </div>
@@ -871,29 +1034,20 @@ function serviceCard(service) {
   const availability = Math.max(0, Number(service.stock || 0));
   const availabilityState = availability <= 0 ? 'sold-out' : availability < 100 ? 'limited' : 'ready';
   const availabilityLabel = availability <= 0 ? 'Sold out' : availability < 100 ? 'Limited' : 'Ready';
-  const disabled = availability <= 0 || state.balancePaise < Number(service.pricePaise || 0);
-  const actionLabel = availability <= 0 ? 'Unavailable' : state.balancePaise < Number(service.pricePaise || 0) ? 'Top up' : 'Buy number';
-  return `<article class="market-service-group customer-service-card">
-    <div class="customer-service-main">
-      <span class="service-icon service-brand-icon">${iconFor(service.category)}</span>
-      <span class="service-group-copy">
-        <span class="service-category">${esc(service.category)}</span>
-        <strong>${esc(service.name)}</strong>
-        <small>India (+91) · Fast activation · ~20s OTP</small>
-      </span>
-      <span class="service-group-meta">
-        <span class="availability-pill ${availabilityState}"><span></span>${availabilityLabel}</span>
-        <span class="service-price">${money(service.pricePaise)}</span>
-      </span>
-    </div>
-    <div class="customer-service-bottom">
-      <span class="customer-service-fact"><b>3 min</b> activation window</span>
-      <span class="customer-service-fact"><b>${availability.toLocaleString()}</b> available</span>
-      <button class="buy-btn customer-buy" type="button" data-buy-service="${esc(service.id)}" ${disabled && availability > 0 ? '' : (availability <= 0 ? 'disabled aria-disabled="true"' : '')}>${actionLabel}</button>
-    </div>
-  </article>`;
+  const insufficient = state.balancePaise < Number(service.pricePaise || 0);
+  const actionLabel = availability <= 0 ? 'Unavailable' : insufficient ? 'Top up' : 'Buy number';
+  const expanded = state.expandedServiceId === service.id;
+  return '<article class="market-service-group customer-service-card' + (expanded ? ' expanded' : '') + '">' +
+    '<button class="service-group-header customer-service-main" type="button" data-toggle-service="' + esc(service.id) + '" aria-expanded="' + String(expanded) + '" aria-controls="capacity-' + esc(service.id) + '">' +
+      '<span class="service-icon service-brand-icon">' + iconFor(service.category) + '</span>' +
+      '<span class="service-group-copy"><span class="service-category">' + esc(service.category) + '</span><strong>' + esc(service.name) + '</strong><small>India (+91) · Fast activation · ~20s OTP</small></span>' +
+      '<span class="service-group-meta"><span class="availability-pill ' + availabilityState + '"><span></span>' + availabilityLabel + '</span><span class="service-price">' + money(service.pricePaise) + '</span></span>' +
+      '<span class="service-group-chevron" aria-hidden="true">⌄</span>' +
+    '</button>' +
+    '<div class="customer-service-bottom"><span class="customer-service-fact"><b>3 min</b> activation window</span><span class="customer-service-fact"><b>' + availability.toLocaleString() + '</b> available</span><button class="buy-btn customer-buy" type="button" data-buy-service="' + esc(service.id) + '" ' + (availability <= 0 ? 'disabled aria-disabled="true"' : '') + '>' + actionLabel + '</button></div>' +
+    (expanded ? serverStatsMarkup(service) : '') +
+  '</article>';
 }
-
 function marketListMarkup(list) {
   const visible = list.slice(0, state.marketVisibleCount);
   const loadMore = visible.length < list.length;
@@ -930,7 +1084,7 @@ function buyPage() {
     <div class="controls market-controls">
       <div class="toolbar market-toolbar">
         <label class="search-box premium-search" aria-label="Search services"><span class="search-glyph">⌕</span><input id="service-search" value="${esc(state.search)}" placeholder="Search ${state.services.length.toLocaleString()} services…" autocomplete="off" spellcheck="false"><kbd>/</kbd></label>
-        <div class="category-scroll-wrap"><div class="category-scroll" role="group" aria-label="Service categories">${categories.map((category) => `<button class="filter-btn ${state.category === category ? "selected" : ""}" type="button" data-category="${category}" aria-pressed="${state.category === category}"><span>${category}</span><span class="filter-count">${(state.categoryCounts[category] || 0).toLocaleString()}</span></button>`).join("")}</div></div>
+        <div class="category-scroll-wrap"><div class="category-scroll" role="group" aria-label="Service categories">${state.catalogCategories.map((category) => `<button class="filter-btn ${state.category === category ? "selected" : ""}" type="button" data-category="${esc(category)}" aria-pressed="${state.category === category}"><span>${esc(category)}</span><span class="filter-count">${(state.categoryCounts[category] || 0).toLocaleString()}</span></button>`).join("")}</div></div>
       </div>
     </div>
     <div class="market-results-bar"><span class="result-note market-result-count" aria-live="polite">${esc(marketResultText(list.length, showing))}</span><span class="market-hint">Prices and availability update from the INBOX9 backend</span></div>
@@ -939,7 +1093,7 @@ function buyPage() {
   </div>`;
 }
 function activePage() {
-  return `<div class="section-head with-action"><div><span class="kicker">LIVE SESSION</span><h2>Active numbers</h2></div><span class="status-chip">● ${state.active.length} active</span></div>${state.active.length ? `<div class="active-list">${state.active.map(activeCard).join('')}</div>` : `<div class="panel empty"><div class="empty-icon">▤</div><h3>No active numbers</h3><p>Reserve a number from the marketplace and the activation will appear here.</p></div>`}`;
+  return `<div class="section-head with-action"><div><span class="kicker">LIVE SESSION</span><h2>Active numbers</h2></div><div class="page-head-actions"><span class="status-chip">● ${state.active.length} active</span><button class="refresh-btn" type="button" data-action="refresh-customer">${state.customerDataRefreshing ? 'Refreshing…' : 'Refresh'}</button></div></div>${state.active.length ? `<div class="active-list">${state.active.map(activeCard).join('')}</div>` : `<div class="panel empty"><div class="empty-icon">▤</div><h3>No active numbers</h3><p>Reserve a number from the marketplace and the activation will appear here.</p><button class="refresh-btn empty-state-action" type="button" data-page="buy">Browse services</button></div>`}`;
 }
 
 function renderActiveOnly() {
@@ -967,7 +1121,10 @@ function activeCard(activation) {
 }
 
 function ordersPage() {
-  return `<div class="section-head"><div><span class="kicker">ACCOUNT ACTIVITY</span><h2>Order history</h2></div><span class="result-note">${state.orders.length} records</span></div><div class="panel table-panel"><table class="orders-table"><thead><tr><th>Order</th><th>Service</th><th>Number</th><th>Status</th><th>OTP</th><th>Price</th><th>Created</th></tr></thead><tbody>${state.orders.map((order) => `<tr><td class="mono" data-label="Order">${esc(order.id)}</td><td data-label="Service"><strong>${esc(order.service)}</strong></td><td data-label="Number">${esc(order.number)}</td><td data-label="Status"><span class="table-status ${order.status.toLowerCase()}">${esc(order.status)}</span></td><td data-label="OTP">${esc(order.otp)}</td><td data-label="Price">${money(order.pricePaise)}</td><td data-label="Created">${esc(order.created)}</td></tr>`).join('')}</tbody></table></div>`;
+  const rows = state.orders.length
+    ? state.orders.map((order) => `<tr><td class="mono" data-label="Order">${esc(order.id)}</td><td data-label="Service"><strong>${esc(order.service)}</strong></td><td data-label="Number">${esc(order.number)}</td><td data-label="Status"><span class="table-status ${order.status.toLowerCase()}">${esc(order.status)}</span></td><td data-label="OTP">${esc(order.otp)}</td><td data-label="Price">${money(order.pricePaise)}</td><td data-label="Created">${esc(order.created)}</td></tr>`).join('')
+    : `<tr><td colspan="7"><div class="empty-mini">No orders yet. Completed and active activations appear here automatically.</div></td></tr>`;
+  return `<div class="section-head"><div><span class="kicker">ACCOUNT ACTIVITY</span><h2>Order history</h2></div><div class="page-head-actions"><span class="result-note">${state.orders.length} records</span><button class="refresh-btn" type="button" data-action="refresh-customer">${state.customerDataRefreshing ? 'Refreshing…' : 'Refresh'}</button></div></div><div class="panel table-panel"><table class="orders-table"><thead><tr><th>Order</th><th>Service</th><th>Number</th><th>Status</th><th>OTP</th><th>Price</th><th>Created</th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 function walletPage() {
   const returnPurchase = state.purchaseFlow.returnAfterWallet && state.purchaseFlow.serviceId
@@ -982,7 +1139,7 @@ function walletPage() {
       <div class="panel payment-panel"><div class="panel-head"><div><h3>2. Submit payment</h3><span>Use the exact amount you paid and its UTR.</span></div></div><form id="recharge-form" class="recharge-form"><label>Amount (₹)<input id="recharge-amount" name="amount" type="number" min="100" max="5000" step="1" value="${state.rechargeAmount}" required></label><div class="amount-presets">${[100,500,1000,2000,5000].map(amount => `<button type="button" class="filter-btn ${state.rechargeAmount === amount ? 'selected' : ''}" data-recharge-amount="${amount}">₹${amount}</button>`).join('')}</div><label>UTR / Transaction reference<input name="utr" type="text" minlength="4" maxlength="64" autocomplete="off" placeholder="Enter UTR after payment" required></label><button class="primary-btn" type="submit">Submit recharge for verification</button><p class="form-note">Do not submit a UTR until the UPI payment is successful. Duplicate UTRs are rejected.</p></form></div>
     </div>`
     : `<div class="panel payment-panel"><div class="panel-head"><div><h3>Wallet funding unavailable</h3><span>${state.persistentState ? 'Recharge is not configured on this deployment yet.' : 'Synthetic QA mode never accepts real payments.'}</span></div><span class="status-chip">${state.persistentState ? 'SETUP REQUIRED' : 'SYNTHETIC MODE'}</span></div><p class="form-note">Your account starts at ₹0.00. No fake balance or fake payment credit is created in the browser or server runtime.</p></div>`;
-  return `${returnPurchase}<div class="section-head"><div><span class="kicker">WALLET / INR</span><h2>Recharge & Wallet</h2></div><span class="result-note">Min ₹100 · Max ₹5,000</span></div>
+  return `${returnPurchase}<div class="section-head"><div><span class="kicker">WALLET / INR</span><h2>Recharge & Wallet</h2></div><div class="page-head-actions"><span class="result-note">Min ₹100 · Max ₹5,000</span><button class="refresh-btn" type="button" data-action="refresh-customer">${state.customerDataRefreshing ? 'Refreshing…' : 'Refresh'}</button></div></div>
     <div class="wallet-grid">
       <div class="balance-card"><div class="wallet-card-top"><span>AVAILABLE BALANCE</span><span>INR</span></div><strong>${money(state.balancePaise)}</strong><small>Balance comes from the authoritative INBOX9 wallet service.</small></div>
       <div class="panel wallet-info"><div class="info-icon">₹</div><div><h3>Recharge before buying numbers</h3><p>${rechargeReady ? 'Pay by UPI, then submit your UTR. Your balance is credited only after an authorized verification.' : 'Wallet funding is unavailable until persistent accounting and payment configuration are enabled.'}</p></div></div>
@@ -1016,6 +1173,7 @@ function bindEvents() {
   document.querySelectorAll('[data-action="open-menu"]').forEach((node) => node.addEventListener('click', openMenu));
   document.querySelectorAll('[data-action="close-menu"]').forEach((node) => node.addEventListener('click', closeMenu));
   document.querySelectorAll('[data-action="reset"]').forEach((node) => node.addEventListener('click', resetDemo));
+  document.querySelectorAll('[data-action="refresh-customer"]').forEach((node) => node.addEventListener('click', () => void loadCustomerData({ renderAfter: true })));
   document.getElementById('recharge-form')?.addEventListener('submit', submitRecharge);
   document.querySelectorAll('[data-admin-tab]').forEach((node) => node.addEventListener('click', () => loadAdminTab(node.dataset.adminTab)));
   document.querySelectorAll('[data-admin-approve]').forEach((node) => node.addEventListener('click', () => {
@@ -1040,6 +1198,11 @@ function bindMarketplaceEvents() {
     if (event.target?.id === "service-search") scheduleMarketSearch(event.target.value);
   });
   root.addEventListener("click", (event) => {
+    const toggleService = event.target.closest("[data-toggle-service]");
+    if (toggleService && root.contains(toggleService)) {
+      void toggleServiceCapacity(toggleService.dataset.toggleService);
+      return;
+    }
     const category = event.target.closest("[data-category]");
     if (category && root.contains(category)) {
       window.clearTimeout(state.marketSearchTimer);
@@ -1077,8 +1240,7 @@ function bindMarketplaceEvents() {
     const purchaseWallet = event.target.closest("[data-purchase-wallet]");
     if (purchaseWallet && root.contains(purchaseWallet)) {
       state.purchaseFlow.returnAfterWallet = true;
-      state.page = 'wallet';
-      render();
+      setPage('wallet');
       return;
     }
 
@@ -1086,9 +1248,9 @@ function bindMarketplaceEvents() {
     if (returnPurchase) {
       const serviceId = state.purchaseFlow.serviceId;
       state.purchaseFlow.returnAfterWallet = false;
-      state.page = 'buy';
+      setPage('buy');
       state.expandedServiceId = serviceId;
-      render();
+      renderBuyCatalog();
       scheduleDialogFocus();
     }
   });

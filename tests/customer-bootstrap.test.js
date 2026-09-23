@@ -5,16 +5,17 @@ import fs from 'node:fs/promises';
 test('customer login bootstraps services, activations and wallet data', async () => {
   const app = await fs.readFile(new URL('../app.js', import.meta.url), 'utf8');
   const submitStart = app.indexOf('async function submitAuth(event)');
-  const submitEnd = app.indexOf('\n\nasync function loadCustomerData()', submitStart);
+  const submitEnd = app.indexOf('\n\nfunction openSecurity()', submitStart);
   assert.ok(submitStart >= 0);
   assert.ok(submitEnd > submitStart);
   const submitAuth = app.slice(submitStart, submitEnd);
   assert.match(submitAuth, /state\.user = payload\.user/);
-  assert.match(submitAuth, /loadCustomerData\(\)/);
+  assert.match(submitAuth, /await loadCustomerData\(\)/);
 
-  const customerStart = app.indexOf('async function loadCustomerData()');
-  const customerEnd = app.indexOf('\n\nasync function refreshCustomerData()', customerStart);
+  const customerStart = app.indexOf('async function loadCustomerData(');
+  const customerEnd = app.indexOf('\n\nasync function refreshCatalog', customerStart);
   assert.ok(customerStart >= 0);
+  assert.ok(customerEnd > customerStart);
   const loadCustomerData = app.slice(customerStart, customerEnd);
   assert.match(loadCustomerData, /api\('\/api\/services'\)/);
   assert.match(loadCustomerData, /api\('\/api\/activations'\)/);
