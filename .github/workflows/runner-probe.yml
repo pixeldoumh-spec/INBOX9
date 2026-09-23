@@ -1,0 +1,19 @@
+name: INBOX9 Runner Probe
+
+on:
+  push:
+    paths:
+      - ".github/workflows/runner-probe.yml"
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-slim
+    timeout-minutes: 2
+    steps:
+      - name: Prove hosted runner allocation
+        run: |
+          echo "RUNNER_NAME=$RUNNER_NAME"
+          echo "RUNNER_OS=$RUNNER_OS"
+          echo "RUNNER_ARCH=$RUNNER_ARCH"
+          echo "Hosted runner allocated successfully"
