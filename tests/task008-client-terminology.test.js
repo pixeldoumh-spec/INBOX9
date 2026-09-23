@@ -22,16 +22,19 @@ test('client page metadata uses neutral marketplace wording', async () => {
   assert.doesNotMatch(html, /India|Indian|Synthetic/i);
 });
 
-test('client keeps infrastructure fallback available without exposing it in the customer flow', async () => {
+test('customer client does not contain synthetic server inventory constants', async () => {
   const app = await readClient('app.js');
-  assert.match(app, /const MARKET_CAPACITY = 5000;/);
-  assert.match(app, /const MARKET_SERVER_COUNT = 11;/);
-  assert.match(app, /const MARKET_SERVERS = \(\(\) => \{/);
-  assert.match(app, /Math\.floor\(MARKET_CAPACITY \/ MARKET_SERVER_COUNT\)/);
-  assert.match(app, /index < remainder/);
-  assert.doesNotMatch(app, /\bSYNTHETIC_SERVERS\b/);
+  assert.doesNotMatch(app, /const MARKET_SERVER_COUNT = 11/);
+  assert.doesNotMatch(app, /const MARKET_CAPACITY = 5000/);
+  assert.doesNotMatch(app, /data-buy-server-service/);
+  assert.match(app, /data-buy-service/);
 });
 
+test('synthetic inventory capacity remains a backend concern', async () => {
+  const servers = await fs.readFile(new URL('../api/_lib/synthetic-servers.js', import.meta.url), 'utf8');
+  assert.match(servers, /5000/);
+  assert.match(servers, /11/);
+});
 test('client explicitly presents the current India market while hiding allocation internals', async () => {
   const app = await readClient('app.js');
   assert.match(app, /MARKETPLACE \/ INDIA/);
