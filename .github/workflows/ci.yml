@@ -22,20 +22,6 @@ jobs:
       contents: read
     env:
       INBOX9_TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/inbox9_test
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: inbox9_test
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U postgres -d inbox9_test"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
     steps:
       - name: Runner diagnostics
         run: |
@@ -44,8 +30,19 @@ jobs:
           echo "OS: $RUNNER_OS"
           echo "Arch: $RUNNER_ARCH"
           echo "Image: $ImageVersion"
-          node --version || true
-          npm --version || true
+          node --version
+          npm --version
+          psql --version
+          docker --version
+
+      - name: Start PostgreSQL
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo systemctl start postgresql.service
+          sudo -u postgres psql -c "ALTER USER postgres PASSWORD 'postgres';"
+          sudo -u postgres createdb inbox9_test 2>/dev/null || true
+          pg_isready -h 127.0.0.1 -p 5432 -U postgres
 
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
