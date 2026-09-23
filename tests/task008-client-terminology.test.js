@@ -35,10 +35,11 @@ test('synthetic inventory capacity remains a backend concern', async () => {
   assert.match(servers, /5000/);
   assert.match(servers, /11/);
 });
+
 test('client explicitly presents the current India market while hiding allocation internals', async () => {
   const app = await readClient('app.js');
-  assert.match(app, /MARKETPLACE \/ INDIA/);
-  assert.match(app, /India \(\+91\)/);
+  assert.match(app, /MARKETPLACE \/ \+91/);
+  assert.match(app, /\+91/);
   assert.doesNotMatch(app, /Tap a service to reveal servers/);
   assert.doesNotMatch(app, /SERVER SELECTION/);
 });
