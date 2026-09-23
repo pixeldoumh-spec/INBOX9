@@ -3,6 +3,7 @@ import { isProduction, isSyntheticProduction } from './runtime-config.js';
 
 const buckets = new Map();
 const WINDOW_MS = 60_000;
+const CSP_SCRIPT_HASH = 'sha256-neT8V8ebT/osdr/v5by0QUCTp0FWgCD+wpt1NXiuEVE=';
 
 function sharedLimiterConfigured() {
   return Boolean(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN);
@@ -28,7 +29,10 @@ export function applySecurityHeaders(res) {
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
-  res.setHeader('Content-Security-Policy', "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; form-action 'self'");
+  res.setHeader(
+    'Content-Security-Policy',
+    `default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; script-src 'self' '${CSP_SCRIPT_HASH}'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; form-action 'self'`
+  );
   if (isProduction()) res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
 }
 
@@ -62,7 +66,6 @@ export function rateLimit(req, res, name, limit, windowMs = WINDOW_MS, scopeKey 
   bucket.count += 1;
   return true;
 }
-
 
 export async function rateLimitAsync(req, res, name, limit, windowMs = WINDOW_MS, scopeKey = '') {
   if (!sharedLimiterConfigured()) {
@@ -99,9 +102,9 @@ export async function rateLimitAsync(req, res, name, limit, windowMs = WINDOW_MS
 }
 
 export function enforceSameOrigin(req, res) {
-  if (process.env.NODE_ENV !== 'production') return true;
-  const expected = String(process.env.APP_ORIGIN || '').replace(/\/$/, '') || `https://${String(req.headers?.['x-forwarded-host'] || req.headers?.host || '').trim()}`.replace(/\/$/, '');
-  if (!expected || expected === 'https://') {
+  if (!isProduction()) return true;
+  const expected = String(process.env.APP_ORIGIN || '').replace(/\/$/, '');
+  if (!expected) {
     if (isSyntheticProduction()) return true;
     res.status(503).json({ error: 'Application origin is not configured' });
     return false;

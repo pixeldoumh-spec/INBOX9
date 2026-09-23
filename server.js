@@ -32,6 +32,7 @@ import adminWalletReconciliation from './api/admin/_wallet-reconciliation.js';
 import adminPaymentReconciliation from './api/admin/_payment-reconciliation.js';
 import internalProviderReconcile from './api/_internal-provider-reconcile.js';
 import { assertProductionConfiguration } from './api/_lib/runtime-config.js';
+import { applySecurityHeaders, requestId } from './api/_lib/security.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DEFAULT_PORT = Number(process.env.PORT || 4173);
@@ -41,6 +42,7 @@ const staticFiles = new Map([
   ['/', ['index.html', 'text/html; charset=utf-8']],
   ['/index.html', ['index.html', 'text/html; charset=utf-8']],
   ['/app.js', ['app.js', 'text/javascript; charset=utf-8']],
+  ['/boot.js', ['boot.js', 'text/javascript; charset=utf-8']],
   ['/styles.css', ['styles.css', 'text/css; charset=utf-8']]
 ]);
 
@@ -237,6 +239,8 @@ function serveStatic(nodeRes, pathname) {
 
 export function createServer() {
   return http.createServer(async (req, res) => {
+    applySecurityHeaders(res);
+    requestId(req, res);
     const url = new URL(req.url || '/', 'http://localhost');
 
     if (url.pathname.startsWith('/api/')) {

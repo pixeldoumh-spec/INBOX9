@@ -1,0 +1,22 @@
+name: INBOX9 scheduled reconciliation
+
+on:
+  schedule:
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Run authenticated reconciliation
+        env:
+          INBOX9_CRON_URL: ${{ secrets.INBOX9_CRON_URL }}
+          INBOX9_CRON_SECRET: ${{ secrets.INBOX9_CRON_SECRET }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$INBOX9_CRON_URL"
+          test -n "$INBOX9_CRON_SECRET"
+          curl --fail --silent --show-error --retry 3 --retry-delay 5             -X POST "$INBOX9_CRON_URL"             -H "Authorization: Bearer $INBOX9_CRON_SECRET"             -H "Content-Type: application/json"             --data '{}'
