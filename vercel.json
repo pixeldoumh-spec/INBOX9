@@ -27,5 +27,6 @@
         }
       ]
     }
-  ]
+  ],
+  "buildCommand": "npm run assets:sync"
 }
