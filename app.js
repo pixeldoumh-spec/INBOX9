@@ -330,18 +330,25 @@ async function submitChangePassword(event) {
 
 async function logoutAll() {
   try { await api('/api/auth/logout-all', { method: 'POST' }); } catch (error) { toast(error.message); return; }
-  state.user = null;
-  state.active = [];
-  state.orders = [];
-  state.securityOpen = false;
-  render();
+  handleSessionSignedOut();
 }
 
 async function logout() {
   await api('/api/auth/logout', { method: 'POST' }).catch(() => null);
+  handleSessionSignedOut();
+}
+
+function handleSessionSignedOut() {
   state.user = null;
   state.active = [];
   state.orders = [];
+  state.walletLedger = [];
+  state.recharges = [];
+  state.securityOpen = false;
+  state.expandedServiceId = null;
+  resetPurchaseFlow();
+  state.page = 'buy';
+  syncPageHash('buy', { replace: true });
   render();
 }
 
@@ -412,7 +419,7 @@ async function refreshCatalog({ silent = false } = {}) {
   }
 }
 
-async async function toggleServiceCapacity(serviceId) {
+async function toggleServiceCapacity(serviceId) {
   if (state.expandedServiceId === serviceId) {
     state.expandedServiceId = null;
     renderBuyCatalog();
@@ -1216,8 +1223,7 @@ function bindMarketplaceEvents() {
     const purchaseWallet = event.target.closest("[data-purchase-wallet]");
     if (purchaseWallet && root.contains(purchaseWallet)) {
       state.purchaseFlow.returnAfterWallet = true;
-      state.page = 'wallet';
-      render();
+      setPage('wallet');
       return;
     }
 
