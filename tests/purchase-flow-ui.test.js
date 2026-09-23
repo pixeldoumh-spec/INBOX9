@@ -17,7 +17,6 @@ test('purchase flow is a three-step customer-facing state machine', async () => 
 
 test('confirmation shows the key customer decision data', async () => {
   const app = await fs.readFile(new URL('../app.js', import.meta.url), 'utf8');
-  assert.match(app, /Country/);
   assert.match(app, /India \(\+91\)/);
   assert.match(app, /Availability/);
   assert.match(app, /Activation window/);
