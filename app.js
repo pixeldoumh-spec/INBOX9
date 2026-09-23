@@ -483,8 +483,6 @@ async function boot() {
     render();
   }
   if (!state.tickTimer) state.tickTimer = window.setInterval(tick, 1000);
-  window.addEventListener('hashchange', handleHashNavigation);
-  window.addEventListener('popstate', handleHashNavigation);
 }
 
 function resetPurchaseFlow() {
@@ -1291,4 +1289,6 @@ document.addEventListener('keydown', (event) => {
   }
 });
 
+window.addEventListener('hashchange', handleHashNavigation);
+window.addEventListener('popstate', handleHashNavigation);
 boot();
