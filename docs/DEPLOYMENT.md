@@ -40,7 +40,7 @@ Production requires:
 - Secure environment variables.
 - A configured `CRON_SECRET`.
 
-Current production Vercel deployment uses the `Other` framework preset and a single `api/[...path].js` catch-all function to stay within the Vercel Hobby Serverless Function limit.
+Production uses the `Other` framework preset, root static assets, and the canonical `/api` router entrypoint. Frontend source is `app.js`; there is no second browser bundle.
 
 ## Environment
 
@@ -50,19 +50,22 @@ Required production variables:
 
 ```text
 NODE_ENV=production
-INBOX9_RUNTIME_MODE=synthetic
-DATABASE_URL=
+INBOX9_RUNTIME_MODE=postgres
+DATABASE_URL=<Supabase/PostgreSQL connection string>
 DATABASE_SSL=true
-UPSTASH_REDIS_REST_URL=
-UPSTASH_REDIS_REST_TOKEN=
-APP_ORIGIN=https://your-production-origin.example
+UPSTASH_REDIS_REST_URL=<shared-rate-limit-store>
+UPSTASH_REDIS_REST_TOKEN=<shared-rate-limit-token>
+APP_ORIGIN=https://inbox-9.vercel.app
 CRON_SECRET=<long-random-secret>
-INBOX9_UPI_ID=<your-UPI-ID>
+INBOX9_ENABLE_RECHARGE=false
+INBOX9_UPI_ID=
 ```
 
 The current catalog/activation provider is intentionally synthetic QA infrastructure. It generates deterministic, non-routable test identities and six-digit OTPs; it is not a live telecom/SMS provider.
 
-When `NODE_ENV=production` and `INBOX9_RUNTIME_MODE=synthetic` (the default when the variable is absent), Vercel can run the customer-facing synthetic flow without PostgreSQL or Upstash Redis. Authentication, wallet credits, and activation lifecycle are synthetic test state; Vercel serverless instances are not treated as a durable database. Synthetic accounts receive test credits only, and OTPs are generated locally after the configured 20-second delay. Set `INBOX9_RUNTIME_MODE=postgres` and provide the required persistent-production variables before enabling persistent account/wallet traffic.
+Production customer traffic should use `INBOX9_RUNTIME_MODE=postgres`. PostgreSQL is authoritative for accounts, sessions, wallets, recharges, activations, and order history. The synthetic provider remains the fulfillment engine and generates non-routable test numbers/OTPs. 
+
+Explicit `INBOX9_RUNTIME_MODE=synthetic` is reserved for controlled QA. In that mode, customer accounts start at ₹0.00, real UPI recharge is disabled, and browser storage is never the source of truth.
 
 ## Reconciliation
 
@@ -93,8 +96,8 @@ For persistent staging:
 
 Before real customer traffic:
 
-1. Configure all production variables.
-2. Confirm `/api/health` reports all required production dependencies ready.
+1. Configure all production variables, including `INBOX9_RUNTIME_MODE=postgres`.
+2. Confirm `/api/health` reports database, shared rate limit, app origin, and cron configuration ready.
 3. Confirm Vercel deployment is `READY`.
 4. Run `npm run check` and `npm test` in CI.
 5. Run the E2E and synthetic smoke suite against staging.

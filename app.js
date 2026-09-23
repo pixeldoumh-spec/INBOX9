@@ -1,4 +1,3 @@
-const STORAGE_KEY = () => `inbox9.session.v3:${state.user?.id || 'anonymous'}`;
 const state = {
   page: 'buy',
   search: '',
@@ -12,7 +11,8 @@ const state = {
   orders: [],
   loading: true,
   error: '',
-  hasPersistedBalance: false,
+  persistentState: false,
+  rechargeUpiId: null,
   mobileMenu: false,
   toastTimer: null,
   user: null,
@@ -99,36 +99,20 @@ function scheduleMarketSearch(value) {
   }, 60);
 }
 
-const seedOrders = [
-  { id: 'ORD-240001', service: 'WhatsApp', number: '+91 9•••• 7312', pricePaise: 950, status: 'Completed', otp: '482 913', created: 'Today, 09:18' },
-  { id: 'ORD-240002', service: 'Instagram', number: '+91 8•••• 1549', pricePaise: 1100, status: 'Completed', otp: '361 240', created: 'Yesterday, 21:44' },
-  { id: 'ORD-240003', service: 'Gmail', number: '+91 7•••• 8804', pricePaise: 1450, status: 'Expired', otp: '—', created: 'Yesterday, 18:03' }
-];
 
 const esc = (value) => String(value ?? '').replace(/[&<>'"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[c]));
 const money = (paise) => `₹${(Number(paise || 0) / 100).toFixed(2)}`;
 const iconFor = (category) => categoryIcon[category] || '•';
 
 function loadPersisted() {
-  try {
-    const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY()) || '{}');
-    state.active = Array.isArray(parsed.active) ? parsed.active : [];
-    state.orders = Array.isArray(parsed.orders) ? parsed.orders : seedOrders;
-    const pending = parsed.pendingPurchaseKeys && typeof parsed.pendingPurchaseKeys === 'object' ? parsed.pendingPurchaseKeys : {};
-    state.pendingPurchaseKeys = pending;
-    if (Number.isFinite(parsed.balancePaise)) {
-      state.balancePaise = Number(parsed.balancePaise);
-      state.hasPersistedBalance = true;
-    }
-  } catch {
-    state.active = [];
-    state.orders = seedOrders;
-    state.pendingPurchaseKeys = {};
-  }
+  // Financial and order state is server-authoritative. Browser storage is not used.
+  state.active = [];
+  state.orders = [];
+  state.pendingPurchaseKeys = {};
 }
 
 function persist() {
-  localStorage.setItem(STORAGE_KEY(), JSON.stringify({ active: state.active, orders: state.orders, pendingPurchaseKeys: state.pendingPurchaseKeys, balancePaise: state.balancePaise }));
+  // Compatibility hook retained for the UI state machine; account state is not persisted client-side.
 }
 
 function isLiveActivation(item) {
@@ -184,11 +168,8 @@ function setPage(page) {
 }
 
 function resetDemo() {
-  localStorage.removeItem(STORAGE_KEY());
-  loadPersisted();
-  state.page = 'buy';
-  toast('Local data cleared');
-  render();
+  state.pendingPurchaseKeys = {};
+  toast('Browser cache cleared; server account data is unchanged');
 }
 
 function openMenu() { state.mobileMenu = true; render(); }
@@ -315,17 +296,40 @@ async function boot() {
     return;
   }
   try {
-    const [payload, activationPayload, wallet] = await Promise.all([
+    const results = await Promise.allSettled([
       api('/api/services'),
       api('/api/activations'),
       api('/api/wallet')
     ]);
-    state.services = Array.isArray(payload.services) ? payload.services : [];
-    prepareServiceCatalog();
-    if (activationPayload.persistent) syncFromServerActivations(activationPayload.activations);
-    if (wallet.persistent || !state.hasPersistedBalance) state.balancePaise = Number(wallet.balancePaise || 0);
-    state.walletLedger = Array.isArray(wallet.ledger) ? wallet.ledger : [];
-    state.recharges = Array.isArray(wallet.recharges) ? wallet.recharges : [];
+    const [servicesResult, activationsResult, walletResult] = results;
+    const failures = [];
+
+    if (servicesResult.status === 'fulfilled') {
+      state.services = Array.isArray(servicesResult.value.services) ? servicesResult.value.services : [];
+      prepareServiceCatalog();
+    } else {
+      failures.push(servicesResult.reason?.message || 'Service catalog unavailable');
+    }
+
+    if (activationsResult.status === 'fulfilled') {
+      const activationPayload = activationsResult.value;
+      if (activationPayload.persistent) syncFromServerActivations(activationPayload.activations);
+    } else {
+      failures.push(activationsResult.reason?.message || 'Activation history unavailable');
+    }
+
+    if (walletResult.status === 'fulfilled') {
+      const wallet = walletResult.value;
+      state.persistentState = Boolean(wallet.persistent);
+      state.balancePaise = Number(wallet.balancePaise || 0);
+      state.walletLedger = Array.isArray(wallet.ledger) ? wallet.ledger : [];
+      state.recharges = Array.isArray(wallet.recharges) ? wallet.recharges : [];
+      state.rechargeUpiId = wallet.rechargeEnabled ? (wallet.upiId || null) : null;
+    } else {
+      failures.push(walletResult.reason?.message || 'Wallet unavailable');
+    }
+
+    state.error = failures.join(' • ');
   } catch (error) {
     state.error = error.message;
   } finally {
@@ -513,9 +517,11 @@ async function cancelActivation(id) {
 async function refreshWallet() {
   try {
     const wallet = await api('/api/wallet');
+    state.persistentState = Boolean(wallet.persistent);
     state.balancePaise = Number(wallet.balancePaise || 0);
     state.walletLedger = Array.isArray(wallet.ledger) ? wallet.ledger : [];
     state.recharges = Array.isArray(wallet.recharges) ? wallet.recharges : [];
+    state.rechargeUpiId = wallet.rechargeEnabled ? (wallet.upiId || null) : null;
     return wallet;
   } catch (error) {
     toast(error.message);
@@ -960,21 +966,24 @@ function ordersPage() {
   return `<div class="section-head"><div><span class="kicker">ACCOUNT ACTIVITY</span><h2>Order history</h2></div><span class="result-note">${state.orders.length} records</span></div><div class="panel table-panel"><table class="orders-table"><thead><tr><th>Order</th><th>Service</th><th>Number</th><th>Status</th><th>OTP</th><th>Price</th><th>Created</th></tr></thead><tbody>${state.orders.map((order) => `<tr><td class="mono" data-label="Order">${esc(order.id)}</td><td data-label="Service"><strong>${esc(order.service)}</strong></td><td data-label="Number">${esc(order.number)}</td><td data-label="Status"><span class="table-status ${order.status.toLowerCase()}">${esc(order.status)}</span></td><td data-label="OTP">${esc(order.otp)}</td><td data-label="Price">${money(order.pricePaise)}</td><td data-label="Created">${esc(order.created)}</td></tr>`).join('')}</tbody></table></div>`;
 }
 function walletPage() {
-  const qr = '/upi-qr.jpg';
   const returnPurchase = state.purchaseFlow.returnAfterWallet && state.purchaseFlow.serviceId
     ? '<div class="panel purchase-return-banner"><div><strong>Continue your activation</strong><span>Your selected service is saved.</span></div><button class="primary-btn" type="button" data-return-purchase>Back to purchase</button></div>'
     : '';
   const ledgerRows = state.walletLedger.length ? state.walletLedger.map(entry => `<div class="ledger-row ${entry.type === 'credit' ? 'positive' : ''}"><span>${entry.type === 'credit' ? '↘' : '↗'} ${esc(entry.description)}</span><strong>${entry.type === 'credit' ? '+' : '−'} ${money(entry.amountPaise)}</strong><small>${new Date(entry.createdAt).toLocaleString()}</small></div>`).join('') : '<div class="empty-mini">No wallet transactions yet.</div>';
   const rechargeRows = state.recharges.length ? state.recharges.map(item => `<div class="recharge-row"><div><strong>${money(item.amountPaise)}</strong><span class="table-status ${item.status.toLowerCase()}">${esc(item.status)}</span></div><code>${esc(item.utr)}</code><small>${new Date(item.submittedAt).toLocaleString()}</small></div>`).join('') : '<div class="empty-mini">No recharge requests yet.</div>';
+  const rechargeReady = Boolean(state.persistentState && state.rechargeUpiId);
+  const fundingPanel = rechargeReady
+    ? `<div class="recharge-grid">
+      <div class="panel payment-panel"><div class="panel-head"><div><h3>1. Pay by UPI</h3><span>Use the configured INBOX9 payment destination.</span></div><span class="status-chip">MANUAL VERIFY</span></div><div class="upi-row"><span>UPI ID</span><code>${esc(state.rechargeUpiId)}</code><button class="copy-btn" type="button" data-copy="${esc(state.rechargeUpiId)}">Copy</button></div></div>
+      <div class="panel payment-panel"><div class="panel-head"><div><h3>2. Submit payment</h3><span>Use the exact amount you paid and its UTR.</span></div></div><form id="recharge-form" class="recharge-form"><label>Amount (₹)<input id="recharge-amount" name="amount" type="number" min="100" max="5000" step="1" value="${state.rechargeAmount}" required></label><div class="amount-presets">${[100,500,1000,2000,5000].map(amount => `<button type="button" class="filter-btn ${state.rechargeAmount === amount ? 'selected' : ''}" data-recharge-amount="${amount}">₹${amount}</button>`).join('')}</div><label>UTR / Transaction reference<input name="utr" type="text" minlength="4" maxlength="64" autocomplete="off" placeholder="Enter UTR after payment" required></label><button class="primary-btn" type="submit">Submit recharge for verification</button><p class="form-note">Do not submit a UTR until the UPI payment is successful. Duplicate UTRs are rejected.</p></form></div>
+    </div>`
+    : `<div class="panel payment-panel"><div class="panel-head"><div><h3>Wallet funding unavailable</h3><span>${state.persistentState ? 'Recharge is not configured on this deployment yet.' : 'Synthetic QA mode never accepts real payments.'}</span></div><span class="status-chip">${state.persistentState ? 'SETUP REQUIRED' : 'SYNTHETIC MODE'}</span></div><p class="form-note">Your account starts at ₹0.00. No fake balance or fake payment credit is created in the browser or server runtime.</p></div>`;
   return `${returnPurchase}<div class="section-head"><div><span class="kicker">WALLET / INR</span><h2>Recharge & Wallet</h2></div><span class="result-note">Min ₹100 · Max ₹5,000</span></div>
     <div class="wallet-grid">
-      <div class="balance-card"><div class="wallet-card-top"><span>AVAILABLE BALANCE</span><span>INR</span></div><strong>${money(state.balancePaise)}</strong><small>Your balance is secured by the INBOX9 accounting system.</small></div>
-      <div class="panel wallet-info"><div class="info-icon">₹</div><div><h3>Recharge before buying numbers</h3><p>Pay by UPI, then submit your UTR. Your balance is credited only after payment verification.</p></div></div>
+      <div class="balance-card"><div class="wallet-card-top"><span>AVAILABLE BALANCE</span><span>INR</span></div><strong>${money(state.balancePaise)}</strong><small>Balance comes from the authoritative INBOX9 wallet service.</small></div>
+      <div class="panel wallet-info"><div class="info-icon">₹</div><div><h3>Recharge before buying numbers</h3><p>${rechargeReady ? 'Pay by UPI, then submit your UTR. Your balance is credited only after an authorized verification.' : 'Wallet funding is unavailable until persistent accounting and payment configuration are enabled.'}</p></div></div>
     </div>
-    <div class="recharge-grid">
-      <div class="panel payment-panel"><div class="panel-head"><div><h3>1. Pay by UPI</h3><span>Scan the QR or pay directly to the UPI ID.</span></div><span class="status-chip">MANUAL VERIFY</span></div><div class="qr-wrap"><img src="${qr}" alt="INBOX9 UPI payment QR code" loading="lazy"></div><div class="upi-row"><span>UPI ID</span><code>8106204597@ptyes</code><button class="copy-btn" type="button" data-copy="8106204597@ptyes">Copy</button></div></div>
-      <div class="panel payment-panel"><div class="panel-head"><div><h3>2. Submit payment</h3><span>Use the exact amount you paid and its UTR.</span></div></div><form id="recharge-form" class="recharge-form"><label>Amount (₹)<input id="recharge-amount" name="amount" type="number" min="100" max="5000" step="1" value="${state.rechargeAmount}" required></label><div class="amount-presets">${[100,500,1000,2000,5000].map(amount => `<button type="button" class="filter-btn ${state.rechargeAmount === amount ? 'selected' : ''}" data-recharge-amount="${amount}">₹${amount}</button>`).join('')}</div><label>UTR / Transaction reference<input name="utr" type="text" minlength="4" maxlength="64" autocomplete="off" placeholder="Enter UTR after payment" required></label><button class="primary-btn" type="submit">Submit recharge for verification</button><p class="form-note">Do not submit a UTR until the UPI payment is successful. Duplicate UTRs are rejected.</p></form></div>
-    </div>
+    ${fundingPanel}
     <div class="panel ledger"><div class="panel-head"><div><h3>Recharge requests</h3><span>Pending requests are not credited until verified.</span></div></div>${rechargeRows}</div>
     <div class="panel ledger"><div class="panel-head"><div><h3>Wallet ledger</h3><span>Authoritative account activity</span></div></div>${ledgerRows}</div>`;
 }

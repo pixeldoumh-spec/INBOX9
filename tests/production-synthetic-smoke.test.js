@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import http from 'node:http';
 import { once } from 'node:events';
 import { createServer } from '../server.js';
-import { resetMocks } from '../api/_lib/mock.js';
+import { resetMocks, creditMockWallet } from '../api/_lib/mock.js';
 
 function request(server, path, options = {}) {
   return new Promise((resolve, reject) => {
@@ -73,8 +73,17 @@ test('synthetic production supports register, session, wallet and activation wit
 
     const wallet = await request(server, '/api/wallet', { headers: { cookie: session } });
     assert.equal(wallet.status, 200);
-    assert.equal(json(wallet).balancePaise, 100000);
+    assert.equal(json(wallet).balancePaise, 0);
 
+    const blockedActivation = await request(server, '/api/activations', {
+      method: 'POST',
+      headers: { cookie: session, origin: 'http://127.0.0.1', 'idempotency-key': 'synthetic-production-activation-blocked' },
+      body: { serviceId: 'whatsapp-0' },
+    });
+    assert.equal(blockedActivation.status, 402);
+
+    // Test funding is explicit and test-only; new accounts never receive automatic credits.
+    creditMockWallet(json(register).user, 100000, 'TEST-FUNDING-001', 'Synthetic test funding');
     const activation = await request(server, '/api/activations', {
       method: 'POST',
       headers: { cookie: session, origin: 'http://127.0.0.1', 'idempotency-key': 'synthetic-production-activation-001' },

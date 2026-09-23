@@ -8,7 +8,7 @@ const recharges = new Map();
 const wallets = new Map();
 const ledgers = new Map();
 const TTL_MS = 3 * 60 * 1000;
-const SYNTHETIC_STARTING_BALANCE_PAISE = 100_000;
+const SYNTHETIC_STARTING_BALANCE_PAISE = 0;
 
 export function makeId(prefix = 'ORD') {
   return `${prefix}-${crypto.randomInt(10000, 100000)}`;

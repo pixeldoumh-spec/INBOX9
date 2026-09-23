@@ -4,7 +4,7 @@ India-only OTP marketplace powered by an internal synthetic number and OTP engin
 
 ## Current release
 
-`v0.8.14` — unified Node runtime and UOTP-style customer-first client over the existing synthetic engine.
+`v0.8.15` — persistent customer state with PostgreSQL-backed accounts/wallet/orders and a server-side synthetic fulfillment engine.
 
 - 832 supplied India service catalog entries.
 - Responsive customer marketplace, active-number, orders and wallet screens.
@@ -54,13 +54,13 @@ Browser UI
            └── synthetic number/OTP lifecycle
 ```
 
-Without `DATABASE_URL`, local development uses the repository's mock session/activation mode. Production fails closed for state-changing features that require PostgreSQL or shared rate limiting.
+Production is explicitly configured as either `postgres` or `synthetic`. Persistent customer traffic uses PostgreSQL as the source of truth; the synthetic mode is test-only and never grants a starting wallet balance or exposes a payment destination.
 
 ## Wallet & UPI Recharge
 
-Recharge is manual UPI verification: users pay to the configured UPI destination, submit the UTR, and the wallet remains Pending until an authorized admin approves the request. The supplied QR is served at `/payment-qr.jpg`.
+Wallets start at ₹0.00. Recharge is manual UPI verification only when `INBOX9_ENABLE_RECHARGE=true`, `DATABASE_URL` is configured, and `INBOX9_UPI_ID` is explicitly supplied. UTR submission remains Pending until an authorized admin approves it. No hardcoded UPI destination or QR asset is shipped in the repository.
 
-When `DATABASE_URL` is configured, PostgreSQL is authoritative for wallet balance and ledger entries. Activation purchases debit the wallet atomically; cancellations credit a refund atomically.
+PostgreSQL is authoritative for wallet balance, ledger entries, recharge requests, and activation purchases. Activation purchases debit the wallet atomically; cancellations credit refunds atomically.
 
 ## Admin Operations
 

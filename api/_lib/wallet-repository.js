@@ -4,7 +4,11 @@ import { recordAuditTx } from './admin-repository.js';
 
 export const MIN_RECHARGE_PAISE = 10000;
 export const MAX_RECHARGE_PAISE = 500000;
-export const UPI_ID = process.env.INBOX9_UPI_ID || '8106204597@ptyes';
+export const UPI_ID = String(process.env.INBOX9_UPI_ID || '').trim() || null;
+
+export function getUpiId() {
+  return UPI_ID;
+}
 
 function id(prefix) { return `${prefix}-${crypto.randomUUID()}`; }
 
@@ -87,6 +91,7 @@ export async function listLedger(userId, limit = 25) {
 }
 
 export async function createRecharge(userId, amountPaise, utr) {
+  if (!UPI_ID) { const error = new Error('UPI recharge is not configured'); error.code = 'UPI_DESTINATION_NOT_CONFIGURED'; throw error; }
   if (!Number.isInteger(amountPaise) || amountPaise < MIN_RECHARGE_PAISE || amountPaise > MAX_RECHARGE_PAISE) {
     throw new Error('Recharge amount must be between ₹100 and ₹5,000');
   }
