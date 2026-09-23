@@ -344,7 +344,9 @@ async function logout() {
   render();
 }
 
-async function loadCustomerData() {
+async function loadCustomerData({ renderAfter = false, silent = false } = {}) {
+  if (!state.user) return false;
+  state.customerDataRefreshing = !silent;
   const results = await Promise.allSettled([
     api('/api/services'),
     api('/api/activations'),
@@ -352,6 +354,10 @@ async function loadCustomerData() {
   ]);
   const [servicesResult, activationsResult, walletResult] = results;
   const failures = [];
+  if (results.some((result) => result.status === 'rejected' && Number(result.reason?.status) === 401)) {
+    handleSessionExpired();
+    return false;
+  }
 
   if (servicesResult.status === 'fulfilled') {
     state.services = Array.isArray(servicesResult.value.services) ? servicesResult.value.services : [];
@@ -379,6 +385,73 @@ async function loadCustomerData() {
   }
 
   state.error = failures.join(' • ');
+  state.customerDataRefreshing = false;
+  state.lastCatalogRefreshAt = Date.now();
+  if (renderAfter) render();
+  return failures.length === 0;
+}
+
+async function refreshCatalog({ silent = false } = {}) {
+  if (!state.user) return false;
+  try {
+    const payload = await api('/api/services');
+    state.services = Array.isArray(payload.services) ? payload.services : [];
+    prepareServiceCatalog();
+    state.lastCatalogRefreshAt = Date.now();
+    if (!silent && state.page === 'buy') renderBuyCatalog();
+    return true;
+  } catch (error) {
+    if (Number(error.status) === 401) {
+      handleSessionExpired();
+      return false;
+    }
+    state.error = error.message || 'Service catalog unavailable';
+    if (!silent && state.page === 'buy') renderBuyCatalog();
+    return false;
+  }
+}
+
+async function toggleServiceCapacity(serviceId) {
+  if (state.expandedServiceId === serviceId) {
+    state.expandedServiceId = null;
+    renderBuyCatalog();
+    return;
+  }
+  state.expandedServiceId = serviceId;
+  state.marketServerErrors[serviceId] = '';
+  state.marketServerLoading[serviceId] = true;
+  renderBuyCatalog();
+  try {
+    state.marketServerStats[serviceId] = await api('/api/services/' + encodeURIComponent(serviceId) + '/servers');
+  } catch (error) {
+    if (Number(error.status) === 401) {
+      handleSessionExpired();
+      return;
+    }
+    state.marketServerErrors[serviceId] = error.message || 'Unable to load current capacity';
+  } finally {
+    state.marketServerLoading[serviceId] = false;
+    if (state.page === 'buy' && state.expandedServiceId === serviceId) renderBuyCatalog();
+  }
+}
+
+function serverStatsMarkup(service) {
+  if (state.marketServerLoading[service.id]) {
+    return '<div class="server-panel"><div class="server-loading">Loading live capacity…</div></div>';
+  }
+  const error = state.marketServerErrors[service.id];
+  if (error) {
+    return '<div class="server-panel"><div class="server-note"><span class="server-note-icon">!</span><div><strong>Capacity unavailable</strong><span>' + esc(error) + '</span></div></div></div>';
+  }
+  const payload = state.marketServerStats[service.id];
+  if (!payload) {
+    return '<div class="server-panel"><div class="server-note"><span class="server-note-icon">⌁</span><div><strong>Live capacity</strong><span>Expand the service to load current server capacity from INBOX9.</span></div></div></div>';
+  }
+  const servers = Array.isArray(payload.servers) ? payload.servers : [];
+  const totalAvailable = servers.reduce((sum, server) => sum + Number(server.availableCount || 0), 0);
+  const totalCapacity = servers.reduce((sum, server) => sum + Number(server.capacity || 0), 0);
+  const rows = servers.map((server) => '<div class="server-row"><div class="server-number">' + esc(String(server.id || '').replace(/^server-/i, '#') || '—') + '</div><div class="server-info"><div class="server-name">' + esc(server.name || 'Activation server') + '</div><div class="server-stock">' + Number(server.availableCount || 0).toLocaleString() + ' available · ' + Number(server.reservedCount || 0).toLocaleString() + ' reserved</div></div><div class="server-price">' + Number(server.capacity || 0).toLocaleString() + ' slots</div></div>').join('');
+  return '<div class="server-panel"><div class="server-note"><span class="server-note-icon">⌁</span><div><strong>Automatic allocation</strong><span>' + servers.length + ' servers · ' + totalAvailable.toLocaleString() + ' available of ' + totalCapacity.toLocaleString() + ' capacity. INBOX9 chooses the server automatically.</span></div></div><div class="server-list">' + rows + '</div></div>';
 }
 
 async function boot() {
