@@ -333,6 +333,7 @@ export function loginMockUser(emailInput, password) {
   const email = normalizeEmail(emailInput);
   const error = validateCredentials(email, password);
   if (error) throw new Error(error);
+  if (syntheticMode()) return mockUser(email);
   const account = mockAccounts.get(email);
   if (!account || !verifyPassword(password, account.passwordHash)) {
     const invalid = new Error(['Account not found.', 'Please sign up first.'].join(' '));

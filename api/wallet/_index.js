@@ -12,7 +12,7 @@ export default async function handler(req, res) {
   const user = dbEnabled() ? await getSessionUser(req) : getMockSession(req);
   try { requireUser(user); } catch (e) { return res.status(401).json({ error: e.message }); }
   if (!await rateLimitAsync(req, res, 'wallet-read', 120, 60_000, user.id)) return;
-  if (!dbEnabled() && process.env.NODE_ENV === 'production') return res.status(503).json({ error: 'Wallet database is not configured' });
+  if (!dbEnabled() && process.env.NODE_ENV === 'production' && !isSyntheticProduction()) return res.status(503).json({ error: 'Wallet database is not configured' });
   if (!dbEnabled()) return res.status(200).json({ ...getMockWallet(user), persistent: false });
   try {
     const wallet = await getWallet(user.id);

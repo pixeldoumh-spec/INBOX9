@@ -11,7 +11,7 @@ export default async function handler(req, res) {
   try { validateBodySize(req); } catch (e) { return res.status(413).json({ error: e.message }); }
   const { email, password } = req.body || {};
   try {
-    if (!dbEnabled() && process.env.NODE_ENV === 'production') return res.status(503).json({ error: 'Authentication database is not configured' });
+    if (!dbEnabled() && process.env.NODE_ENV === 'production' && !isSyntheticProduction()) return res.status(503).json({ error: 'Authentication database is not configured' });
     if (!dbEnabled()) {
       const user = registerMockUser(email, password);
       setMockSession(res, user.email);

@@ -24,7 +24,7 @@ export default async function handler(_req, res) {
   const ready = isSyntheticProduction()
     ? true
     : databaseConfigured && databaseReachable && (!production || (sharedRateLimitConfigured && appOriginConfigured && cronSecretConfigured));
-  const body = { ok: true, ready, mode: databaseConfigured ? 'postgres' : 'local',
+  const body = { ok: true, ready, mode: isSyntheticProduction() ? 'synthetic' : (databaseConfigured ? 'postgres' : 'local'),
     dependencies: { database: { configured: databaseConfigured, reachable: databaseReachable },
       sharedRateLimit: { configured: sharedRateLimitConfigured }, appOrigin: { configured: appOriginConfigured },
       cronAuth: { configured: cronSecretConfigured, manualFallbackConfigured: cronSecretManualFallbackConfigured },

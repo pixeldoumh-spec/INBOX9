@@ -12,6 +12,7 @@ const state = {
   orders: [],
   loading: true,
   error: '',
+  hasPersistedBalance: false,
   mobileMenu: false,
   toastTimer: null,
   user: null,
@@ -115,7 +116,10 @@ function loadPersisted() {
     state.orders = Array.isArray(parsed.orders) ? parsed.orders : seedOrders;
     const pending = parsed.pendingPurchaseKeys && typeof parsed.pendingPurchaseKeys === 'object' ? parsed.pendingPurchaseKeys : {};
     state.pendingPurchaseKeys = pending;
-    if (Number.isFinite(parsed.balancePaise)) state.balancePaise = Number(parsed.balancePaise);
+    if (Number.isFinite(parsed.balancePaise)) {
+      state.balancePaise = Number(parsed.balancePaise);
+      state.hasPersistedBalance = true;
+    }
   } catch {
     state.active = [];
     state.orders = seedOrders;
@@ -319,7 +323,7 @@ async function boot() {
     state.services = Array.isArray(payload.services) ? payload.services : [];
     prepareServiceCatalog();
     if (activationPayload.persistent) syncFromServerActivations(activationPayload.activations);
-    state.balancePaise = Number(wallet.balancePaise || 0);
+    if (wallet.persistent || !state.hasPersistedBalance) state.balancePaise = Number(wallet.balancePaise || 0);
     state.walletLedger = Array.isArray(wallet.ledger) ? wallet.ledger : [];
     state.recharges = Array.isArray(wallet.recharges) ? wallet.recharges : [];
   } catch (error) {
