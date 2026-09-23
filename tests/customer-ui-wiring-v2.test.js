@@ -22,7 +22,26 @@ test('service capacity is wired to the authenticated backend endpoint', async ()
   assert.match(app, /\/servers/);
   assert.match(app, /data-toggle-service=/);
   assert.match(app, /serverStatsMarkup\(/);
-  assert.match(app, /INBOX9 allocation/);
+  assert.match(app, /Automatic allocation/);
+  assert.doesNotMatch(app, /NumberOTP ·/);
+  assert.doesNotMatch(app, /synthetic servers/);
+});
+
+test('customer bootstrap distinguishes authentication from infrastructure failure', async () => {
+  const app = await read('app.js');
+  assert.match(app, /async function bootstrapSession\(\)/);
+  assert.match(app, /Number\(error\.status\) === 401/);
+  assert.match(app, /We could not reach INBOX9/);
+  assert.match(app, /INBOX9 is temporarily unavailable/);
+  assert.match(app, /data-action="retry-bootstrap"/);
+});
+
+test('customer-facing marketplace copy does not expose provider internals', async () => {
+  const app = await read('app.js');
+  assert.doesNotMatch(app, /NumberOTP · India pool/);
+  assert.doesNotMatch(app, /Real provider availability from the public feed/);
+  assert.doesNotMatch(app, /Current INBOX9 capacity is synthetic test inventory/);
+  assert.doesNotMatch(app, /India \(\+91\)/);
 });
 
 test('customer navigation survives refresh and supports browser history', async () => {
