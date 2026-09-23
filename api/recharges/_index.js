@@ -10,7 +10,7 @@ export default async function handler(req, res) {
   requestId(req, res);
   const user = dbEnabled() ? await getSessionUser(req) : getMockSession(req);
   try { requireUser(user); } catch (e) { return res.status(401).json({ error: e.message }); }
-  if (process.env.NODE_ENV === 'production' && !dbEnabled() && !isSyntheticProduction() && !isSyntheticProduction()) return res.status(503).json({ error: 'Recharge database is not configured' });
+  if (process.env.NODE_ENV === 'production' && !dbEnabled() && !isSyntheticProduction()) return res.status(503).json({ error: 'Recharge database is not configured' });
   if (req.method === 'GET') {
     if (!dbEnabled()) return res.status(200).json({ recharges: listMockRecharges(user), persistent: false, minPaise: MIN_RECHARGE_PAISE, maxPaise: MAX_RECHARGE_PAISE, upiId: UPI_ID });
     try { return res.status(200).json({ recharges: await listRecharges(user.id), persistent: true, minPaise: MIN_RECHARGE_PAISE, maxPaise: MAX_RECHARGE_PAISE, upiId: UPI_ID }); }
