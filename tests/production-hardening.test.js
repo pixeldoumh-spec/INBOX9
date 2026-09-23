@@ -51,3 +51,15 @@ test('production runtime is pinned to a supported Node 22 major', async () => {
   const pkg = JSON.parse(await fs.readFile(new URL('../package.json', import.meta.url), 'utf8'));
   assert.equal(pkg.engines?.node, '22.x');
 });
+
+
+test('Vercel deployment exposes the static shell and canonical API rewrite', async () => {
+  const fs = await import('node:fs/promises');
+  const config = JSON.parse(await fs.readFile(new URL('../vercel.json', import.meta.url), 'utf8'));
+  const rules = Array.isArray(config.rewrites) ? config.rewrites : [];
+  assert.ok(rules.some((rule) => rule.source === '/' && rule.destination === '/index.html'));
+  assert.ok(rules.some((rule) => rule.source === '/api/:path*' && rule.destination === '/api?__path=:path*'));
+  const index = await fs.readFile(new URL('../api/index.js', import.meta.url), 'utf8');
+  assert.match(index, /__path/);
+  assert.match(index, /routedReq\.url/);
+});
