@@ -36,6 +36,7 @@ const state = {
   marketServerErrors: {},
   lastCatalogRefreshAt: 0,
   customerDataRefreshing: false,
+  liveProviders: {},
   tickTimer: null,
   purchaseFlow: {
     step: 'service',
@@ -369,6 +370,7 @@ async function loadCustomerData({ renderAfter = false, silent = false } = {}) {
 
   if (servicesResult.status === 'fulfilled') {
     state.services = Array.isArray(servicesResult.value.services) ? servicesResult.value.services : [];
+    state.liveProviders = servicesResult.value.liveProviders || {};
     prepareServiceCatalog();
   } else {
     failures.push(servicesResult.reason?.message || 'Service catalog unavailable');
@@ -404,6 +406,7 @@ async function refreshCatalog({ silent = false } = {}) {
   try {
     const payload = await api('/api/services');
     state.services = Array.isArray(payload.services) ? payload.services : [];
+    state.liveProviders = payload.liveProviders || {};
     prepareServiceCatalog();
     state.lastCatalogRefreshAt = Date.now();
     if (!silent && state.page === 'buy') renderBuyCatalog();
@@ -444,6 +447,8 @@ async function toggleServiceCapacity(serviceId) {
 }
 
 function serverStatsMarkup(service) {
+  const live = service.liveAvailability && service.liveAvailability.numberotp;
+
   if (state.marketServerLoading[service.id]) {
     return '<div class="server-panel"><div class="server-loading">Loading live capacity…</div></div>';
   }
@@ -452,14 +457,17 @@ function serverStatsMarkup(service) {
     return '<div class="server-panel"><div class="server-note"><span class="server-note-icon">!</span><div><strong>Capacity unavailable</strong><span>' + esc(error) + '</span></div></div></div>';
   }
   const payload = state.marketServerStats[service.id];
+  const liveBlock = live
+    ? '<div class="external-provider-card"><div><strong>NumberOTP · India pool</strong><span>Real provider availability from the public feed</span></div><b>' + Number(live.available || 0).toLocaleString() + '</b><small>numbers available</small></div>'
+    : '<div class="external-provider-card unavailable"><div><strong>NumberOTP · India pool</strong><span>No live match available for this service</span></div></div>';
   if (!payload) {
-    return '<div class="server-panel"><div class="server-note"><span class="server-note-icon">⌁</span><div><strong>Live capacity</strong><span>Expand the service to load current server capacity from INBOX9.</span></div></div></div>';
+    return '<div class="server-panel">' + liveBlock + '<div class="server-note"><span class="server-note-icon">⌁</span><div><strong>INBOX9 allocation</strong><span>Current INBOX9 capacity is synthetic test inventory. NumberOTP stock above is informational until authenticated provider routing is enabled.</span></div></div></div>';
   }
   const servers = Array.isArray(payload.servers) ? payload.servers : [];
   const totalAvailable = servers.reduce((sum, server) => sum + Number(server.availableCount || 0), 0);
   const totalCapacity = servers.reduce((sum, server) => sum + Number(server.capacity || 0), 0);
   const rows = servers.map((server) => '<div class="server-row"><div class="server-number">' + esc(String(server.id || '').replace(/^server-/i, '#') || '—') + '</div><div class="server-info"><div class="server-name">' + esc(server.name || 'Activation server') + '</div><div class="server-stock">' + Number(server.availableCount || 0).toLocaleString() + ' available · ' + Number(server.reservedCount || 0).toLocaleString() + ' reserved</div></div><div class="server-price">' + Number(server.capacity || 0).toLocaleString() + ' slots</div></div>').join('');
-  return '<div class="server-panel"><div class="server-note"><span class="server-note-icon">⌁</span><div><strong>Automatic allocation</strong><span>' + servers.length + ' servers · ' + totalAvailable.toLocaleString() + ' available of ' + totalCapacity.toLocaleString() + ' capacity. INBOX9 chooses the server automatically.</span></div></div><div class="server-list">' + rows + '</div></div>';
+  return '<div class="server-panel">' + liveBlock + '<div class="server-note"><span class="server-note-icon">⌁</span><div><strong>INBOX9 automatic allocation</strong><span>' + servers.length + ' synthetic servers · ' + totalAvailable.toLocaleString() + ' available of ' + totalCapacity.toLocaleString() + ' test capacity.</span></div></div><div class="server-list">' + rows + '</div></div>';
 }
 
 async function boot() {
@@ -1037,14 +1045,16 @@ function serviceCard(service) {
   const insufficient = state.balancePaise < Number(service.pricePaise || 0);
   const actionLabel = availability <= 0 ? 'Unavailable' : insufficient ? 'Top up' : 'Buy number';
   const expanded = state.expandedServiceId === service.id;
-  return '<article class="market-service-group customer-service-card' + (expanded ? ' expanded' : '') + '">' +
+  const live = service.liveAvailability && service.liveAvailability.numberotp;
+  const liveLabel = live ? Number(live.available || 0).toLocaleString() : '—';
+  return '<article class="market-service-group customer-service-card ' + (expanded ? ' expanded' : '') + '">' +
     '<button class="service-group-header customer-service-main" type="button" data-toggle-service="' + esc(service.id) + '" aria-expanded="' + String(expanded) + '" aria-controls="capacity-' + esc(service.id) + '">' +
       '<span class="service-icon service-brand-icon">' + iconFor(service.category) + '</span>' +
       '<span class="service-group-copy"><span class="service-category">' + esc(service.category) + '</span><strong>' + esc(service.name) + '</strong><small>India (+91) · Fast activation · ~20s OTP</small></span>' +
       '<span class="service-group-meta"><span class="availability-pill ' + availabilityState + '"><span></span>' + availabilityLabel + '</span><span class="service-price">' + money(service.pricePaise) + '</span></span>' +
       '<span class="service-group-chevron" aria-hidden="true">⌄</span>' +
     '</button>' +
-    '<div class="customer-service-bottom"><span class="customer-service-fact"><b>3 min</b> activation window</span><span class="customer-service-fact"><b>' + availability.toLocaleString() + '</b> available</span><button class="buy-btn customer-buy" type="button" data-buy-service="' + esc(service.id) + '" ' + (availability <= 0 ? 'disabled aria-disabled="true"' : '') + '>' + actionLabel + '</button></div>' +
+    '<div class="customer-service-bottom"><span class="customer-service-fact"><b>3 min</b> activation window</span><span class="customer-service-fact"><b>' + availability.toLocaleString() + '</b> INBOX9 capacity</span><span class="customer-service-fact provider-live-fact"><b>' + liveLabel + '</b> NumberOTP live</span><button class="buy-btn customer-buy" type="button" data-buy-service="' + esc(service.id) + '" ' + (availability <= 0 ? 'disabled aria-disabled="true"' : '') + '>' + actionLabel + '</button></div>' +
     (expanded ? serverStatsMarkup(service) : '') +
   '</article>';
 }

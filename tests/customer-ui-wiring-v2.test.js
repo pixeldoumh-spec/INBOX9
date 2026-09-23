@@ -17,10 +17,12 @@ test('marketplace categories are derived from the live service catalog', async (
 test('service capacity is wired to the authenticated backend endpoint', async () => {
   const app = await read('app.js');
   assert.match(app, /async function toggleServiceCapacity\(/);
-  assert.match(app, /\/api\/services\/.*\/servers/);
+  assert.match(app, /\/api\/services\//);
+  assert.match(app, /encodeURIComponent\(serviceId\)/);
+  assert.match(app, /\/servers/);
   assert.match(app, /data-toggle-service=/);
   assert.match(app, /serverStatsMarkup\(/);
-  assert.match(app, /Automatic allocation/);
+  assert.match(app, /INBOX9 allocation/);
 });
 
 test('customer navigation survives refresh and supports browser history', async () => {
