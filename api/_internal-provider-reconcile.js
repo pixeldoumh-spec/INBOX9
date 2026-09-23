@@ -7,7 +7,8 @@ import { applySecurityHeaders, requestId } from './_lib/security.js';
 
 export default async function handler(req, res) {
   applySecurityHeaders(res); requestId(req, res);
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+  const isVercelCron = req.method === 'GET' && Boolean(req.headers['x-vercel-cron-schedule']);
+  if (req.method !== 'POST' && !isVercelCron) return res.status(405).json({ error: 'Method not allowed' });
   const expected = process.env.CRON_SECRET;
   const bearer = String(req.headers.authorization || '');
   const supplied = bearer.startsWith('Bearer ') ? bearer.slice(7).trim() : String(req.headers['x-inbox9-cron-secret'] || '');

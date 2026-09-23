@@ -44,8 +44,8 @@ test('client explicitly presents the current India market while hiding allocatio
 });
 
 test('browser-facing API errors use neutral marketplace language', async () => {
-  const activationRoute = await fs.readFile(new URL('../api/activations/index.js', import.meta.url), 'utf8');
-  const serverRoute = await fs.readFile(new URL('../api/services/[id]/servers.js', import.meta.url), 'utf8');
+  const activationRoute = await fs.readFile(new URL('../api/activations/_index.js', import.meta.url), 'utf8');
+  const serverRoute = await fs.readFile(new URL('../api/services/_id/_servers.js', import.meta.url), 'utf8');
   const activationRepository = await fs.readFile(new URL('../api/_lib/activation-repository.js', import.meta.url), 'utf8');
   for (const content of [activationRoute, serverRoute, activationRepository]) {
     assert.doesNotMatch(content, /Only India \/ INR services are supported/);
