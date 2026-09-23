@@ -5,7 +5,7 @@ services:
     plan: free
     region: singapore
     branch: main
-    buildCommand: npm ci --ignore-scripts && npm run assets:sync
+    buildCommand: npm ci --ignore-scripts
     startCommand: npm run db:migrate && npm start
     healthCheckPath: /api/health
     autoDeployTrigger: commit
