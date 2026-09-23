@@ -33,9 +33,9 @@ Without PostgreSQL, local development intentionally uses the mock session mode a
 
 INBOX9 can run on any host that can execute Node.js 22 and expose an HTTP port.
 
-The repository includes a Render Blueprint in `render.yaml` for a free Web Service deployment. Render's free service tier is intended for hobby/testing use and spins down after 15 minutes of inactivity; the next request can take about a minute to wake it. It should therefore be treated as a zero-cost public MVP/staging environment rather than an always-on production SLA. citeturn729697search1turn976566search2
+The repository includes a Render Blueprint in `render.yaml` for a free Web Service deployment. Render's free service tier is intended for hobby/testing use and spins down after 15 minutes of inactivity; the next request can take about a minute to wake it. See the Render free-tier documentation for the current limits.
 
-For an always-on zero-cost VM, Oracle Cloud's Always Free compute resources can host the same Node process directly. Oracle states its Always Free compute resources do not expire, subject to the published limits and account policies. citeturn428732search0
+For an always-on zero-cost VM, Oracle Cloud's Always Free compute resources can host the same Node process directly. See Oracle's Always Free documentation for the current limits and account policies.
 
 ## Environment
 
@@ -81,11 +81,11 @@ INBOX9_CRON_URL=https://your-public-host.example/api/internal-provider-reconcile
 INBOX9_CRON_SECRET=<same value as CRON_SECRET>
 ```
 
-GitHub Free includes 2,000 hosted-runner minutes per month for private repositories, subject to the account's plan allowance; this daily job uses very little runner time. citeturn428732search3
+GitHub Free currently includes 2,000 hosted-runner minutes per month for private repositories, subject to the account plan allowance. The daily reconciliation job uses very little runner time.
 
 ## Free infrastructure
 
-Upstash Redis currently provides a $0 Free tier with 256 MB data, 10 GB monthly bandwidth, and 500,000 monthly commands. That is suitable for a small INBOX9 deployment's shared rate limiter, but it is a quota-bound free service rather than an SLA-backed production Redis plan. citeturn976566search1
+Upstash Redis currently has a $0 Free tier with 256 MB data, 10 GB monthly bandwidth, and 500,000 monthly commands. It is suitable for a small shared rate limiter but is still quota-bound.
 
 Supabase remains the PostgreSQL source of truth for this deployment.
 
