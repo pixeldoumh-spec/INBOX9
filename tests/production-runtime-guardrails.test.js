@@ -55,6 +55,50 @@ test('persistent production startup fails closed without required runtime config
   }
 });
 
+test('Vercel production is treated as production and synthetic mode is rejected', async () => {
+  const runtime = await import('../api/_lib/runtime-config.js');
+  const previous = {
+    nodeEnv: process.env.NODE_ENV,
+    vercelEnv: process.env.VERCEL_ENV,
+    mode: process.env.INBOX9_RUNTIME_MODE,
+    database: process.env.DATABASE_URL,
+    redisUrl: process.env.UPSTASH_REDIS_REST_URL,
+    redisToken: process.env.UPSTASH_REDIS_REST_TOKEN,
+    origin: process.env.APP_ORIGIN,
+    cron: process.env.CRON_SECRET,
+  };
+  process.env.NODE_ENV = '';
+  process.env.VERCEL_ENV = 'production';
+  process.env.INBOX9_RUNTIME_MODE = 'synthetic';
+  delete process.env.DATABASE_URL;
+  delete process.env.UPSTASH_REDIS_REST_URL;
+  delete process.env.UPSTASH_REDIS_REST_TOKEN;
+  delete process.env.APP_ORIGIN;
+  delete process.env.CRON_SECRET;
+  try {
+    assert.equal(runtime.isProduction(), true);
+    assert.equal(runtime.runtimeMode(), 'unconfigured');
+    assert.equal(runtime.isSyntheticProduction(), false);
+    const { startServer } = await import('../server.js');
+    assert.throws(() => startServer({ port: 0, host: '127.0.0.1' }), /Production configuration incomplete/);
+  } finally {
+    const restore = {
+      NODE_ENV: previous.nodeEnv,
+      VERCEL_ENV: previous.vercelEnv,
+      INBOX9_RUNTIME_MODE: previous.mode,
+      DATABASE_URL: previous.database,
+      UPSTASH_REDIS_REST_URL: previous.redisUrl,
+      UPSTASH_REDIS_REST_TOKEN: previous.redisToken,
+      APP_ORIGIN: previous.origin,
+      CRON_SECRET: previous.cron,
+    };
+    for (const key of Object.keys(restore)) {
+      const value = restore[key];
+      if (value === undefined) delete process.env[key]; else process.env[key] = value;
+    }
+  }
+});
+
 test('persistent production catalog does not fall back to bundled local data', async () => {
   const previousNodeEnv = process.env.NODE_ENV;
   const previousDatabase = process.env.DATABASE_URL;
