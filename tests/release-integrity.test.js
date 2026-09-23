@@ -8,11 +8,12 @@ test('release ships one canonical browser bundle', async () => {
     fs.readFile(new URL('../app.js', import.meta.url), 'utf8'),
     fs.readFile(new URL('../boot.js', import.meta.url), 'utf8'),
   ]);
-  assert.match(html, /<script src="\/app\.js" defer><\/script>/);
-  assert.match(html, /<script src="\/boot\.js" defer><\/script>/);
-  assert.doesNotMatch(html, /frontend\.js/);
-  assert.doesNotMatch(html, /INBOX9 could not start/);
-  assert.match(boot, /INBOX9 could not start/);
+  assert.match(html, /<script src="\/boot\.js" defer data-app-script="\/app\.js"><\/script>/);
+  assert.doesNotMatch(html, /<script src="\/app\.js" defer><\/script>/);
+  assert.match(boot, /dataset\.appScript/);
+  assert.match(boot, /Date\.now\(\)/);
+  assert.match(boot, /application bundle could not be loaded/);
+  assert.match(app, /boot\(\);/);
   assert.doesNotMatch(app, /seedOrders/);
   assert.doesNotMatch(app, /localStorage/);
   assert.doesNotMatch(app, /hasPersistedBalance/);
