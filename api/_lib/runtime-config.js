@@ -7,13 +7,13 @@ export const REQUIRED_PRODUCTION_ENV = [
 ];
 
 export function isProduction() {
-  return process.env.NODE_ENV === 'production';
+  return process.env.NODE_ENV === 'production' || process.env.VERCEL_ENV === 'production';
 }
 
 export function runtimeMode() {
   const raw = String(process.env.INBOX9_RUNTIME_MODE || '').trim().toLowerCase();
   if (raw === 'postgres') return 'postgres';
-  if (raw === 'synthetic') return 'synthetic';
+  if (raw === 'synthetic' && !isProduction()) return 'synthetic';
   return isProduction() ? 'unconfigured' : 'local';
 }
 
@@ -42,7 +42,6 @@ export function assertProductionConfiguration() {
   if (!isProduction()) return;
 
   const mode = runtimeMode();
-  if (mode === 'synthetic') return;
   const config = productionConfiguration();
   const missing = [];
 
