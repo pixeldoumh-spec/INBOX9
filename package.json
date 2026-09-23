@@ -15,7 +15,8 @@
     "db:verify": "node scripts/verify-db.mjs",
     "staging:smoke": "node scripts/staging-smoke.mjs",
     "issue9:e2e": "node scripts/issue9-e2e.mjs",
-    "synthetic:smoke": "node scripts/synthetic-inventory-smoke.mjs"
+    "synthetic:smoke": "node scripts/synthetic-inventory-smoke.mjs",
+    "render:smoke": "node scripts/render-smoke.mjs"
   },
   "dependencies": {
     "pg": "^8.16.3"
