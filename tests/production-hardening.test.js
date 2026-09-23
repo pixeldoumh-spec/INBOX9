@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 
 test('reconciliation endpoint accepts only POST and Authorization Bearer CRON_SECRET', async () => {
   const fs = await import('node:fs/promises');
-  const src = await fs.readFile(new URL('../api/internal-provider-reconcile.js', import.meta.url), 'utf8');
+  const src = await fs.readFile(new URL('../api/_internal-provider-reconcile.js', import.meta.url), 'utf8');
   assert.match(src, /process\.env\.CRON_SECRET/);
   assert.doesNotMatch(src, /INTERNAL_CRON_SECRET/);
   assert.match(src, /req\.method !== 'POST'/);
@@ -13,7 +13,7 @@ test('reconciliation endpoint accepts only POST and Authorization Bearer CRON_SE
 
 test('activation polling route has per-user/per-activation rate limiting', async () => {
   const fs = await import('node:fs/promises');
-  const src = await fs.readFile(new URL('../api/activations/[id].js', import.meta.url), 'utf8');
+  const src = await fs.readFile(new URL('../api/activations/_id.js', import.meta.url), 'utf8');
   assert.match(src, /rateLimitAsync/);
   assert.match(src, /activation-status/);
   assert.match(src, /user\.id/);
@@ -29,7 +29,7 @@ test('durable order history is hydrated from server activations', async () => {
 
 test('production health requires cron auth and canonical origin', async () => {
   const fs = await import('node:fs/promises');
-  const src = await fs.readFile(new URL('../api/health.js', import.meta.url), 'utf8');
+  const src = await fs.readFile(new URL('../api/_health.js', import.meta.url), 'utf8');
   assert.match(src, /appOriginConfigured/);
   assert.match(src, /cronSecretConfigured/);
   assert.match(src, /sharedRateLimitConfigured && appOriginConfigured && cronSecretConfigured/);
