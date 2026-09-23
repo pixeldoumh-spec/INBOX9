@@ -31,6 +31,7 @@ const state = {
   marketSearchTimer: null,
   marketServerStats: {},
   marketServerLoading: {},
+  tickTimer: null,
   purchaseFlow: {
     step: 'service',
     serviceId: null,
@@ -114,6 +115,7 @@ function loadPersisted() {
     state.orders = Array.isArray(parsed.orders) ? parsed.orders : seedOrders;
     const pending = parsed.pendingPurchaseKeys && typeof parsed.pendingPurchaseKeys === 'object' ? parsed.pendingPurchaseKeys : {};
     state.pendingPurchaseKeys = pending;
+    if (Number.isFinite(parsed.balancePaise)) state.balancePaise = Number(parsed.balancePaise);
   } catch {
     state.active = [];
     state.orders = seedOrders;
@@ -122,7 +124,7 @@ function loadPersisted() {
 }
 
 function persist() {
-  localStorage.setItem(STORAGE_KEY(), JSON.stringify({ active: state.active, orders: state.orders, pendingPurchaseKeys: state.pendingPurchaseKeys }));
+  localStorage.setItem(STORAGE_KEY(), JSON.stringify({ active: state.active, orders: state.orders, pendingPurchaseKeys: state.pendingPurchaseKeys, balancePaise: state.balancePaise }));
 }
 
 function isLiveActivation(item) {
@@ -242,6 +244,7 @@ async function submitAuth(event) {
     await refreshWallet();
     toast(state.authMode === 'register' ? 'Account created' : 'Signed in');
     render();
+    if (!state.tickTimer) state.tickTimer = window.setInterval(tick, 1000);
   } catch (error) { toast(error.message); }
 }
 
@@ -325,7 +328,7 @@ async function boot() {
     state.loading = false;
     render();
   }
-  setInterval(tick, 1000);
+  if (!state.tickTimer) state.tickTimer = window.setInterval(tick, 1000);
 }
 
 function resetPurchaseFlow() {
