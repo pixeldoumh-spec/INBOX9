@@ -22,7 +22,7 @@ test('service capacity is wired to the authenticated backend endpoint', async ()
   assert.match(app, /\/servers/);
   assert.match(app, /data-toggle-service=/);
   assert.match(app, /serverStatsMarkup\(/);
-  assert.match(app, /Automatic allocation/);
+  assert.match(app, /INBOX9 allocation/);
 });
 
 test('customer navigation survives refresh and supports browser history', async () => {
