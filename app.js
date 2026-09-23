@@ -58,26 +58,6 @@ function appNav() {
 const categoryIcon = { Social: '◉', Productivity: '✦', Rummy: '◆', Games: '♟' };
 const MARKET_PAGE_SIZE = 48;
 const MARKET_MAX_SEARCH_RESULTS = 96;
-const MARKET_CAPACITY = 5000;
-const MARKET_SERVER_COUNT = 11;
-const MARKET_SERVERS = (() => {
-  const base = Math.floor(MARKET_CAPACITY / MARKET_SERVER_COUNT);
-  const remainder = MARKET_CAPACITY % MARKET_SERVER_COUNT;
-  let cursor = 1;
-  return Array.from({ length: MARKET_SERVER_COUNT }, (_, index) => {
-    const capacity = base + (index < remainder ? 1 : 0);
-    const server = {
-      id: `server-${index + 1}`,
-      name: `Server ${index + 1}`,
-      ordinal: index + 1,
-      capacity,
-      startSlot: cursor,
-      endSlot: cursor + capacity - 1
-    };
-    cursor += capacity;
-    return server;
-  });
-})();
 
 function normalizeSearchText(value) {
   return String(value ?? '').toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g, '').trim();
@@ -104,7 +84,7 @@ function filteredMarketServices() {
 
 function marketResultText(total, visible) {
   if (!total) return 'No matching services';
-  return `Showing 1–${Math.min(total, visible)} of ${total} services · 11 servers/service`;
+  return `Showing 1–${Math.min(total, visible)} of ${total} services`;
 }
 
 function scheduleMarketSearch(value) {
@@ -361,23 +341,24 @@ function resetPurchaseFlow() {
 
 function purchaseFlowData() {
   const service = state.services.find((item) => item.id === state.purchaseFlow.serviceId);
-  const stats = state.marketServerStats[state.purchaseFlow.serviceId] || MARKET_SERVERS;
-  const server = stats.find((item) => item.id === state.purchaseFlow.serverId) || null;
   const pricePaise = Number(service?.pricePaise || 0);
-  return { service, server, pricePaise, afterBalancePaise: Math.max(0, state.balancePaise - pricePaise) };
+  return {
+    service,
+    server: null,
+    pricePaise,
+    afterBalancePaise: Math.max(0, state.balancePaise - pricePaise)
+  };
 }
 
-function openPurchaseReview(serviceId, serverId) {
+function openPurchaseReview(serviceId) {
   const service = state.services.find((item) => item.id === serviceId);
-  const stats = state.marketServerStats[serviceId] || MARKET_SERVERS;
-  const server = stats.find((item) => item.id === serverId);
-  if (!service || !server) return;
-  if (service.stock <= 0 || Number(server.availableCount ?? server.capacity) <= 0) return toast('That service is currently unavailable');
+  if (!service) return;
+  if (Number(service.stock || 0) <= 0) return toast('That service is currently unavailable');
   state.dialogReturnFocus = { kind: 'purchase', serviceId };
   state.purchaseFlow = {
     step: 'review',
     serviceId,
-    serverId,
+    serverId: null,
     submitting: false,
     error: '',
     returnAfterWallet: false
@@ -397,18 +378,18 @@ function purchaseReviewModal() {
   const flow = state.purchaseFlow;
   if (!['review', 'activation'].includes(flow.step)) return '';
   const data = purchaseFlowData();
-  if (!data.service || !data.server) return '';
+  if (!data.service) return '';
   const insufficient = state.balancePaise < data.pricePaise;
   const activating = flow.step === 'activation' || flow.submitting;
-  const available = Number(data.server.availableCount ?? data.server.capacity);
+  const availability = Math.max(0, Number(data.service.stock || 0));
   const error = flow.error ? `<div class="purchase-error">${esc(flow.error)}</div>` : '';
-  if (activating) return `<div class="purchase-overlay" role="presentation"><div class="purchase-backdrop"></div><section class="purchase-sheet purchase-sheet-loading" role="dialog" aria-modal="true" aria-labelledby="purchase-title" tabindex="-1"><div class="purchase-sheet-top"><div><span class="kicker">STEP 3 OF 3</span><h2 id="purchase-title">Getting your number</h2></div></div><div class="purchase-steps" aria-label="Purchase progress"><span class="purchase-step done"><b>1</b> Service</span><span class="purchase-step done"><b>2</b> Review</span><span class="purchase-step current"><b>3</b> Track</span></div><div class="purchase-activation-state"><div class="purchase-loader" aria-hidden="true"></div><span class="service-category">ACTIVATION</span><h3>Reserving your number…</h3><p>We're securing your activation now. Your live status will appear next.</p></div></section></div>`;
-  return `<div class="purchase-overlay" role="presentation"><button class="purchase-backdrop" type="button" aria-label="Close purchase review" data-purchase-close></button><section class="purchase-sheet" role="dialog" aria-modal="true" aria-labelledby="purchase-title" tabindex="-1"><div class="purchase-sheet-top"><div><span class="kicker">STEP 2 OF 3</span><h2 id="purchase-title">Review your activation</h2></div><button class="icon-btn" type="button" aria-label="Close" data-purchase-close>×</button></div><div class="purchase-steps" aria-label="Purchase progress"><span class="purchase-step done"><b>1</b> Service</span><span class="purchase-step current"><b>2</b> Review</span><span class="purchase-step"><b>3</b> Track</span></div><div class="purchase-service-card"><div class="service-icon large">${iconFor(data.service.category)}</div><div class="purchase-service-copy"><span class="service-category">${esc(data.service.category)}</span><strong>${esc(data.service.name)}</strong><span>Number format: +91 · OTP in about 20 seconds</span></div></div><div class="purchase-detail-grid"><div><span>Server</span><strong>${esc(data.server.name)}</strong><small>${available.toLocaleString()} available</small></div><div><span>Price</span><strong>${money(data.pricePaise)}</strong><small>One activation</small></div><div><span>Current balance</span><strong>${money(state.balancePaise)}</strong><small>Wallet balance</small></div><div><span>After purchase</span><strong>${money(data.afterBalancePaise)}</strong><small>Remaining balance</small></div></div><div class="purchase-trust"><span>✓</span><div><strong>Your number appears immediately</strong><small>The verification code will appear automatically about 20 seconds later.</small></div></div>${error}${insufficient ? `<div class="purchase-actions"><button class="secondary-btn" type="button" data-purchase-close>Back</button><button class="primary-btn" type="button" data-purchase-wallet>Add funds</button></div>` : `<div class="purchase-actions"><button class="secondary-btn" type="button" data-purchase-close>Back</button><button class="primary-btn purchase-confirm-btn" type="button" data-purchase-confirm>Confirm &amp; Get Number <span>→</span></button></div>`}</section></div>`;
+  if (activating) return `<div class="purchase-overlay" role="presentation"><div class="purchase-backdrop"></div><section class="purchase-sheet purchase-sheet-loading" role="dialog" aria-modal="true" aria-labelledby="purchase-title" tabindex="-1"><div class="purchase-sheet-top"><div><span class="kicker">STEP 3 OF 3</span><h2 id="purchase-title">Getting your number</h2></div></div><div class="purchase-steps" aria-label="Purchase progress"><span class="purchase-step done"><b>1</b> Service</span><span class="purchase-step done"><b>2</b> Review</span><span class="purchase-step current"><b>3</b> Track</span></div><div class="purchase-activation-state"><div class="purchase-loader" aria-hidden="true"></div><span class="service-category">ACTIVATION</span><h3>Reserving your number…</h3><p>We’re assigning a number automatically now. Your live activation will appear next.</p></div></section></div>`;
+  return `<div class="purchase-overlay" role="presentation"><button class="purchase-backdrop" type="button" aria-label="Close purchase review" data-purchase-close></button><section class="purchase-sheet" role="dialog" aria-modal="true" aria-labelledby="purchase-title" tabindex="-1"><div class="purchase-sheet-top"><div><span class="kicker">STEP 2 OF 3</span><h2 id="purchase-title">Review your number</h2></div><button class="icon-btn" type="button" aria-label="Close" data-purchase-close>×</button></div><div class="purchase-steps" aria-label="Purchase progress"><span class="purchase-step done"><b>1</b> Service</span><span class="purchase-step current"><b>2</b> Review</span><span class="purchase-step"><b>3</b> Track</span></div><div class="purchase-service-card"><div class="service-icon large">${iconFor(data.service.category)}</div><div class="purchase-service-copy"><span class="service-category">${esc(data.service.category)}</span><strong>${esc(data.service.name)}</strong><span>India (+91) · OTP appears in about 20 seconds</span></div></div><div class="purchase-detail-grid"><div><span>Country</span><strong>India (+91)</strong><small>Current INBOX9 market</small></div><div><span>Price</span><strong>${money(data.pricePaise)}</strong><small>One activation</small></div><div><span>Availability</span><strong>${availability.toLocaleString()}</strong><small>numbers available</small></div><div><span>Activation window</span><strong>3 minutes</strong><small>INBOX9 lifecycle</small></div></div><div class="purchase-trust"><span>✓</span><div><strong>Number first. OTP next.</strong><small>INBOX9 reserves the number immediately. The OTP is generated automatically around 20 seconds into the activation.</small></div></div>${error}${insufficient ? `<div class="purchase-actions"><button class="secondary-btn" type="button" data-purchase-close>Back</button><button class="primary-btn" type="button" data-purchase-wallet>Add funds</button></div>` : `<div class="purchase-actions"><button class="secondary-btn" type="button" data-purchase-close>Back</button><button class="primary-btn purchase-confirm-btn" type="button" data-purchase-confirm>Get number <span>→</span></button></div>`}</section></div>`;
 }
 
 async function confirmPurchase() {
   const data = purchaseFlowData();
-  if (!data.service || !data.server) return;
+  if (!data.service) return;
   if (state.balancePaise < data.pricePaise) {
     state.purchaseFlow.error = 'You need more wallet balance to complete this activation.';
     renderBuyCatalog();
@@ -419,7 +400,7 @@ async function confirmPurchase() {
   state.purchaseFlow.error = '';
   renderBuyCatalog();
   scheduleDialogFocus();
-  await buy(data.service.id, data.server.id);
+  await buy(data.service.id);
 }
 
 async function buy(serviceId, serverId = null) {
@@ -459,7 +440,7 @@ async function buy(serviceId, serverId = null) {
     resetPurchaseFlow();
     persist();
     render();
-    toast(`${activation.service} • ${activation.serverId ? activation.serverId.replace('server-', 'Server ') : 'Auto'} reserved`);
+    toast(`${activation.service} • Number reserved`);
   } catch (error) {
     state.purchaseBusy.delete(purchaseKey);
     if (error.code === 'IDEMPOTENCY_IN_PROGRESS') {
@@ -804,7 +785,7 @@ function hero() {
     <div class="hero-copy">
       <div class="hero-eyebrow"><span class="pulse-dot"></span><span>LIVE MARKETPLACE</span><span class="hero-eyebrow-sep">/</span><span>FAST ACTIVATIONS</span></div>
       <h1>Get a number. Get your code. Keep moving.</h1>
-      <p>Pick a service, choose a server, and track the activation from one focused workspace.</p>
+      <p>Pick a service and track the activation from one focused workspace. Server and slot allocation stay automatic.</p>
       <div class="hero-actions">
         <button class="primary-btn hero-primary" type="button" data-page="buy">Browse services <span>→</span></button>
         <button class="ghost-btn" type="button" data-page="wallet">Add funds <span>+</span></button>
@@ -832,81 +813,33 @@ function content() {
   return buyPage();
 }
 
-function toggleService(serviceId) {
-  const expanding = state.expandedServiceId !== serviceId;
-  state.expandedServiceId = expanding ? serviceId : null;
-  renderBuyCatalog();
-  if (expanding && !state.marketServerStats[serviceId] && !state.marketServerLoading[serviceId]) {
-    void loadServerStats(serviceId);
-  }
-}
 
-async function loadServerStats(serviceId) {
-  state.marketServerLoading[serviceId] = true;
-  renderBuyCatalog();
-  try {
-    const payload = await api(`/api/services/${encodeURIComponent(serviceId)}/servers`);
-    state.marketServerStats[serviceId] = Array.isArray(payload.servers) ? payload.servers : [];
-  } catch (error) {
-    toast(error.message || 'Unable to load server inventory');
-  } finally {
-    state.marketServerLoading[serviceId] = false;
-    if (state.expandedServiceId === serviceId) renderBuyCatalog();
-  }
-}
-
-function serverRows(service, stats = MARKET_SERVERS) {
-  return stats.map((server) => {
-    const availableCount = Number(server.availableCount ?? server.capacity);
-    const insufficientBalance = service.pricePaise > state.balancePaise;
-    const unavailable = service.stock <= 0 || availableCount <= 0;
-    const disabled = insufficientBalance || unavailable;
-    const actionLabel = insufficientBalance ? 'Top up' : unavailable ? 'Unavailable' : 'Buy';
-    return `
-    <div class="server-row">
-      <div class="server-number" aria-hidden="true">${server.name.replace("Server ", "")}</div>
-      <div class="server-info">
-        <div class="server-name">${server.name}</div>
-        <div class="server-stock">• ${availableCount.toLocaleString()} available of ${server.capacity.toLocaleString()} · #${server.startSlot.toLocaleString()}–${server.endSlot.toLocaleString()}</div>
-      </div>
-      <strong class="server-price">${money(service.pricePaise)}</strong>
-      <button class="buy-btn server-buy" type="button" data-buy-server-service="${esc(service.id)}" data-buy-server="${server.id}" ${disabled ? 'disabled aria-disabled="true"' : ''}>${actionLabel === 'Buy' ? 'Select' : actionLabel}</button>
-    </div>`;
-  }).join('');
-}
+async 
 
 function serviceCard(service) {
-  const expanded = state.expandedServiceId === service.id;
-  const stats = state.marketServerStats[service.id];
-  const loading = Boolean(state.marketServerLoading[service.id]);
   const availability = Math.max(0, Number(service.stock || 0));
   const availabilityState = availability <= 0 ? 'sold-out' : availability < 100 ? 'limited' : 'ready';
   const availabilityLabel = availability <= 0 ? 'Sold out' : availability < 100 ? 'Limited' : 'Ready';
-  const serverContent = loading
-    ? '<div class="server-loading">Checking live inventory…</div>'
-    : serverRows(service, stats?.length ? stats : MARKET_SERVERS);
-  return `<article class="market-service-group ${expanded ? "expanded" : ""}">
-    <button class="service-group-header" type="button" data-toggle-service="${esc(service.id)}" aria-expanded="${expanded}" aria-controls="servers-${esc(service.id)}">
+  const disabled = availability <= 0 || state.balancePaise < Number(service.pricePaise || 0);
+  const actionLabel = availability <= 0 ? 'Unavailable' : state.balancePaise < Number(service.pricePaise || 0) ? 'Top up' : 'Buy number';
+  return `<article class="market-service-group customer-service-card">
+    <div class="customer-service-main">
       <span class="service-icon service-brand-icon">${iconFor(service.category)}</span>
       <span class="service-group-copy">
         <span class="service-category">${esc(service.category)}</span>
         <strong>${esc(service.name)}</strong>
-        <small>Fast activation · OTP in about 20 seconds</small>
+        <small>India (+91) · Fast activation · ~20s OTP</small>
       </span>
       <span class="service-group-meta">
         <span class="availability-pill ${availabilityState}"><span></span>${availabilityLabel}</span>
         <span class="service-price">${money(service.pricePaise)}</span>
-        <span class="service-group-chevron" aria-hidden="true">${expanded ? "⌃" : "⌄"}</span>
       </span>
-    </button>
-    ${expanded ? `<div class="server-panel" id="servers-${esc(service.id)}">
-      <div class="server-panel-head">
-        <div><span class="kicker">SERVER SELECTION</span><strong>Choose a server</strong></div>
-        <span class="server-panel-count">${availability.toLocaleString()} total available</span>
-      </div>
-      <div class="server-note"><span class="server-note-icon">ϟ</span><div><strong>Availability updates automatically</strong><span>Select a server below to continue.</span></div></div>
-      <div class="server-list">${serverContent}</div>
-    </div>` : ""}
+    </div>
+    <div class="customer-service-bottom">
+      <span class="customer-service-fact"><b>3 min</b> activation window</span>
+      <span class="customer-service-fact"><b>${availability.toLocaleString()}</b> available</span>
+      <button class="buy-btn customer-buy" type="button" data-buy-service="${esc(service.id)}" ${disabled && availability > 0 ? '' : (availability <= 0 ? 'disabled aria-disabled="true"' : '')}>${actionLabel}</button>
+    </div>
   </article>`;
 }
 
@@ -939,17 +872,18 @@ function buyPage() {
   const showing = Math.min(state.marketVisibleCount, list.length);
   return `<div class="market-page">
     <div class="section-head market-section-head">
-      <div><span class="kicker">MARKETPLACE / +91</span><h2>Choose a service</h2><p class="section-subcopy">Browse ${state.services.length.toLocaleString()} services and select the server that fits your session.</p></div>
+      <div><span class="kicker">MARKETPLACE / INDIA</span><h2>Choose a service</h2><p class="section-subcopy">Pick the service you need. INBOX9 automatically handles number allocation behind the scenes.</p></div>
       <div class="market-summary"><span class="summary-dot"></span><strong>${list.length.toLocaleString()}</strong><span>matches</span></div>
     </div>
+    <div class="market-country-strip"><div class="market-country-pill"><span class="country-flag">IN</span><div><strong>India (+91)</strong><small>Current market</small></div></div><div class="country-note">Server and slot allocation are automatic</div></div>
     <div class="controls market-controls">
       <div class="toolbar market-toolbar">
         <label class="search-box premium-search" aria-label="Search services"><span class="search-glyph">⌕</span><input id="service-search" value="${esc(state.search)}" placeholder="Search ${state.services.length.toLocaleString()} services…" autocomplete="off" spellcheck="false"><kbd>/</kbd></label>
         <div class="category-scroll-wrap"><div class="category-scroll" role="group" aria-label="Service categories">${categories.map((category) => `<button class="filter-btn ${state.category === category ? "selected" : ""}" type="button" data-category="${category}" aria-pressed="${state.category === category}"><span>${category}</span><span class="filter-count">${(state.categoryCounts[category] || 0).toLocaleString()}</span></button>`).join("")}</div></div>
       </div>
     </div>
-    <div class="market-results-bar"><span class="result-note market-result-count" aria-live="polite">${esc(marketResultText(list.length, showing))}</span><span class="market-hint">Tap a service to reveal servers</span></div>
-    <div class="service-grid">${marketListMarkup(list)}</div>
+    <div class="market-results-bar"><span class="result-note market-result-count" aria-live="polite">${esc(marketResultText(list.length, showing))}</span><span class="market-hint">Prices and availability update from the INBOX9 backend</span></div>
+    <div class="service-grid customer-service-grid">${marketListMarkup(list)}</div>
     <div class="purchase-flow-root">${purchaseReviewModal()}</div>
   </div>`;
 }
@@ -969,7 +903,16 @@ function activeCard(activation) {
   const seconds = String(remaining % 60).padStart(2, '0');
   const progress = Math.min(100, Math.max(0, (remaining / 180) * 100));
   const completed = activation.status === 'Completed';
-  return `<article class="active-card ${completed ? 'completed' : ''}><div class="active-card-header"><div class="service-icon large">${iconFor(state.services.find((s) => s.id === activation.serviceId)?.category)}</div><div class="service-meta"><span class="service-category">${esc(activation.service)}</span><h3>${esc(activation.number)}</h3></div><span class="activation-status">${completed ? '✓ OTP received' : '↻ Waiting SMS'}</span></div>${completed ? `<div class="otp-panel"><div class="otp-label">VERIFICATION CODE</div><div class="otp-code">${esc(activation.otp)}</div><button class="copy-btn" type="button" data-copy="${esc(activation.otp.replace(/\s/g, ''))}">⧉ Copy OTP</button></div>` : `<div class="otp-panel"><div class="otp-label">TIME REMAINING</div><div class="timer">◷ ${minutes}:${seconds}</div><div class="progress"><span style="width:${progress}%"></span></div><div class="waiting-note">▣ Your verification code will appear here automatically</div></div>`}<div class="active-footer"><span>Order <strong class="mono">${esc(activation.id)}</strong></span><span>${activation.serverId ? esc(activation.serverId.replace('server-', 'Server ')) : 'Auto server'}</span><span>${money(activation.pricePaise)}</span>${!completed ? `<button class="text-danger" type="button" data-cancel="${esc(activation.id)}">Cancel & refund</button>` : ''}</div></article>`;
+  return `<article class="active-card ${completed ? 'completed' : ''}">
+    <div class="active-card-header">
+      <div class="service-icon large">${iconFor(state.services.find((s) => s.id === activation.serviceId)?.category)}</div>
+      <div class="service-meta"><span class="service-category">${esc(activation.service)}</span><h3>${esc(activation.number)}</h3></div>
+      <span class="activation-status">${completed ? '✓ OTP received' : '↻ Waiting SMS'}</span>
+    </div>
+    <div class="active-context"><span>India (+91)</span><span>${money(activation.pricePaise)}</span><span>Order ${esc(activation.id)}</span></div>
+    ${completed ? `<div class="otp-panel"><div class="otp-label">VERIFICATION CODE</div><div class="otp-code">${esc(activation.otp)}</div><button class="copy-btn" type="button" data-copy="${esc(activation.otp.replace(/\\s/g, ''))}">⧉ Copy OTP</button></div>` : `<div class="otp-panel"><div class="otp-label">TIME REMAINING</div><div class="timer">◷ ${minutes}:${seconds}</div><div class="progress"><span style="width:${progress}%"></span></div><div class="waiting-note">▣ Your verification code will appear here automatically</div></div>`}
+    <div class="active-footer"><span>Temporary number</span>${!completed ? `<button class="text-danger" type="button" data-cancel="${esc(activation.id)}">Cancel & refund</button>` : '<span>Verification complete</span>'}</div>
+  </article>`;
 }
 
 function ordersPage() {
@@ -978,7 +921,7 @@ function ordersPage() {
 function walletPage() {
   const qr = '/upi-qr.jpg';
   const returnPurchase = state.purchaseFlow.returnAfterWallet && state.purchaseFlow.serviceId
-    ? '<div class="panel purchase-return-banner"><div><strong>Continue your activation</strong><span>Your selected service' + (state.purchaseFlow.serverId ? ' and server' : '') + ' is saved.</span></div><button class="primary-btn" type="button" data-return-purchase>Back to purchase</button></div>'
+    ? '<div class="panel purchase-return-banner"><div><strong>Continue your activation</strong><span>Your selected service is saved.</span></div><button class="primary-btn" type="button" data-return-purchase>Back to purchase</button></div>'
     : '';
   const ledgerRows = state.walletLedger.length ? state.walletLedger.map(entry => `<div class="ledger-row ${entry.type === 'credit' ? 'positive' : ''}"><span>${entry.type === 'credit' ? '↘' : '↗'} ${esc(entry.description)}</span><strong>${entry.type === 'credit' ? '+' : '−'} ${money(entry.amountPaise)}</strong><small>${new Date(entry.createdAt).toLocaleString()}</small></div>`).join('') : '<div class="empty-mini">No wallet transactions yet.</div>';
   const rechargeRows = state.recharges.length ? state.recharges.map(item => `<div class="recharge-row"><div><strong>${money(item.amountPaise)}</strong><span class="table-status ${item.status.toLowerCase()}">${esc(item.status)}</span></div><code>${esc(item.utr)}</code><small>${new Date(item.submittedAt).toLocaleString()}</small></div>`).join('') : '<div class="empty-mini">No recharge requests yet.</div>';
@@ -1052,11 +995,6 @@ function bindMarketplaceEvents() {
       renderBuyCatalog();
       return;
     }
-    const toggle = event.target.closest("[data-toggle-service]");
-    if (toggle && root.contains(toggle)) {
-      toggleService(toggle.dataset.toggleService);
-      return;
-    }
     const loadMore = event.target.closest("[data-load-more]");
     if (loadMore && root.contains(loadMore)) {
       const list = filteredMarketServices();
@@ -1064,9 +1002,9 @@ function bindMarketplaceEvents() {
       renderBuyCatalog();
       return;
     }
-    const buyButton = event.target.closest("[data-buy-server-service]");
+    const buyButton = event.target.closest("[data-buy-service]");
     if (buyButton && root.contains(buyButton)) {
-      openPurchaseReview(buyButton.dataset.buyServerService, buyButton.dataset.buyServer);
+      openPurchaseReview(buyButton.dataset.buyService);
       return;
     }
 
@@ -1097,13 +1035,10 @@ function bindMarketplaceEvents() {
       state.page = 'buy';
       state.expandedServiceId = serviceId;
       render();
-      if (serviceId) void loadServerStats(serviceId);
       scheduleDialogFocus();
-      return;
     }
   });
 }
-
 document.addEventListener('keydown', (event) => {
   const dialog = activeDialog();
   if (dialog) {

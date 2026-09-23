@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 
-const forbiddenClientTerm = /(^|[^A-Za-z])(synthetic|indian|india|indan)(?=$|[^A-Za-z])/im;
+const forbiddenClientTerm = /(^|[^A-Za-z])(synthetic engine|synthetic server|slot ranges?|server partition)(?=$|[^A-Za-z])/im;
 
 async function readClient(path) {
   return fs.readFile(new URL(`../${path}`, import.meta.url), 'utf8');
@@ -22,20 +22,25 @@ test('client page metadata uses neutral marketplace wording', async () => {
   assert.doesNotMatch(html, /India|Indian|Synthetic/i);
 });
 
-test('client marketplace has a defined eleven-server fallback', async () => {
+test('customer client does not contain synthetic server inventory constants', async () => {
   const app = await readClient('app.js');
-  assert.match(app, /const MARKET_CAPACITY = 5000;/);
-  assert.match(app, /const MARKET_SERVER_COUNT = 11;/);
-  assert.match(app, /const MARKET_SERVERS = \(\(\) => \{/);
-  assert.match(app, /Math\.floor\(MARKET_CAPACITY \/ MARKET_SERVER_COUNT\)/);
-  assert.match(app, /index < remainder/);
-  assert.doesNotMatch(app, /\bSYNTHETIC_SERVERS\b/);
+  assert.doesNotMatch(app, /const MARKET_SERVER_COUNT = 11/);
+  assert.doesNotMatch(app, /const MARKET_CAPACITY = 5000/);
+  assert.doesNotMatch(app, /data-buy-server-service/);
+  assert.match(app, /data-buy-service/);
 });
 
-test('client remains explicit about the +91 display format without naming a country', async () => {
+test('synthetic inventory capacity remains a backend concern', async () => {
+  const servers = await fs.readFile(new URL('../api/_lib/synthetic-servers.js', import.meta.url), 'utf8');
+  assert.match(servers, /5000/);
+  assert.match(servers, /11/);
+});
+test('client explicitly presents the current India market while hiding allocation internals', async () => {
   const app = await readClient('app.js');
-  assert.match(app, /Number format: \+91/);
-  assert.match(app, /MARKETPLACE \/ \+91/);
+  assert.match(app, /MARKETPLACE \/ INDIA/);
+  assert.match(app, /India \(\+91\)/);
+  assert.doesNotMatch(app, /Tap a service to reveal servers/);
+  assert.doesNotMatch(app, /SERVER SELECTION/);
 });
 
 test('browser-facing API errors use neutral marketplace language', async () => {
