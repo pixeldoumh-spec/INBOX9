@@ -12,9 +12,9 @@ export default async function handler(req, res) {
   try {
     if (!dbEnabled() && process.env.NODE_ENV === 'production') return res.status(503).json({ error: 'Authentication database is not configured' });
     if (!dbEnabled()) {
-      if (!email || !password || String(password).length < 8) return res.status(400).json({ error: 'Enter your email and a password of at least 8 characters' });
-      setMockSession(res, email);
-      return res.status(200).json({ user: { ...mockUser(), email: String(email).trim().toLowerCase() }, mode: 'mock' });
+      const user = loginMockUser(email, password);
+      setMockSession(res, user.email);
+      return res.status(200).json({ user, mode: 'mock' });
     }
     const session = await login(email, password);
     setSessionCookie(res, session.token);
