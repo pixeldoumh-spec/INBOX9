@@ -49,7 +49,7 @@ test('TASK-006 wallet, catalog and session status reads apply common security an
   assert.match(me, /auth-me/);
 });
 
-test('TASK-006 database TLS verification is not disabled by default', async () =>
+test('TASK-006 database TLS verification is not disabled by default', async () => {
   const src = await fs.readFile(new URL('../api/_lib/db.js', import.meta.url), 'utf8');
   assert.match(src, /DATABASE_SSL_REJECT_UNAUTHORIZED !== 'false'/);
   assert.match(src, /DATABASE_SSL_CA/);
