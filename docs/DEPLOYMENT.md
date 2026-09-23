@@ -62,6 +62,8 @@ INBOX9_UPI_ID=<your-UPI-ID>
 
 The current catalog/activation provider is intentionally synthetic QA infrastructure. It generates deterministic, non-routable test identities and six-digit OTPs; it is not a live telecom/SMS provider.
 
+When `NODE_ENV=production` and `INBOX9_RUNTIME_MODE=synthetic` (the default when the variable is absent), Vercel can run the customer-facing synthetic flow without PostgreSQL or Upstash Redis. Authentication, wallet credits, and activation lifecycle are synthetic test state; Vercel serverless instances are not treated as a durable database. Synthetic accounts receive test credits only, and OTPs are generated locally after the configured 20-second delay. Set `INBOX9_RUNTIME_MODE=postgres` and provide the required persistent-production variables before enabling persistent account/wallet traffic.
+
 ## Reconciliation
 
 Production reconciliation is scheduled natively by Vercel on a Hobby-compatible daily schedule:
