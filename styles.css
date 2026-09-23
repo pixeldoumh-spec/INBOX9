@@ -1152,3 +1152,26 @@ body::before{
   .customer-service-fact{font-size:8px}
   .customer-service-bottom .customer-buy{min-width:92px}
 }
+
+
+/* Live data and interaction refinements */
+.runtime-error{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:13px 15px;margin-bottom:16px;border:1px solid #4a2b2d;background:#1a1114;color:#e6aeb2;border-radius:12px}
+.runtime-error div{min-width:0}
+.runtime-error strong,.runtime-error span{display:block}
+.runtime-error strong{font-size:11px;color:#f3c0c4}
+.runtime-error span{margin-top:3px;font-size:10px;color:#a7868b;overflow-wrap:anywhere}
+.runtime-error .secondary-btn{flex:none;height:34px}
+.customer-service-detail-label{padding:0 16px 10px;color:#627288;font-size:9px;text-transform:uppercase;letter-spacing:.09em}
+.service-group-chevron{transform:rotate(-45deg)}
+.service-group-header[aria-expanded="true"] .service-group-chevron{transform:rotate(0deg)}
+.market-refreshing{opacity:.7;pointer-events:none}
+.page-head-actions{display:flex;align-items:center;gap:8px}
+.refresh-btn{height:34px;padding:0 11px;border:1px solid #2a3646;background:#0d141d;color:#aab6c6;border-radius:10px;font-size:10px;font-weight:700}
+.refresh-btn:hover{background:#121b26;border-color:#3a4d67}
+.empty-state-action{margin-top:13px;display:inline-flex}
+@media(max-width:620px){
+  .runtime-error{align-items:flex-start;flex-direction:column}
+  .runtime-error .secondary-btn{width:100%}
+  .page-head-actions{width:100%;justify-content:space-between}
+  .refresh-btn{min-width:84px}
+}
