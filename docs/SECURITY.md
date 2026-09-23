@@ -24,7 +24,7 @@ The mock implementation does not perform real third-party account verification o
 - Each authenticated request validates expiry, account activity and a per-user `session_version`; the last-used timestamp is refreshed at most every five minutes.
 - Logout removes the current session. Logout-all increments the user session version and removes every session.
 - Changing a password increments the session version, removes every prior session, and creates one fresh session for the current device.
-- The internal reconciliation cron removes expired/revoked session rows so stale session data does not accumulate.
+- The scheduled reconciliation job removes expired/revoked session rows so stale session data does not accumulate.
 - Session tokens, hashes and password material are never returned to the browser or admin API.
 
 ## TASK-006 hardening
@@ -32,4 +32,4 @@ The mock implementation does not perform real third-party account verification o
 - The wallet reconciliation POST path enforces same-origin requests, payload limits and rate limiting.
 - PostgreSQL TLS certificate verification is enabled by default when SSL is enabled; provide `DATABASE_SSL_CA` for a private CA rather than disabling verification.
 - Login failures use a generic invalid-credentials response to reduce account-enumeration leakage.
-- The reconciliation handler exposes a Vercel Cron GET path authenticated with `CRON_SECRET` and validated with Vercel's cron schedule header; the existing authenticated POST form remains available for an external scheduler.
+- The reconciliation handler supports a Vercel Cron GET path authenticated with `CRON_SECRET` and validated with Vercel's cron schedule header; the existing authenticated POST form remains available for an external scheduler.
