@@ -1,9 +1,10 @@
 import crypto from 'node:crypto';
 import { getPool, withTransaction, dbEnabled } from './db.js';
+import { isProduction, isSyntheticProduction } from './runtime-config.js';
 
 const SESSION_DAYS = 7;
 const SESSION_MAX_PER_USER = 5;
-const COOKIE = process.env.NODE_ENV === 'production' ? '__Host-inbox9_session' : 'inbox9_session';
+const COOKIE = isProduction() ? '__Host-inbox9_session' : 'inbox9_session';
 const mockAccounts = new Map();
 
 function hash(value) {
@@ -25,7 +26,7 @@ export function verifyPassword(password, stored) {
 }
 
 function syntheticMode() {
-  return process.env.NODE_ENV === 'production' && String(process.env.INBOX9_RUNTIME_MODE || 'synthetic').trim().toLowerCase() === 'synthetic';
+  return isSyntheticProduction();
 }
 
 function normalizeEmail(email) {
@@ -55,7 +56,7 @@ function parseCookies(header = '') {
 }
 
 function cookieOptions(maxAge) {
-  const secure = process.env.NODE_ENV === 'production' ? '; Secure' : '';
+  const secure = isProduction() ? '; Secure' : '';
   return `${COOKIE}=; Path=/; HttpOnly; SameSite=Lax${secure}; Max-Age=${maxAge}`;
 }
 
