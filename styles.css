@@ -1175,3 +1175,8 @@ body::before{
   .page-head-actions{width:100%;justify-content:space-between}
   .refresh-btn{min-width:84px}
 }
+
+
+.topbar-live-status{height:30px;padding:0 10px;border:1px solid #203027;border-radius:999px;background:#0c1510;color:#9bd88b;display:inline-flex;align-items:center;gap:7px;font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+.topbar-live-status .live-dot{height:6px;width:6px}
+@media(max-width:620px){.topbar-live-status span:last-child{display:none}}
