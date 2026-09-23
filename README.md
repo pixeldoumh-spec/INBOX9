@@ -4,15 +4,16 @@ India-only OTP marketplace powered by an internal synthetic number and OTP engin
 
 ## Current release
 
+`v0.8.14` — unified Node runtime and UOTP-style customer-first client over the existing synthetic engine.
+
 - 832 supplied India service catalog entries.
-- Responsive marketplace, active-number, orders, wallet and API screens.
-- LocalStorage-backed demo session state.
-- Deployment-agnostic Node API runtime.
-- Single internal synthetic fulfillment engine for numbers and OTP lifecycle, with durable per-service slot reservations and 11-server partitioning.
-- Synthetic inventory is presented as 11 server chunks per service, partitioning 5,000 slots into six 455-slot chunks and five 454-slot chunks. Selecting a server constrains synthetic slot allocation to that chunk.
+- Responsive customer marketplace, active-number, orders and wallet screens.
+- Customer UI hides synthetic infrastructure such as server partitions and slot ranges.
+- One Node runtime (`server.js`) serves the browser and mounts the existing API modules.
+- Single internal synthetic fulfillment engine for numbers and OTP lifecycle, with durable per-service slot reservations and internal server partitioning.
 - Active synthetic slots are reserved transactionally in PostgreSQL; duplicate slot claims are rejected and retried, and terminal activation states release the reservation.
 - Security headers, integer paise pricing, payload limits and accessibility improvements.
-- 25-track engineering review documented in docs/25-AGENT-REVIEW.md.
+- 25-track engineering review documented in `docs/25-AGENT-REVIEW.md`.
 
 ## Run locally
 
@@ -26,68 +27,57 @@ npm start
 
 Open `http://localhost:4173`.
 
+Full synthetic lifecycle smoke:
+
+```bash
+npm run staging:smoke
+```
+
 ## Architecture
 
 ```text
 Browser UI
-  ├── local demo state
-  └── /api calls
-          │
-          ▼
-   Node API runtime
-          │
-          ▼
+   │
+   └── same-origin /api calls
+           │
+           ▼
+       server.js
+           │
+           ├── auth / wallet / activation route modules
+           │
+           ▼
+   PostgreSQL (persistent staging/production)
+           │
+           ▼
    Internal Synthetic Engine
-          │
-          └── synthetic number/OTP lifecycle
-
-Production persistence, auth, wallet ledger and rate limits use PostgreSQL/Redis and are not faked in production.
+           │
+           └── synthetic number/OTP lifecycle
 ```
 
-The repository contains a plain Node-based HTTP runtime with API route modules. It does not require a specific hosting provider. Deployment-specific infrastructure should be configured at the hosting layer.
+Without `DATABASE_URL`, local development uses the repository's mock session/activation mode. Production fails closed for state-changing features that require PostgreSQL or shared rate limiting.
 
 ## Wallet & UPI Recharge
 
-Recharge is manual UPI verification: users pay to `8106204597@ptyes`, submit the UTR, and the wallet remains Pending until an authorized admin approves the request. Amounts are limited to ₹100–₹5,000. The supplied QR is served at `/payment-qr.jpg`.
+Recharge is manual UPI verification: users pay to the configured UPI destination, submit the UTR, and the wallet remains Pending until an authorized admin approves the request. The supplied QR is served at `/payment-qr.jpg`.
 
 When `DATABASE_URL` is configured, PostgreSQL is authoritative for wallet balance and ledger entries. Activation purchases debit the wallet atomically; cancellations credit a refund atomically.
-
-To promote an existing user to admin in PostgreSQL:
-
-```sql
-UPDATE users SET role='admin' WHERE email='admin@example.com';
-```
-
-Admin recharge queue:
-- `GET /api/admin/recharges`
-- `POST /api/admin/recharges/:id` with `{ "decision": "approve" }` or `{ "decision": "reject", "reason": "..." }`
 
 ## Admin Operations
 
 The admin control center is available only to accounts whose database role is `admin`.
 
-### Local admin preview
-
-For a local development preview only, set `INBOX9_LOCAL_ADMIN_EMAIL` to the exact email you will use to sign in. This development-only override is ignored when `NODE_ENV=production`.
-
-## Recent hardening
-
-- Issue 1: PostgreSQL is the runtime source of truth for service configuration.
-- Issue 2: Activation lifecycle uses durable reconciliation.
-- Issue 3: Activation creation uses durable idempotency keys to prevent duplicate purchases.
-- Issues 6–9: provider I/O boundaries, expiration reconciliation, session lifecycle hardening, and E2E/concurrency certification are implemented.
-
-## Current release
-
-`v0.8.13` — synthetic-only fulfillment engine and external-provider removal, with server-chunked synthetic inventory.
+For a local admin preview only, set `INBOX9_LOCAL_ADMIN_EMAIL` to the exact email you will use to sign in. This development-only override is ignored when `NODE_ENV=production`.
 
 ## Synthetic fulfillment
 
 All 832 catalog services use the internal synthetic engine. It creates up to 5,000 synthetic slots per service and deterministic six-digit OTPs. These are generated locally for the INBOX9 lifecycle and do not originate from real telecom numbers or external SMS providers.
 
+Customer-facing screens intentionally do not expose the internal 11-server partitioning or slot ranges.
+
 ## Certification
 
 - `npm run check` — syntax validation
-- `npm test` — automated test suite
+- `npm test` — automated test suite, including runtime/API wiring
 - `npm run issue9:e2e` — local end-to-end and concurrency certification
 - `npm run synthetic:smoke` — 832-service / 5,000-slot synthetic inventory verification
+- `npm run staging:smoke` — register → catalog → activation → 20-second OTP lifecycle smoke

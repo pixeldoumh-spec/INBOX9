@@ -1,7 +1,7 @@
-import { applySecurityHeaders, requestId, rateLimitAsync } from '../../_lib/security.js';
-import { dbEnabled } from '../../_lib/db.js';
-import { getSessionUser, requireAdmin } from '../../_lib/auth.js';
-import { listAuditLogs } from '../../_lib/admin-repository.js';
+import { applySecurityHeaders, requestId, rateLimitAsync } from '../_lib/security.js';
+import { dbEnabled } from '../_lib/db.js';
+import { getSessionUser, requireAdmin } from '../_lib/auth.js';
+import { listAuditLogs } from '../_lib/admin-repository.js';
 
 export default async function handler(req, res) {
   applySecurityHeaders(res);

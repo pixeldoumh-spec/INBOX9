@@ -4,6 +4,7 @@ import { getPool, withTransaction, dbEnabled } from './db.js';
 const SESSION_DAYS = 7;
 const SESSION_MAX_PER_USER = 5;
 const COOKIE = process.env.NODE_ENV === 'production' ? '__Host-inbox9_session' : 'inbox9_session';
+const mockAccounts = new Map();
 
 function hash(value) {
   return crypto.createHash('sha256').update(value).digest('hex');
@@ -315,6 +316,28 @@ export function sessionPolicy() {
   return { absoluteDays: SESSION_DAYS, maxSessionsPerUser: maxSessionsPerUser() };
 }
 
+export function registerMockUser(emailInput, password) {
+  const email = normalizeEmail(emailInput);
+  const error = validateCredentials(email, password);
+  if (error) throw new Error(error);
+  if (mockAccounts.has(email)) throw new Error('An account with this email already exists');
+  mockAccounts.set(email, { passwordHash: passwordHash(password), createdAt: Date.now() });
+  return mockUser(email);
+}
+
+export function loginMockUser(emailInput, password) {
+  const email = normalizeEmail(emailInput);
+  const error = validateCredentials(email, password);
+  if (error) throw new Error(error);
+  const account = mockAccounts.get(email);
+  if (!account || !verifyPassword(password, account.passwordHash)) {
+    const invalid = new Error(['Account not found.', 'Please sign up first.'].join(' '));
+    invalid.code = 'INVALID_MOCK_CREDENTIALS';
+    throw invalid;
+  }
+  return mockUser(email);
+}
+
 export function mockUser(email = 'demo@inbox9.local') {
   const normalized = String(email || 'demo@inbox9.local').trim().toLowerCase();
   const adminEmail = String(process.env.INBOX9_LOCAL_ADMIN_EMAIL || '').trim().toLowerCase();
@@ -329,5 +352,11 @@ export function setMockSession(res, email = 'demo@inbox9.local') {
 
 export function getMockSession(req) {
   const cookies = parseCookies(req.headers.cookie || '');
-  return cookies.inbox9_demo ? mockUser(decodeURIComponent(cookies.inbox9_demo)) : null;
+  if (!cookies.inbox9_demo) return null;
+  const email = normalizeEmail(decodeURIComponent(cookies.inbox9_demo));
+  return mockAccounts.has(email) ? mockUser(email) : null;
+}
+
+export function resetMockAuth() {
+  mockAccounts.clear();
 }

@@ -5,7 +5,7 @@ import { getPersistedService } from '../_lib/service-repository.js';
 import { dbEnabled } from '../_lib/db.js';
 import { getSessionUser, getMockSession, requireUser } from '../_lib/auth.js';
 import { createActivation, listActivations } from '../_lib/activation-repository.js';
-import { reserveMock } from '../_lib/mock.js';
+import { reserveMock, claimMockActivationIdempotency, completeMockActivationIdempotency, debitMockWallet, listMockActivations } from '../_lib/mock.js';
 import { validateIdempotencyKey, hashActivationRequest, claimActivationKey, completeActivationKey, failActivationKey, markActivationKeyStuckSafe } from '../_lib/idempotency.js';
 
 async function currentUser(req) {
@@ -22,7 +22,7 @@ export default async function handler(req, res) {
   if (req.method === 'GET') {
     if (!await rateLimitAsync(req, res, 'activation-list', 60, 60_000, user.id)) return;
     if (dbEnabled()) return res.status(200).json({ activations: await listActivations(user.id), persistent: true });
-    return res.status(200).json({ activations: [], persistent: false });
+    return res.status(200).json({ activations: listMockActivations(user), persistent: false });
   }
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   if (!await rateLimitAsync(req, res, 'activation-create', 30, 60_000) || !enforceSameOrigin(req, res)) return;
@@ -41,7 +41,33 @@ export default async function handler(req, res) {
   if (!dbEnabled()) {
     const service = getService(serviceId);
     if (!service) return res.status(400).json({ error: 'Unknown service' });
-    return res.status(201).json({ ...reserveMock({ ...service, serverId }), userId: user.id });
+    let mockClaim = null;
+    const requestHash = JSON.stringify({ serviceId, serverId });
+    if (req.headers?.['idempotency-key']) {
+      try {
+        mockClaim = claimMockActivationIdempotency(user, req.headers['idempotency-key'], requestHash);
+        if (mockClaim.state === 'completed') {
+          res.setHeader('X-Idempotent-Replay', 'true');
+          return res.status(201).json(mockClaim.response);
+        }
+        if (mockClaim.state === 'processing') return res.status(409).json({ error: 'An activation request with this Idempotency-Key is already in progress', code: 'IDEMPOTENCY_IN_PROGRESS' });
+      } catch (error) {
+        return res.status(409).json({ error: error.message, code: error.code });
+      }
+    }
+    try {
+      const activation = reserveMock({ ...service, serverId, userId: user.id, userEmail: user.email });
+      const balancePaise = debitMockWallet(user, Number(service.pricePaise || 0), activation.id, `Activation • ${service.name}`);
+      const response = { ...activation, userId: user.id, walletBalancePaise: balancePaise };
+      if (req.headers?.['idempotency-key']) completeMockActivationIdempotency(user, req.headers['idempotency-key'], response);
+      return res.status(201).json(response);
+    } catch (error) {
+      if (req.headers?.['idempotency-key']) {
+        // Keep a failed mock claim usable for a later request with a new key.
+      }
+      if (error.code === 'INSUFFICIENT_BALANCE') return res.status(402).json({ error: error.message, code: error.code });
+      return res.status(409).json({ error: error.message, code: error.code });
+    }
   }
   const persistedService = await getPersistedService(serviceId);
   if (!persistedService || persistedService.active === false) return res.status(409).json({ error: 'Service is unavailable' });
