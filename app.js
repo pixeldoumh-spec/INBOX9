@@ -956,7 +956,11 @@ function bindEvents() {
   document.querySelectorAll('[data-page]').forEach((node) => node.addEventListener('click', () => setPage(node.dataset.page)));
   bindMarketplaceEvents();
   document.querySelectorAll('[data-cancel]').forEach((node) => node.addEventListener('click', () => cancelActivation(node.dataset.cancel)));
-  document.querySelectorAll('[data-copy]').forEach((node) => node.addEventListener('click', async () => { try { await navigator.clipboard.writeText(node.dataset.copy); toast('OTP copied'); } catch { toast('Copy unavailable on this browser'); } }));
+  document.querySelectorAll('[data-copy]').forEach((node) => node.addEventListener('click', () => {
+    navigator.clipboard.writeText(node.dataset.copy)
+      .then(() => toast('OTP copied'))
+      .catch(() => toast('Copy unavailable on this browser'));
+  }));
   document.querySelectorAll('[data-action="open-menu"]').forEach((node) => node.addEventListener('click', openMenu));
   document.querySelectorAll('[data-action="close-menu"]').forEach((node) => node.addEventListener('click', closeMenu));
   document.querySelectorAll('[data-action="reset"]').forEach((node) => node.addEventListener('click', resetDemo));
