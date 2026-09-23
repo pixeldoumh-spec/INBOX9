@@ -751,12 +751,19 @@ async function syncActivationItem(item) {
 }
 
 async function tick() {
-  if (!state.user || !state.active.length) {
+  if (!state.user) {
+    if (state.page === 'active') renderActiveOnly();
+    return;
+  }
+  const now = Date.now();
+  if (now - state.lastCatalogRefreshAt > 60_000 && !state.customerDataRefreshing) {
+    void refreshCatalog({ silent: true });
+  }
+  if (!state.active.length) {
     if (state.page === 'active') renderActiveOnly();
     return;
   }
   if (activationSyncInFlight) return;
-  const now = Date.now();
   if (now - lastActivationSync < 2500) {
     if (state.page === 'active') renderActiveOnly();
     return;
@@ -770,7 +777,6 @@ async function tick() {
       const batch = current.slice(start, start + concurrency);
       await Promise.all(batch.map((item) => syncActivationItem(item)));
     }
-    persist();
     if (state.page === 'active') renderActiveOnly();
   } finally {
     activationSyncInFlight = false;
