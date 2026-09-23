@@ -58,7 +58,7 @@ test('concurrent terminal review decisions serialize to exactly one outcome', { 
     await pool.query('DELETE FROM users WHERE id IN ($1,$2,$3)', [userId, adminA, adminB]);
     await pool.query('INSERT INTO users (id,email,password_hash,role) VALUES ($1,$2,\'test-fixture-hash\',\'user\'),($3,$4,\'test-fixture-hash\',\'admin\'),($5,$6,\'test-fixture-hash\',\'admin\')', [userId, `${userId}@example.com`, adminA, `${adminA}@example.com`, adminB, `${adminB}@example.com`]);
     await pool.query('INSERT INTO wallets (user_id,balance_paise) VALUES ($1,0)', [userId]);
-    await pool.query('INSERT INTO recharge_requests (id,user_id,amount_paise,utr) VALUES ($1,$2,50000,$3)', [rechargeId, userId, utr]);
+    await pool.query('INSERT INTO recharge_requests (id,user_id,amount_paise,utr,upi_id) VALUES ($1,$2,50000,$3,'test@upi')', [rechargeId, userId, utr]);
 
     const results = await Promise.allSettled([
       reviewRecharge(rechargeId, adminA, 'approve', '', { amountPaise: 50000, utr }),
