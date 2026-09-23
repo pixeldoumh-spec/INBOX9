@@ -30,6 +30,8 @@ export function reserveMock(service) {
   const mockOtpAt = now + syntheticOtpTiming(service.id || service.name, index, providerActivationId);
   const activation = {
     id: makeId(),
+    userId: service.userId || null,
+    userEmail: userKey(service.userEmail || ''),
     serviceId: service.id,
     service: service.name,
     country: 'IN',
@@ -62,6 +64,17 @@ export function getMock(id) {
   return item;
 }
 
+export function listMockActivations(user) {
+  const email = userKey(user);
+  return [...activations.values()]
+    .filter(item => item.userEmail === email)
+    .map(item => {
+      transition(item);
+      return item;
+    })
+    .sort((a, b) => b.createdAt - a.createdAt);
+}
+
 export function cancelMock(id) {
   const item = activations.get(id);
   if (!item) return null;
@@ -69,6 +82,7 @@ export function cancelMock(id) {
   if (item.status === 'Active') {
     item.status = 'Refunded';
     item.refundPaise = item.pricePaise;
+    item.refundCredited = false;
   }
   return item;
 }
