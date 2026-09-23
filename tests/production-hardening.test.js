@@ -35,7 +35,7 @@ test('standalone server serves the static shell with baseline security headers a
     assert.match(response.headers['content-security-policy'], /fonts\.googleapis\.com/);
     assert.match(response.headers['content-security-policy'], /sha256-neT8V8ebT\/osdr\/v5by0QUCTp0FWgCD\+wpt1NXiuEVE=/);
     assert.equal(response.headers['strict-transport-security'], 'max-age=31536000; includeSubDomains');
-    assert.match(response.body, /<script src="\/app\.js" defer><\/script>/);
+    assert.match(response.body, /<script src="\/boot\.js" defer data-app-script="\/app\.js"><\/script>/);
     assert.match(response.body, /<script src="\/boot\.js" defer><\/script>/);
   } finally {
     server.close();
