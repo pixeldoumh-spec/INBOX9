@@ -1,5 +1,5 @@
 import crypto from 'node:crypto';
-import { isSyntheticProduction } from './runtime-config.js';
+import { isProduction, isSyntheticProduction } from './runtime-config.js';
 
 const buckets = new Map();
 const WINDOW_MS = 60_000;
@@ -29,7 +29,7 @@ export function applySecurityHeaders(res) {
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
   res.setHeader('Content-Security-Policy', "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; form-action 'self'");
-  if (process.env.NODE_ENV === 'production') res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  if (isProduction()) res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
 }
 
 export function requestId(req, res) {
@@ -66,7 +66,7 @@ export function rateLimit(req, res, name, limit, windowMs = WINDOW_MS, scopeKey 
 
 export async function rateLimitAsync(req, res, name, limit, windowMs = WINDOW_MS, scopeKey = '') {
   if (!sharedLimiterConfigured()) {
-    if (process.env.NODE_ENV === 'production' && !isSyntheticProduction()) {
+    if (isProduction() && !isSyntheticProduction()) {
       res.status(503).json({ error: 'Shared rate-limit service is not configured' });
       return false;
     }
@@ -90,7 +90,7 @@ export async function rateLimitAsync(req, res, name, limit, windowMs = WINDOW_MS
     return true;
   } catch (error) {
     console.error('rate_limit_store_failed', error);
-    if (process.env.NODE_ENV === 'production' && !isSyntheticProduction()) {
+    if (isProduction() && !isSyntheticProduction()) {
       res.status(503).json({ error: 'Rate-limit service unavailable' });
       return false;
     }

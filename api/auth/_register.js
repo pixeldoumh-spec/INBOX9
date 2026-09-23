@@ -22,7 +22,14 @@ export default async function handler(req, res) {
     setSessionCookie(res, session.token);
     return res.status(201).json({ user });
   } catch (error) {
-    const duplicate = error.message.includes('already exists');
-    return res.status(duplicate ? 409 : 400).json({ error: error.message });
+    const message = String(error.message || '');
+    const duplicate = error.code === '23505' || message.includes('already exists');
+    if (duplicate) return res.status(409).json({ error: 'An account with this email already exists' });
+    if (message === 'AUTH_DATABASE_REQUIRED') return res.status(503).json({ error: 'Authentication database is not configured' });
+    if (/^(Enter a valid email address|Password must be at least 8 characters|Password is too long)$/.test(message)) {
+      return res.status(400).json({ error: message });
+    }
+    console.error('auth.register_failed', error);
+    return res.status(503).json({ error: 'Authentication service unavailable' });
   }
 }

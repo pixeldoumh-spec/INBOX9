@@ -20,7 +20,13 @@ export default async function handler(req, res) {
     setSessionCookie(res, result.token);
     return res.status(200).json({ ok: true, user: result.user, sessionsInvalidated: true });
   } catch (error) {
-    const status = error.statusCode || (error.message === 'AUTH_DATABASE_REQUIRED' ? 503 : 400);
-    return res.status(status).json({ error: error.message === 'AUTH_DATABASE_REQUIRED' ? 'Authentication database is not configured' : error.message });
+    if (error.message === 'AUTH_DATABASE_REQUIRED') {
+      return res.status(503).json({ error: 'Authentication database is not configured' });
+    }
+    if (Number.isInteger(error.statusCode) && error.statusCode >= 400 && error.statusCode < 500) {
+      return res.status(error.statusCode).json({ error: error.message });
+    }
+    console.error('auth.change_password_failed', error);
+    return res.status(503).json({ error: 'Authentication service unavailable' });
   }
 }

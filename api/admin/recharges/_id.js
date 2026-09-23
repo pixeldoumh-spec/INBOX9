@@ -19,7 +19,12 @@ export default async function handler(req, res) {
       const recharge = reviewMockRecharge(id, user, decision, req.body?.reason);
       return res.status(200).json({ recharge, mode: 'mock' });
     } catch (error) {
-      return res.status(error.statusCode || (error.code === 'DUPLICATE_UTR' ? 409 : 400)).json({ code: error.code, error: error.message });
+      if (error.code === 'DUPLICATE_UTR') return res.status(409).json({ code: error.code, error: 'This UTR has already been submitted' });
+      if (Number.isInteger(error.statusCode) && error.statusCode >= 400 && error.statusCode < 500) {
+        return res.status(error.statusCode).json({ code: error.code, error: error.message });
+      }
+      console.error('admin.mock_recharge_review_failed', error);
+      return res.status(503).json({ error: 'Recharge review unavailable' });
     }
   }
   const id = req.query?.id || String(req.url || '').split('/').pop();
@@ -40,6 +45,10 @@ export default async function handler(req, res) {
       return res.status(409).json({ code: 'DUPLICATE_UTR', error: 'This UTR has already been submitted' });
     }
     const status = Number(error?.statusCode);
-    return res.status(status >= 400 && status < 500 ? status : 400).json({ code: error?.code || undefined, error: error.message });
+    if (status >= 400 && status < 500) {
+      return res.status(status).json({ code: error?.code || undefined, error: error.message });
+    }
+    console.error('admin.recharge_review_failed', error);
+    return res.status(503).json({ error: 'Recharge review unavailable' });
   }
 }

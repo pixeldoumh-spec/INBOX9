@@ -16,7 +16,7 @@ export default async function handler(req, res) {
     ? String(process.env.INBOX9_ENABLE_RECHARGE || '').trim().toLowerCase() === 'true' && Boolean(getUpiId()) && dbEnabled()
     : true;
   if (req.method === 'GET') {
-    if (!dbEnabled()) return res.status(200).json({ recharges: listMockRecharges(user), persistent: false, rechargeEnabled: true, minPaise: MIN_RECHARGE_PAISE, maxPaise: MAX_RECHARGE_PAISE, upiId: getUpiId() });
+    if (!dbEnabled()) return res.status(200).json({ recharges: listMockRecharges(user), persistent: false, rechargeEnabled, minPaise: MIN_RECHARGE_PAISE, maxPaise: MAX_RECHARGE_PAISE, upiId: getUpiId() });
     try { return res.status(200).json({ recharges: await listRecharges(user.id), persistent: true, rechargeEnabled, minPaise: MIN_RECHARGE_PAISE, maxPaise: MAX_RECHARGE_PAISE, upiId: getUpiId() }); }
     catch (error) { return res.status(503).json({ error: 'Recharge service unavailable' }); }
   }
@@ -32,7 +32,8 @@ export default async function handler(req, res) {
     try { return res.status(201).json({ ...createMockRecharge(user, amountPaise, utr, getUpiId() || 'test@upi'), mode: 'mock' }); }
     catch (error) {
       if (error.code === 'DUPLICATE_UTR') return res.status(409).json({ code: 'DUPLICATE_UTR', error: 'This UTR has already been submitted' });
-      return res.status(400).json({ error: error.message });
+      console.error('recharge.mock_create_failed', error);
+      return res.status(503).json({ error: 'Recharge service unavailable' });
     }
   }
   try {
@@ -42,6 +43,9 @@ export default async function handler(req, res) {
       return res.status(409).json({ code: 'DUPLICATE_UTR', error: 'This UTR has already been submitted' });
     }
     if (error.code === 'UPI_DESTINATION_NOT_CONFIGURED') return res.status(503).json({ error: error.message, code: error.code });
-    return res.status(400).json({ error: error.message });
+    const message = String(error.message || '');
+    if (/^(Recharge amount must be between|Enter a valid UTR)/.test(message)) return res.status(400).json({ error: message });
+    console.error('recharge.create_failed', error);
+    return res.status(503).json({ error: 'Recharge service unavailable' });
   }
 }

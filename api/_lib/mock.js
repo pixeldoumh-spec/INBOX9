@@ -59,9 +59,10 @@ export function reserveMock(service) {
   return activation;
 }
 
-export function getMock(id) {
+export function getMock(id, user = null) {
   const item = activations.get(id);
   if (!item) return null;
+  if (user && item.userId !== user.id && item.userEmail !== userKey(user)) return null;
   transition(item);
   return item;
 }
@@ -77,9 +78,10 @@ export function listMockActivations(user) {
     .sort((a, b) => b.createdAt - a.createdAt);
 }
 
-export function cancelMock(id) {
+export function cancelMock(id, user = null) {
   const item = activations.get(id);
   if (!item) return null;
+  if (user && item.userId !== user.id && item.userEmail !== userKey(user)) return null;
   transition(item);
   if (item.status === 'Active') {
     item.status = 'Refunded';
