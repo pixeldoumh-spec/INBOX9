@@ -29,7 +29,7 @@ jobs:
           echo "Runner: $RUNNER_NAME"
           echo "OS: $RUNNER_OS"
           echo "Arch: $RUNNER_ARCH"
-          echo "Image: $ImageVersion"
+          echo "Image: ${ImageVersion:-unknown}"
           node --version
           npm --version
           psql --version
