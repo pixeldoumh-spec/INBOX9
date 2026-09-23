@@ -58,26 +58,6 @@ function appNav() {
 const categoryIcon = { Social: '◉', Productivity: '✦', Rummy: '◆', Games: '♟' };
 const MARKET_PAGE_SIZE = 48;
 const MARKET_MAX_SEARCH_RESULTS = 96;
-const MARKET_CAPACITY = 5000;
-const MARKET_SERVER_COUNT = 11;
-const MARKET_SERVERS = (() => {
-  const base = Math.floor(MARKET_CAPACITY / MARKET_SERVER_COUNT);
-  const remainder = MARKET_CAPACITY % MARKET_SERVER_COUNT;
-  let cursor = 1;
-  return Array.from({ length: MARKET_SERVER_COUNT }, (_, index) => {
-    const capacity = base + (index < remainder ? 1 : 0);
-    const server = {
-      id: `server-${index + 1}`,
-      name: `Server ${index + 1}`,
-      ordinal: index + 1,
-      capacity,
-      startSlot: cursor,
-      endSlot: cursor + capacity - 1
-    };
-    cursor += capacity;
-    return server;
-  });
-})();
 
 function normalizeSearchText(value) {
   return String(value ?? '').toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g, '').trim();
@@ -404,7 +384,7 @@ function purchaseReviewModal() {
   const availability = Math.max(0, Number(data.service.stock || 0));
   const error = flow.error ? `<div class="purchase-error">${esc(flow.error)}</div>` : '';
   if (activating) return `<div class="purchase-overlay" role="presentation"><div class="purchase-backdrop"></div><section class="purchase-sheet purchase-sheet-loading" role="dialog" aria-modal="true" aria-labelledby="purchase-title" tabindex="-1"><div class="purchase-sheet-top"><div><span class="kicker">STEP 3 OF 3</span><h2 id="purchase-title">Getting your number</h2></div></div><div class="purchase-steps" aria-label="Purchase progress"><span class="purchase-step done"><b>1</b> Service</span><span class="purchase-step done"><b>2</b> Review</span><span class="purchase-step current"><b>3</b> Track</span></div><div class="purchase-activation-state"><div class="purchase-loader" aria-hidden="true"></div><span class="service-category">ACTIVATION</span><h3>Reserving your number…</h3><p>We’re assigning a number from the synthetic inventory now. Your live activation will appear next.</p></div></section></div>`;
-  return `<div class="purchase-overlay" role="presentation"><button class="purchase-backdrop" type="button" aria-label="Close purchase review" data-purchase-close></button><section class="purchase-sheet" role="dialog" aria-modal="true" aria-labelledby="purchase-title" tabindex="-1"><div class="purchase-sheet-top"><div><span class="kicker">STEP 2 OF 3</span><h2 id="purchase-title">Review your number</h2></div><button class="icon-btn" type="button" aria-label="Close" data-purchase-close>×</button></div><div class="purchase-steps" aria-label="Purchase progress"><span class="purchase-step done"><b>1</b> Service</span><span class="purchase-step current"><b>2</b> Review</span><span class="purchase-step"><b>3</b> Track</span></div><div class="purchase-service-card"><div class="service-icon large">${iconFor(data.service.category)}</div><div class="purchase-service-copy"><span class="service-category">${esc(data.service.category)}</span><strong>${esc(data.service.name)}</strong><span>India (+91) · OTP appears in about 20 seconds</span></div></div><div class="purchase-detail-grid"><div><span>Country</span><strong>India (+91)</strong><small>Current INBOX9 market</small></div><div><span>Price</span><strong>${money(data.pricePaise)}</strong><small>One activation</small></div><div><span>Availability</span><strong>${availability.toLocaleString()}</strong><small>numbers available</small></div><div><span>Activation window</span><strong>3 minutes</strong><small>synthetic lifecycle</small></div></div><div class="purchase-trust"><span>✓</span><div><strong>Number first. OTP next.</strong><small>The synthetic engine reserves the number immediately. The OTP is generated automatically around 20 seconds into the activation.</small></div></div>${error}${insufficient ? `<div class="purchase-actions"><button class="secondary-btn" type="button" data-purchase-close>Back</button><button class="primary-btn" type="button" data-purchase-wallet>Add funds</button></div>` : `<div class="purchase-actions"><button class="secondary-btn" type="button" data-purchase-close>Back</button><button class="primary-btn purchase-confirm-btn" type="button" data-purchase-confirm>Get number <span>→</span></button></div>`}</section></div>`;
+  return `<div class="purchase-overlay" role="presentation"><button class="purchase-backdrop" type="button" aria-label="Close purchase review" data-purchase-close></button><section class="purchase-sheet" role="dialog" aria-modal="true" aria-labelledby="purchase-title" tabindex="-1"><div class="purchase-sheet-top"><div><span class="kicker">STEP 2 OF 3</span><h2 id="purchase-title">Review your number</h2></div><button class="icon-btn" type="button" aria-label="Close" data-purchase-close>×</button></div><div class="purchase-steps" aria-label="Purchase progress"><span class="purchase-step done"><b>1</b> Service</span><span class="purchase-step current"><b>2</b> Review</span><span class="purchase-step"><b>3</b> Track</span></div><div class="purchase-service-card"><div class="service-icon large">${iconFor(data.service.category)}</div><div class="purchase-service-copy"><span class="service-category">${esc(data.service.category)}</span><strong>${esc(data.service.name)}</strong><span>India (+91) · OTP appears in about 20 seconds</span></div></div><div class="purchase-detail-grid"><div><span>Country</span><strong>India (+91)</strong><small>Current INBOX9 market</small></div><div><span>Price</span><strong>${money(data.pricePaise)}</strong><small>One activation</small></div><div><span>Availability</span><strong>${availability.toLocaleString()}</strong><small>numbers available</small></div><div><span>Activation window</span><strong>3 minutes</strong><small>INBOX9 lifecycle</small></div></div><div class="purchase-trust"><span>✓</span><div><strong>Number first. OTP next.</strong><small>The INBOX9 reserves the number immediately. The OTP is generated automatically around 20 seconds into the activation.</small></div></div>${error}${insufficient ? `<div class="purchase-actions"><button class="secondary-btn" type="button" data-purchase-close>Back</button><button class="primary-btn" type="button" data-purchase-wallet>Add funds</button></div>` : `<div class="purchase-actions"><button class="secondary-btn" type="button" data-purchase-close>Back</button><button class="primary-btn purchase-confirm-btn" type="button" data-purchase-confirm>Get number <span>→</span></button></div>`}</section></div>`;
 }
 
 async async function confirmPurchase() {
@@ -833,48 +813,8 @@ function content() {
   return buyPage();
 }
 
-function toggleService(serviceId) {
-  const expanding = state.expandedServiceId !== serviceId;
-  state.expandedServiceId = expanding ? serviceId : null;
-  renderBuyCatalog();
-  if (expanding && !state.marketServerStats[serviceId] && !state.marketServerLoading[serviceId]) {
-    void loadServerStats(serviceId);
-  }
-}
 
-async function loadServerStats(serviceId) {
-  state.marketServerLoading[serviceId] = true;
-  renderBuyCatalog();
-  try {
-    const payload = await api(`/api/services/${encodeURIComponent(serviceId)}/servers`);
-    state.marketServerStats[serviceId] = Array.isArray(payload.servers) ? payload.servers : [];
-  } catch (error) {
-    toast(error.message || 'Unable to load server inventory');
-  } finally {
-    state.marketServerLoading[serviceId] = false;
-    if (state.expandedServiceId === serviceId) renderBuyCatalog();
-  }
-}
-
-function serverRows(service, stats = MARKET_SERVERS) {
-  return stats.map((server) => {
-    const availableCount = Number(server.availableCount ?? server.capacity);
-    const insufficientBalance = service.pricePaise > state.balancePaise;
-    const unavailable = service.stock <= 0 || availableCount <= 0;
-    const disabled = insufficientBalance || unavailable;
-    const actionLabel = insufficientBalance ? 'Top up' : unavailable ? 'Unavailable' : 'Buy';
-    return `
-    <div class="server-row">
-      <div class="server-number" aria-hidden="true">${server.name.replace("Server ", "")}</div>
-      <div class="server-info">
-        <div class="server-name">${server.name}</div>
-        <div class="server-stock">• ${availableCount.toLocaleString()} available of ${server.capacity.toLocaleString()} · #${server.startSlot.toLocaleString()}–${server.endSlot.toLocaleString()}</div>
-      </div>
-      <strong class="server-price">${money(service.pricePaise)}</strong>
-      <button class="buy-btn server-buy" type="button" data-buy-server-service="${esc(service.id)}" data-buy-server="${server.id}" ${disabled ? 'disabled aria-disabled="true"' : ''}>${actionLabel === 'Buy' ? 'Select' : actionLabel}</button>
-    </div>`;
-  }).join('');
-}
+async 
 
 function serviceCard(service) {
   const availability = Math.max(0, Number(service.stock || 0));
@@ -932,7 +872,7 @@ function buyPage() {
   const showing = Math.min(state.marketVisibleCount, list.length);
   return `<div class="market-page">
     <div class="section-head market-section-head">
-      <div><span class="kicker">MARKETPLACE / INDIA</span><h2>Choose a service</h2><p class="section-subcopy">Pick the service you need. INBOX9 automatically handles synthetic number allocation behind the scenes.</p></div>
+      <div><span class="kicker">MARKETPLACE / INDIA</span><h2>Choose a service</h2><p class="section-subcopy">Pick the service you need. INBOX9 automatically handles number allocation behind the scenes.</p></div>
       <div class="market-summary"><span class="summary-dot"></span><strong>${list.length.toLocaleString()}</strong><span>matches</span></div>
     </div>
     <div class="market-country-strip"><div class="market-country-pill"><span class="country-flag">IN</span><div><strong>India (+91)</strong><small>Current market</small></div></div><div class="country-note">Server and slot allocation are automatic</div></div>
