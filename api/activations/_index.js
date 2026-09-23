@@ -3,6 +3,7 @@ import { getService } from '../_lib/catalog.js';
 import { getSyntheticServer } from '../_lib/synthetic-servers.js';
 import { getPersistedService } from '../_lib/service-repository.js';
 import { dbEnabled } from '../_lib/db.js';
+import { isSyntheticProduction } from '../_lib/runtime-config.js';
 import { getSessionUser, getMockSession, requireUser } from '../_lib/auth.js';
 import { createActivation, listActivations } from '../_lib/activation-repository.js';
 import { reserveMock, claimMockActivationIdempotency, completeMockActivationIdempotency, debitMockWallet, listMockActivations } from '../_lib/mock.js';
@@ -18,7 +19,7 @@ export default async function handler(req, res) {
   const user = await currentUser(req);
   try { requireUser(user); } catch (e) { return res.status(401).json({ error: e.message }); }
 
-  if (process.env.NODE_ENV === 'production' && !dbEnabled()) return res.status(503).json({ error: 'Activation database is not configured' });
+  if (process.env.NODE_ENV === 'production' && !dbEnabled() && !isSyntheticProduction()) return res.status(503).json({ error: 'Activation database is not configured' });
   if (req.method === 'GET') {
     if (!await rateLimitAsync(req, res, 'activation-list', 60, 60_000, user.id)) return;
     if (dbEnabled()) return res.status(200).json({ activations: await listActivations(user.id), persistent: true });
