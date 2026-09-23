@@ -412,7 +412,7 @@ async function refreshCatalog({ silent = false } = {}) {
   }
 }
 
-async function toggleServiceCapacity(serviceId) {
+async async function toggleServiceCapacity(serviceId) {
   if (state.expandedServiceId === serviceId) {
     state.expandedServiceId = null;
     renderBuyCatalog();
@@ -476,6 +476,8 @@ async function boot() {
     render();
   }
   if (!state.tickTimer) state.tickTimer = window.setInterval(tick, 1000);
+  window.addEventListener('hashchange', handleHashNavigation);
+  window.addEventListener('popstate', handleHashNavigation);
 }
 
 function resetPurchaseFlow() {
