@@ -2,7 +2,7 @@ import { applySecurityHeaders, requestId, rateLimitAsync } from '../_lib/securit
 import { dbEnabled } from '../_lib/db.js';
 import { isSyntheticProduction } from '../_lib/runtime-config.js';
 import { getSessionUser, getMockSession, requireUser } from '../_lib/auth.js';
-import { getWallet, listLedger, listRecharges } from '../_lib/wallet-repository.js';
+import { getWallet, listLedger, listRecharges, getUpiId } from '../_lib/wallet-repository.js';
 import { getMockWallet } from '../_lib/mock.js';
 
 export default async function handler(req, res) {
@@ -17,7 +17,7 @@ export default async function handler(req, res) {
   try {
     const wallet = await getWallet(user.id);
     const [ledger, recharges] = await Promise.all([listLedger(user.id), listRecharges(user.id)]);
-    return res.status(200).json({ ...wallet, ledger, recharges, persistent: true });
+    return res.status(200).json({ ...wallet, ledger, recharges, persistent: true, rechargeEnabled: String(process.env.INBOX9_ENABLE_RECHARGE || '').trim().toLowerCase() === 'true' && Boolean(getUpiId()), upiId: getUpiId() });
   } catch (error) {
     console.error('wallet.read_failed', error);
     return res.status(503).json({ error: 'Wallet service unavailable' });
