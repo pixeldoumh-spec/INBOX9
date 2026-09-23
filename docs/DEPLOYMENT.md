@@ -64,15 +64,15 @@ The current catalog/activation provider is intentionally synthetic QA infrastruc
 
 ## Reconciliation
 
-Production reconciliation is scheduled natively by Vercel on a Hobby-compatible daily schedule:
+Production reconciliation is now scheduled natively by Vercel:
 
 ```text
 GET /api/cron/reconcile
-Schedule: 0 3 * * *  (03:00 UTC daily)
+Schedule: */5 * * * *
 Authorization: Bearer <CRON_SECRET>
 ```
 
-Vercel Hobby permits daily Cron Jobs; more frequent schedules require a plan that supports them. The application does not depend on the cron for user-triggered cancellation or activation OTP polling: cancellation is synchronous and activation status is reconciled when the user polls it. The cron provides periodic cleanup, expiration reconciliation for abandoned activations, wallet reconciliation, and session cleanup. The existing authenticated POST form remains available for an external scheduler if tighter reconciliation cadence is required.
+The handler only accepts this GET form when Vercel supplies its cron schedule header, or the existing authenticated POST form for an external scheduler. The old GitHub Actions scheduler was removed because its required repository secrets were not configured.
 
 Vercel's cron configuration lives in `vercel.json`.
 
@@ -96,5 +96,5 @@ Before real customer traffic:
 3. Confirm Vercel deployment is `READY`.
 4. Run `npm run check` and `npm test` in CI.
 5. Run the E2E and synthetic smoke suite against staging.
-6. Verify the Vercel Cron is active and that daily reconciliation logs show successful runs; use an external scheduler or a higher Vercel plan when sub-daily reconciliation is required.
+6. Verify the Vercel Cron is active and that reconciliation logs show successful runs.
 7. Confirm the current provider mode is understood as synthetic, not live telecom fulfillment.
