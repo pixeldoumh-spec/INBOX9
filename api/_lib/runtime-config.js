@@ -10,8 +10,19 @@ export function isProduction() {
   return process.env.NODE_ENV === 'production';
 }
 
+export function runtimeMode() {
+  const raw = String(process.env.INBOX9_RUNTIME_MODE || '').trim().toLowerCase();
+  if (raw === 'postgres') return 'postgres';
+  if (raw === 'synthetic') return 'synthetic';
+  return isProduction() ? 'unconfigured' : 'local';
+}
+
 export function isSyntheticProduction() {
-  return isProduction() && String(process.env.INBOX9_RUNTIME_MODE || 'synthetic').trim().toLowerCase() === 'synthetic';
+  return isProduction() && runtimeMode() === 'synthetic';
+}
+
+export function isPersistentProduction() {
+  return isProduction() && runtimeMode() === 'postgres';
 }
 
 export function productionConfiguration() {
@@ -20,18 +31,26 @@ export function productionConfiguration() {
     sharedRateLimit: Boolean(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN),
     appOrigin: Boolean(process.env.APP_ORIGIN),
     cronAuth: Boolean(process.env.CRON_SECRET),
-    syntheticRuntime: String(process.env.INBOX9_RUNTIME_MODE || 'synthetic').trim().toLowerCase() === 'synthetic',
+    syntheticRuntime: isSyntheticProduction(),
+    persistentRuntime: isPersistentProduction(),
+    rechargeEnabled: String(process.env.INBOX9_ENABLE_RECHARGE || '').trim().toLowerCase() === 'true',
+    upiDestination: Boolean(String(process.env.INBOX9_UPI_ID || '').trim()),
   };
 }
 
 export function assertProductionConfiguration() {
-  if (!isProduction() || isSyntheticProduction()) return;
+  if (!isProduction()) return;
+
+  const mode = runtimeMode();
+  if (mode === 'synthetic') return;
   const config = productionConfiguration();
   const missing = [];
+
+  if (mode !== 'postgres') missing.push('INBOX9_RUNTIME_MODE=postgres');
   if (!config.database) missing.push('DATABASE_URL');
   if (!config.sharedRateLimit) missing.push('UPSTASH_REDIS_REST_URL/UPSTASH_REDIS_REST_TOKEN');
   if (!config.appOrigin) missing.push('APP_ORIGIN');
   if (!config.cronAuth) missing.push('CRON_SECRET');
-  if (!config.syntheticRuntime) missing.push('INBOX9_RUNTIME_MODE=synthetic');
+
   if (missing.length) throw new Error('Production configuration incomplete: ' + missing.join(', '));
 }
