@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.8.14",
   "type": "module",
-  "engines": { "node": ">=22" },
+  "engines": { "node": "22.x" },
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
