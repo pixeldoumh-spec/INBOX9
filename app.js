@@ -1004,29 +1004,20 @@ function serviceCard(service) {
   const availability = Math.max(0, Number(service.stock || 0));
   const availabilityState = availability <= 0 ? 'sold-out' : availability < 100 ? 'limited' : 'ready';
   const availabilityLabel = availability <= 0 ? 'Sold out' : availability < 100 ? 'Limited' : 'Ready';
-  const disabled = availability <= 0 || state.balancePaise < Number(service.pricePaise || 0);
-  const actionLabel = availability <= 0 ? 'Unavailable' : state.balancePaise < Number(service.pricePaise || 0) ? 'Top up' : 'Buy number';
-  return `<article class="market-service-group customer-service-card">
-    <div class="customer-service-main">
-      <span class="service-icon service-brand-icon">${iconFor(service.category)}</span>
-      <span class="service-group-copy">
-        <span class="service-category">${esc(service.category)}</span>
-        <strong>${esc(service.name)}</strong>
-        <small>India (+91) · Fast activation · ~20s OTP</small>
-      </span>
-      <span class="service-group-meta">
-        <span class="availability-pill ${availabilityState}"><span></span>${availabilityLabel}</span>
-        <span class="service-price">${money(service.pricePaise)}</span>
-      </span>
-    </div>
-    <div class="customer-service-bottom">
-      <span class="customer-service-fact"><b>3 min</b> activation window</span>
-      <span class="customer-service-fact"><b>${availability.toLocaleString()}</b> available</span>
-      <button class="buy-btn customer-buy" type="button" data-buy-service="${esc(service.id)}" ${disabled && availability > 0 ? '' : (availability <= 0 ? 'disabled aria-disabled="true"' : '')}>${actionLabel}</button>
-    </div>
-  </article>`;
+  const insufficient = state.balancePaise < Number(service.pricePaise || 0);
+  const actionLabel = availability <= 0 ? 'Unavailable' : insufficient ? 'Top up' : 'Buy number';
+  const expanded = state.expandedServiceId === service.id;
+  return '<article class="market-service-group customer-service-card' + (expanded ? ' expanded' : '') + '">' +
+    '<button class="service-group-header customer-service-main" type="button" data-toggle-service="' + esc(service.id) + '" aria-expanded="' + String(expanded) + '" aria-controls="capacity-' + esc(service.id) + '">' +
+      '<span class="service-icon service-brand-icon">' + iconFor(service.category) + '</span>' +
+      '<span class="service-group-copy"><span class="service-category">' + esc(service.category) + '</span><strong>' + esc(service.name) + '</strong><small>India (+91) · Fast activation · ~20s OTP</small></span>' +
+      '<span class="service-group-meta"><span class="availability-pill ' + availabilityState + '"><span></span>' + availabilityLabel + '</span><span class="service-price">' + money(service.pricePaise) + '</span></span>' +
+      '<span class="service-group-chevron" aria-hidden="true">⌄</span>' +
+    '</button>' +
+    '<div class="customer-service-bottom"><span class="customer-service-fact"><b>3 min</b> activation window</span><span class="customer-service-fact"><b>' + availability.toLocaleString() + '</b> available</span><button class="buy-btn customer-buy" type="button" data-buy-service="' + esc(service.id) + '" ' + (availability <= 0 ? 'disabled aria-disabled="true"' : '') + '>' + actionLabel + '</button></div>' +
+    (expanded ? serverStatsMarkup(service) : '') +
+  '</article>';
 }
-
 function marketListMarkup(list) {
   const visible = list.slice(0, state.marketVisibleCount);
   const loadMore = visible.length < list.length;
@@ -1063,7 +1054,7 @@ function buyPage() {
     <div class="controls market-controls">
       <div class="toolbar market-toolbar">
         <label class="search-box premium-search" aria-label="Search services"><span class="search-glyph">⌕</span><input id="service-search" value="${esc(state.search)}" placeholder="Search ${state.services.length.toLocaleString()} services…" autocomplete="off" spellcheck="false"><kbd>/</kbd></label>
-        <div class="category-scroll-wrap"><div class="category-scroll" role="group" aria-label="Service categories">${categories.map((category) => `<button class="filter-btn ${state.category === category ? "selected" : ""}" type="button" data-category="${category}" aria-pressed="${state.category === category}"><span>${category}</span><span class="filter-count">${(state.categoryCounts[category] || 0).toLocaleString()}</span></button>`).join("")}</div></div>
+        <div class="category-scroll-wrap"><div class="category-scroll" role="group" aria-label="Service categories">${state.catalogCategories.map((category) => `<button class="filter-btn ${state.category === category ? "selected" : ""}" type="button" data-category="${esc(category)}" aria-pressed="${state.category === category}"><span>${esc(category)}</span><span class="filter-count">${(state.categoryCounts[category] || 0).toLocaleString()}</span></button>`).join("")}</div></div>
       </div>
     </div>
     <div class="market-results-bar"><span class="result-note market-result-count" aria-live="polite">${esc(marketResultText(list.length, showing))}</span><span class="market-hint">Prices and availability update from the INBOX9 backend</span></div>
