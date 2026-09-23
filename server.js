@@ -34,7 +34,8 @@ import internalProviderReconcile from './api/_internal-provider-reconcile.js';
 import { assertProductionConfiguration } from './api/_lib/runtime-config.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const DEFAULT_PORT = Number(process.env.PORT || 4173);
+// Keep the runtime on the preview port unless the host explicitly provides one.
+const DEFAULT_PORT = Number(process.env.PORT || process.env.PREVIEW_PORT || 4173);
 const MAX_BODY_BYTES = 32_000;
 
 const staticFiles = new Map([
