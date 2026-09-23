@@ -1291,4 +1291,6 @@ document.addEventListener('keydown', (event) => {
   }
 });
 
+window.addEventListener('hashchange', handleHashNavigation);
+window.addEventListener('popstate', handleHashNavigation);
 boot();
