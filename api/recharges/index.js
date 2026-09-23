@@ -23,7 +23,12 @@ export default async function handler(req, res) {
   if (!dbEnabled()) {
     if (!Number.isInteger(amountPaise) || amountPaise < MIN_RECHARGE_PAISE || amountPaise > MAX_RECHARGE_PAISE) return res.status(400).json({ error: 'Recharge amount must be between ₹100 and ₹5,000' });
     if (!/^[A-Za-z0-9._-]{4,64}$/.test(utr)) return res.status(400).json({ error: 'Enter a valid UTR / transaction reference' });
-    return res.status(201).json({ ...createMockRecharge(user, amountPaise, utr, UPI_ID), mode: 'mock' });
+    try {
+      return res.status(201).json({ ...createMockRecharge(user, amountPaise, utr, UPI_ID), mode: 'mock' });
+    } catch (error) {
+      if (error.code === 'DUPLICATE_UTR') return res.status(409).json({ code: 'DUPLICATE_UTR', error: 'This UTR has already been submitted' });
+      return res.status(400).json({ error: error.message });
+    }
   }
   try {
     return res.status(201).json(await createRecharge(user.id, amountPaise, utr));
