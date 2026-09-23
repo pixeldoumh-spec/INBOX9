@@ -27,27 +27,6 @@ ALTER TABLE public.wallet_reconciliation_issues ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.payment_reconciliation_events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.synthetic_slot_reservations ENABLE ROW LEVEL SECURITY;
 
-REVOKE ALL ON TABLE public.users, public.sessions, public.services, public.activations,
-  public.wallets, public.wallet_ledger, public.recharge_requests, public.providers,
-  public.service_provider_routes, public.audit_logs, public.provider_operations,
-  public.activation_idempotency, public.wallet_reconciliation_runs,
-  public.wallet_reconciliation_issues, public.payment_reconciliation_events,
-  public.synthetic_slot_reservations FROM anon;
-
-REVOKE ALL ON TABLE public.users, public.sessions, public.services, public.activations,
-  public.wallets, public.wallet_ledger, public.recharge_requests, public.providers,
-  public.service_provider_routes, public.audit_logs, public.provider_operations,
-  public.activation_idempotency, public.wallet_reconciliation_runs,
-  public.wallet_reconciliation_issues, public.payment_reconciliation_events,
-  public.synthetic_slot_reservations FROM authenticated;
-
-REVOKE EXECUTE ON FUNCTION public.prevent_wallet_ledger_mutation() FROM PUBLIC;
-REVOKE EXECUTE ON FUNCTION public.prevent_wallet_ledger_mutation() FROM anon;
-REVOKE EXECUTE ON FUNCTION public.prevent_wallet_ledger_mutation() FROM authenticated;
-REVOKE EXECUTE ON FUNCTION public.verify_wallet_balance_after_ledger_insert() FROM PUBLIC;
-REVOKE EXECUTE ON FUNCTION public.verify_wallet_balance_after_ledger_insert() FROM anon;
-REVOKE EXECUTE ON FUNCTION public.verify_wallet_balance_after_ledger_insert() FROM authenticated;
-
 INSERT INTO schema_migrations(version)
 VALUES ('017_supabase_api_lockdown')
 ON CONFLICT DO NOTHING;
