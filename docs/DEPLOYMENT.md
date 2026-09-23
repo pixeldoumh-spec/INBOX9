@@ -29,6 +29,18 @@ npm run staging:smoke
 
 Without PostgreSQL, local development intentionally uses the mock session mode and in-memory synthetic activation lifecycle. This mode is not production.
 
+## Deployed smoke check
+
+After a Render deploy becomes live, run the deployed HTTP smoke against the public service URL:
+
+```bash
+RENDER_SMOKE_URL=https://inbox9.onrender.com npm run render:smoke
+```
+
+The check verifies the deployed HTML/JS/CSS entrypoints, health readiness, service catalog availability, and expected unauthenticated auth guards. It also checks that the deployed customer bundle does not expose internal provider/synthetic wording.
+
+This is an HTTP/runtime smoke test, not a substitute for full browser/device E2E testing.
+
 ## Hosting
 
 INBOX9 can run on any host that can execute Node.js 22 and expose an HTTP port.
@@ -109,6 +121,7 @@ Before real customer traffic:
 2. Confirm `/api/health` reports database, shared rate limit, app origin, and cron configuration ready.
 3. Confirm the active host deployment is healthy.
 4. Run `npm run check` and `npm test` in CI.
-5. Run the E2E and synthetic smoke suite against staging.
-6. Verify the scheduled reconciliation workflow completes successfully.
-7. Confirm the current provider mode is understood as synthetic, not live telecom fulfillment.
+5. Run `npm run render:smoke` against the deployed host.
+6. Run the E2E and synthetic smoke suite against staging.
+7. Verify the scheduled reconciliation workflow completes successfully.
+8. Confirm the current provider mode is understood as synthetic, not live telecom fulfillment.
