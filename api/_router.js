@@ -90,7 +90,7 @@ function routeFor(method, pathname) {
   return null;
 }
 
-export default async function handler(req, res) {
+export default async function router(req, res) {
   let pathname = '/';
   try {
     pathname = new URL(req.url || '/', 'https://inbox9.local').pathname;
