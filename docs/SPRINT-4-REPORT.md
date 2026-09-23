@@ -6,10 +6,9 @@
 ## Delivered
 - Server-only provider adapter contract with normalized activation responses.
 - Mock provider implementing reserve, status, cancel and health operations.
-- Provider registry keyed by adapter name.
 - PostgreSQL provider registry and service-to-provider routing tables.
 - Migration `004_providers.sql` seeds the INBOX9 Mock Provider and routes all catalog services to it.
-- Activations now persist provider ID, provider activation ID and provider metadata.
+- Activations persist provider ID, provider activation ID and provider metadata.
 - Activation creation reserves through the selected adapter, then atomically checks stock, debits the wallet and persists the activation.
 - Failed DB creation attempts trigger provider cancellation compensation.
 - Activation status requests synchronize state from the provider adapter.
@@ -17,8 +16,7 @@
 - Service stock is decremented on reservation and restored on expiry/cancellation.
 - Admin-only provider inventory/health endpoint added.
 - Frontend no longer invents local OTPs for persistent activations; it polls the activation API and displays server/provider state.
-- Fixed wallet QR asset path to `/upi-qr.jpg`.
-- Added provider adapter unit tests.
+- Provider adapter unit tests included.
 
 ## Provider safety boundary
 No real upstream provider credentials or automated third-party verification integration is included. Any production adapter must use an authorized provider API, stay server-side, and implement rate limits, audit logging, idempotency and provider-specific compliance controls.
