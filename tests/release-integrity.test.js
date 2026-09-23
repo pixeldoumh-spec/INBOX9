@@ -1,0 +1,41 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs/promises';
+
+test('release ships exactly one canonical browser bundle', async () => {
+  const root = new URL('..', import.meta.url);
+  const [html, app] = await Promise.all([
+    fs.readFile(new URL('../index.html', import.meta.url), 'utf8'),
+    fs.readFile(new URL('../app.js', import.meta.url), 'utf8'),
+  ]);
+  assert.match(html, /<script src="\/app\.js" defer><\/script>/);
+  assert.doesNotMatch(html, /frontend\.js/);
+  assert.equal((html.match(/INBOX9 could not start/g) || []).length, 1);
+  assert.doesNotMatch(app, /seedOrders/);
+  assert.doesNotMatch(app, /localStorage/);
+  assert.doesNotMatch(app, /hasPersistedBalance/);
+  await assert.rejects(fs.access(new URL('../public/frontend.js', import.meta.url)));
+  await assert.rejects(fs.access(new URL('../public/app.js', import.meta.url)));
+  await assert.rejects(fs.access(new URL('../public/index.html', import.meta.url)));
+  void root;
+});
+
+test('production source has no hardcoded payment destination or QR asset', async () => {
+  const [walletRepo, exampleEnv, stagingEnv, server] = await Promise.all([
+    fs.readFile(new URL('../api/_lib/wallet-repository.js', import.meta.url), 'utf8'),
+    fs.readFile(new URL('../.env.example', import.meta.url), 'utf8'),
+    fs.readFile(new URL('../.env.staging.example', import.meta.url), 'utf8'),
+    fs.readFile(new URL('../server.js', import.meta.url), 'utf8'),
+  ]);
+  assert.match(walletRepo, /String\(process\.env\.INBOX9_UPI_ID \|\| ''\)/);
+  assert.doesNotMatch(walletRepo, /8106204597@ptyes/);
+  assert.match(exampleEnv, /^INBOX9_UPI_ID=$/m);
+  assert.match(stagingEnv, /^INBOX9_UPI_ID=$/m);
+  assert.doesNotMatch(server, /upi-qr\.jpg|payment-qr\.jpg/);
+});
+
+test('production runtime mode is explicit', async () => {
+  const runtime = await fs.readFile(new URL('../api/_lib/runtime-config.js', import.meta.url), 'utf8');
+  assert.match(runtime, /return isProduction\(\) \? 'unconfigured' : 'local';/);
+  assert.match(runtime, /if \(mode !== 'postgres'\) missing\.push\('INBOX9_RUNTIME_MODE=postgres'\);/);
+});
