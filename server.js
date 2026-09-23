@@ -266,6 +266,13 @@ export function createServer() {
 export function startServer({ port = DEFAULT_PORT, host = process.env.HOST || '0.0.0.0' } = {}) {
   assertProductionConfiguration();
   const server = createServer();
+  server.on('error', (error) => {
+    if (error?.code === 'EADDRINUSE') {
+      console.warn(`INBOX9 runtime: port ${port} is already in use; keeping the existing server active.`);
+      return;
+    }
+    throw error;
+  });
   server.listen(Number(port), host, () => {
     const address = server.address();
     const shownHost = host === '0.0.0.0' ? 'localhost' : host;
