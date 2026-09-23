@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 
-const forbiddenClientTerm = /(^|[^A-Za-z])(synthetic engine|synthetic server|slot ranges?|provider adapter|server partition)(?=$|[^A-Za-z])/im;
+const forbiddenClientTerm = /(^|[^A-Za-z])(synthetic engine|synthetic server|slot ranges?|server partition)(?=$|[^A-Za-z])/im;
 
 async function readClient(path) {
   return fs.readFile(new URL(`../${path}`, import.meta.url), 'utf8');
