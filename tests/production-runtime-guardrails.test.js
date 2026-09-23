@@ -55,11 +55,10 @@ test('persistent production startup fails closed without required runtime config
   }
 });
 
-test('Vercel production is treated as production and synthetic mode is rejected', async () => {
+test('production always rejects synthetic mode on any host', async () => {
   const runtime = await import('../api/_lib/runtime-config.js');
   const previous = {
     nodeEnv: process.env.NODE_ENV,
-    vercelEnv: process.env.VERCEL_ENV,
     mode: process.env.INBOX9_RUNTIME_MODE,
     database: process.env.DATABASE_URL,
     redisUrl: process.env.UPSTASH_REDIS_REST_URL,
@@ -67,8 +66,7 @@ test('Vercel production is treated as production and synthetic mode is rejected'
     origin: process.env.APP_ORIGIN,
     cron: process.env.CRON_SECRET,
   };
-  process.env.NODE_ENV = '';
-  process.env.VERCEL_ENV = 'production';
+  process.env.NODE_ENV = 'production';
   process.env.INBOX9_RUNTIME_MODE = 'synthetic';
   delete process.env.DATABASE_URL;
   delete process.env.UPSTASH_REDIS_REST_URL;
@@ -84,7 +82,6 @@ test('Vercel production is treated as production and synthetic mode is rejected'
   } finally {
     const restore = {
       NODE_ENV: previous.nodeEnv,
-      VERCEL_ENV: previous.vercelEnv,
       INBOX9_RUNTIME_MODE: previous.mode,
       DATABASE_URL: previous.database,
       UPSTASH_REDIS_REST_URL: previous.redisUrl,
