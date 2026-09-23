@@ -23,8 +23,16 @@ test('customer login bootstraps services, activations and wallet data', async ()
   assert.match(loadCustomerData, /state\.services =/);
   assert.match(loadCustomerData, /prepareServiceCatalog\(\)/);
 
+  const bootstrapStart = app.indexOf('async function bootstrapSession()');
+  assert.ok(bootstrapStart >= 0);
+  const bootstrapEnd = app.indexOf('\n\nasync function retryBootstrap', bootstrapStart);
+  assert.ok(bootstrapEnd > bootstrapStart);
+  const bootstrapSession = app.slice(bootstrapStart, bootstrapEnd);
+  assert.match(bootstrapSession, /api\('\/api\/auth\/me'\)/);
+  assert.match(bootstrapSession, /await loadCustomerData\(\)/);
+
   const bootStart = app.indexOf('async function boot()');
   assert.ok(bootStart >= 0);
-  assert.match(app.slice(bootStart, bootStart + 1800), /loadCustomerData\(\)/);
+  assert.match(app.slice(bootStart, bootStart + 700), /await bootstrapSession\(\)/);
   assert.match(app, /boot\(\);\s*$/);
 });
