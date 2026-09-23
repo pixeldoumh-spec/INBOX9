@@ -28,10 +28,14 @@ const state = {
   expandedServiceId: null,
   marketVisibleCount: 48,
   categoryCounts: {},
+  catalogCategories: ['All'],
   serviceSearchIndex: [],
   marketSearchTimer: null,
   marketServerStats: {},
   marketServerLoading: {},
+  marketServerErrors: {},
+  lastCatalogRefreshAt: 0,
+  customerDataRefreshing: false,
   tickTimer: null,
   purchaseFlow: {
     step: 'service',
@@ -49,7 +53,7 @@ const nav = [
   ['orders', 'Orders', '▤'],
   ['wallet', 'Wallet', '▱']
 ];
-const categories = ['All', 'Social', 'Productivity', 'Rummy', 'Games', 'Other'];
+const DEFAULT_CATEGORIES = ['Social', 'Productivity', 'Rummy', 'Games', 'Other'];
 
 function appNav() {
   return state.user?.role === 'admin'
@@ -67,9 +71,22 @@ function normalizeSearchText(value) {
 
 function prepareServiceCatalog() {
   const services = Array.isArray(state.services) ? state.services : [];
+  const categoryCounts = services.reduce((counts, service) => {
+    const category = String(service.category || 'Other').trim() || 'Other';
+    counts[category] = (counts[category] || 0) + 1;
+    return counts;
+  }, {});
+  const discoveredCategories = Object.keys(categoryCounts);
+  const orderedCategories = [
+    ...DEFAULT_CATEGORIES.filter((category) => categoryCounts[category] > 0),
+    ...discoveredCategories.filter((category) => !DEFAULT_CATEGORIES.includes(category))
+      .sort((a, b) => categoryCounts[b] - categoryCounts[a] || a.localeCompare(b))
+  ];
+  state.catalogCategories = ['All', ...orderedCategories];
+  if (!state.catalogCategories.includes(state.category)) state.category = 'All';
   state.serviceSearchIndex = services.map((service) => ({ service, text: normalizeSearchText(service.name) }));
-  state.categoryCounts = categories.reduce((counts, category) => {
-    counts[category] = category === 'All' ? services.length : services.filter((service) => service.category === category).length;
+  state.categoryCounts = state.catalogCategories.reduce((counts, category) => {
+    counts[category] = category === 'All' ? services.length : Number(categoryCounts[category] || 0);
     return counts;
   }, {});
 }
