@@ -2,6 +2,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { passwordHash, verifyPassword, validatePasswordPair, sessionPolicy, authCookieName } from '../api/_lib/auth.js';
 
+test('cookie parser ignores malformed percent-encoding without throwing', async () => {
+  const fs = await import('node:fs/promises');
+  const source = await fs.readFile(new URL('../api/_lib/auth.js', import.meta.url), 'utf8');
+  assert.match(source, /try \{\n\s*entries\.push\(\[name, decodeURIComponent\(raw\)\]\);/);
+  assert.match(source, /catch \{\n\s*\/\/ Ignore malformed cookie values/);
+});
+
 test('password verification handles normal and malformed digests safely', () => {
   const digest = passwordHash('Correct Horse Battery 42!');
   assert.equal(verifyPassword('Correct Horse Battery 42!', digest), true);
