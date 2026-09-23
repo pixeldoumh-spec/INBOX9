@@ -677,6 +677,10 @@ async function refreshWallet() {
     state.rechargeUpiId = wallet.rechargeEnabled ? (wallet.upiId || null) : null;
     return wallet;
   } catch (error) {
+    if (Number(error.status) === 401) {
+      handleSessionExpired();
+      return null;
+    }
     toast(error.message);
     return null;
   }
@@ -806,6 +810,10 @@ async function loadAdminTab(tab = state.adminTab) {
     if (key === 'overview') state.admin.overview = payload;
     else state.admin[key] = Array.isArray(payload[key]) ? payload[key] : [];
   } catch (error) {
+    if (Number(error.status) === 401) {
+      handleSessionExpired();
+      return;
+    }
     state.adminError = error.message;
   } finally {
     state.adminLoading = false;
@@ -970,7 +978,7 @@ function render() {
       <main class="main">
         <header class="topbar">
           <div class="breadcrumb"><button class="menu-btn icon-btn" type="button" aria-label="Open menu" data-action="open-menu">☰</button><span>Market</span><span>/</span><strong>${esc(current)}</strong></div>
-          <div class="top-actions"><button class="wallet-chip" type="button" data-page="wallet">▱ ${money(state.balancePaise)} <b>+</b></button><button class="icon-btn notification" type="button" aria-label="Notifications">♧<span></span></button></div>
+          <div class="top-actions"><button class="wallet-chip" type="button" data-page="wallet">▱ ${money(state.balancePaise)} <b>+</b></button><span class="topbar-live-status"><span class="live-dot"></span><span>Connected</span></span></div>
         </header>
         <section class="content-wrap">
           ${state.page === 'buy' ? hero() : ''}
@@ -999,10 +1007,10 @@ function hero() {
       </div>
     </div>
     <div class="hero-dashboard">
-      <div class="hero-live"><span class="live-dot"></span><strong>Marketplace live</strong><span>24/7</span></div>
+      <div class="hero-live"><span class="live-dot"></span><strong>Backend connected</strong><span>LIVE API</span></div>
       <div class="hero-stat-grid">
         <div class="hero-stat"><span>Services</span><strong>${state.services.length.toLocaleString()}</strong><small>ready to browse</small></div>
-        <div class="hero-stat"><span>Servers / service</span><strong>11</strong><small>distributed capacity</small></div>
+        <div class="hero-stat"><span>Allocation</span><strong>Auto</strong><small>server selected at purchase</small></div>
         <div class="hero-stat"><span>Code timing</span><strong>20s</strong><small>automatic delivery</small></div>
         <div class="hero-stat"><span>Active now</span><strong>${activeCount}</strong><small>${activeCount === 1 ? 'activation' : 'activations'}</small></div>
       </div>
