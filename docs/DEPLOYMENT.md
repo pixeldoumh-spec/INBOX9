@@ -1,6 +1,6 @@
 # Deployment & Operations
 
-INBOX9 uses one Node HTTP runtime (server.js) locally and one Vercel catch-all API function in production. Public /api/* URLs remain stable while the implementation modules are kept out of Vercel's function discovery.
+INBOX9 runs as one standalone Node.js 22 HTTP service. The same `server.js` serves the frontend and every `/api/*` route, so the application does not depend on a serverless platform adapter.
 
 ## Local development
 
@@ -31,16 +31,11 @@ Without PostgreSQL, local development intentionally uses the mock session mode a
 
 ## Hosting
 
-Production requires:
+INBOX9 can run on any host that can execute Node.js 22 and expose an HTTP port.
 
-- Node.js 22.x.
-- Persistent PostgreSQL for account, wallet, activation and inventory state.
-- Shared Redis-compatible rate limiting.
-- HTTPS and a stable `APP_ORIGIN`.
-- Secure environment variables.
-- A configured `CRON_SECRET`.
+The repository includes a Render Blueprint in `render.yaml` for a free Web Service deployment. Render's free service tier is intended for hobby/testing use and spins down after 15 minutes of inactivity; the next request can take about a minute to wake it. It should therefore be treated as a zero-cost public MVP/staging environment rather than an always-on production SLA. citeturn729697search1turn976566search2
 
-Production uses the `Other` framework preset, root static assets, and the canonical `/api` router entrypoint. Frontend source is `app.js`; there is no second browser bundle.
+For an always-on zero-cost VM, Oracle Cloud's Always Free compute resources can host the same Node process directly. Oracle states its Always Free compute resources do not expire, subject to the published limits and account policies. citeturn428732search0
 
 ## Environment
 
@@ -53,9 +48,10 @@ NODE_ENV=production
 INBOX9_RUNTIME_MODE=postgres
 DATABASE_URL=<Supabase/PostgreSQL connection string>
 DATABASE_SSL=true
+DATABASE_SSL_REJECT_UNAUTHORIZED=true
 UPSTASH_REDIS_REST_URL=<shared-rate-limit-store>
 UPSTASH_REDIS_REST_TOKEN=<shared-rate-limit-token>
-APP_ORIGIN=https://inbox-9.vercel.app
+APP_ORIGIN=https://your-public-host.example
 CRON_SECRET=<long-random-secret>
 INBOX9_ENABLE_RECHARGE=false
 INBOX9_UPI_ID=
@@ -63,23 +59,35 @@ INBOX9_UPI_ID=
 
 The current catalog/activation provider is intentionally synthetic QA infrastructure. It generates deterministic, non-routable test identities and six-digit OTPs; it is not a live telecom/SMS provider.
 
-Production customer traffic should use `INBOX9_RUNTIME_MODE=postgres`. PostgreSQL is authoritative for accounts, sessions, wallets, recharges, activations, and order history. The synthetic provider remains the fulfillment engine and generates non-routable test numbers/OTPs. 
+Production customer traffic should use `INBOX9_RUNTIME_MODE=postgres`. PostgreSQL is authoritative for accounts, sessions, wallets, recharges, activations, and order history. The synthetic provider remains the fulfillment engine and generates non-routable test numbers/OTPs.
 
 Explicit `INBOX9_RUNTIME_MODE=synthetic` is reserved for controlled QA. In that mode, customer accounts start at ₹0.00, real UPI recharge is disabled, and browser storage is never the source of truth.
 
 ## Reconciliation
 
-Production reconciliation is scheduled natively by Vercel on a Hobby-compatible daily schedule:
+The reconciliation endpoint is host independent:
 
 ```text
-GET /api/cron/reconcile
-Schedule: 0 3 * * *  (03:00 UTC daily)
+POST /api/internal-provider-reconcile
 Authorization: Bearer <CRON_SECRET>
 ```
 
-Vercel Hobby permits daily Cron Jobs; more frequent schedules require a plan that supports them. The application does not depend on the cron for user-triggered cancellation or activation OTP polling: cancellation is synchronous and activation status is reconciled when the user polls it. The cron provides periodic cleanup, expiration reconciliation for abandoned activations, wallet reconciliation, and session cleanup. The existing authenticated POST form remains available for an external scheduler if tighter reconciliation cadence is required.
+The repository includes `.github/workflows/reconcile.yml`, which runs the authenticated POST once per day at 03:00 UTC and also supports manual execution.
 
-Vercel's cron configuration lives in `vercel.json`.
+Set these GitHub Actions repository secrets:
+
+```text
+INBOX9_CRON_URL=https://your-public-host.example/api/internal-provider-reconcile
+INBOX9_CRON_SECRET=<same value as CRON_SECRET>
+```
+
+GitHub Free includes 2,000 hosted-runner minutes per month for private repositories, subject to the account's plan allowance; this daily job uses very little runner time. citeturn428732search3
+
+## Free infrastructure
+
+Upstash Redis currently provides a $0 Free tier with 256 MB data, 10 GB monthly bandwidth, and 500,000 monthly commands. That is suitable for a small INBOX9 deployment's shared rate limiter, but it is a quota-bound free service rather than an SLA-backed production Redis plan. citeturn976566search1
+
+Supabase remains the PostgreSQL source of truth for this deployment.
 
 ## Staging validation
 
@@ -91,6 +99,7 @@ For persistent staging:
 4. Run `npm run issue9:e2e` and `npm run synthetic:smoke`.
 5. Confirm a synthetic activation reaches Completed and returns a six-digit OTP after 20 seconds.
 6. Confirm the wallet debit/refund and activation state in PostgreSQL.
+7. Confirm `POST /api/internal-provider-reconcile` succeeds with the configured secret.
 
 ## Production readiness gate
 
@@ -98,8 +107,8 @@ Before real customer traffic:
 
 1. Configure all production variables, including `INBOX9_RUNTIME_MODE=postgres`.
 2. Confirm `/api/health` reports database, shared rate limit, app origin, and cron configuration ready.
-3. Confirm Vercel deployment is `READY`.
+3. Confirm the active host deployment is healthy.
 4. Run `npm run check` and `npm test` in CI.
 5. Run the E2E and synthetic smoke suite against staging.
-6. Verify the Vercel Cron is active and that daily reconciliation logs show successful runs; use an external scheduler or a higher Vercel plan when sub-daily reconciliation is required.
+6. Verify the scheduled reconciliation workflow completes successfully.
 7. Confirm the current provider mode is understood as synthetic, not live telecom fulfillment.
