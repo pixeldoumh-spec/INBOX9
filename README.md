@@ -54,7 +54,7 @@ Browser UI
            └── synthetic number/OTP lifecycle
 ```
 
-Production is explicitly configured as either `postgres` or `synthetic`. Persistent customer traffic uses PostgreSQL as the source of truth; the synthetic mode is test-only and never grants a starting wallet balance or exposes a payment destination.
+Production is explicitly configured as `postgres`. Persistent customer traffic uses PostgreSQL as the source of truth. Synthetic mode is reserved for non-production QA and never grants a starting wallet balance or exposes a payment destination.
 
 ## Wallet & UPI Recharge
 
