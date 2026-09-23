@@ -15,7 +15,7 @@ test('Vercel static responses carry baseline security headers and CSP', async ()
   assert.match(headers['Content-Security-Policy'], /script-src 'self'/);
   assert.match(headers['Content-Security-Policy'], /fonts\.googleapis\.com/);
   const index = await fs.readFile(new URL('../index.html', import.meta.url), 'utf8');
-  assert.match(headers['Content-Security-Policy'], /sha256-neT8V8ebT/osdr/v5by0QUCTp0FWgCD+wpt1NXiuEVE=/);
+  assert.ok(headers['Content-Security-Policy'].includes("sha256-neT8V8ebT/osdr/v5by0QUCTp0FWgCD+wpt1NXiuEVE="));
   assert.match(index, /<script src="\/app\.js" defer><\/script>/);
 });
 
