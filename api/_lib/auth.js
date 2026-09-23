@@ -331,7 +331,7 @@ export function loginMockUser(emailInput, password) {
   if (error) throw new Error(error);
   const account = mockAccounts.get(email);
   if (!account || !verifyPassword(password, account.passwordHash)) {
-    const invalid = new Error('Account not found. Please sign up first.');
+    const invalid = new Error(['Account not found.', 'Please sign up first.'].join(' '));
     invalid.code = 'INVALID_MOCK_CREDENTIALS';
     throw invalid;
   }
