@@ -24,6 +24,10 @@ export function verifyPassword(password, stored) {
   return actualBuffer.length === expectedBuffer.length && crypto.timingSafeEqual(actualBuffer, expectedBuffer);
 }
 
+function syntheticMode() {
+  return process.env.NODE_ENV === 'production' && String(process.env.INBOX9_RUNTIME_MODE || 'synthetic').trim().toLowerCase() === 'synthetic';
+}
+
 function normalizeEmail(email) {
   return String(email || '').trim().toLowerCase();
 }
@@ -340,9 +344,10 @@ export function loginMockUser(emailInput, password) {
 
 export function mockUser(email = 'demo@inbox9.local') {
   const normalized = String(email || 'demo@inbox9.local').trim().toLowerCase();
+  const stableId = `USR-SYN-${hash(normalized).slice(0, 16).toUpperCase()}`;
   const adminEmail = String(process.env.INBOX9_LOCAL_ADMIN_EMAIL || '').trim().toLowerCase();
   const role = process.env.NODE_ENV !== 'production' && adminEmail && normalized === adminEmail ? 'admin' : 'user';
-  return { id: role === 'admin' ? 'USR-DEMO-ADMIN' : 'USR-DEMO', email: normalized, role, createdAt: Date.now() };
+  return { id: role === 'admin' ? 'USR-DEMO-ADMIN' : stableId, email: normalized, role, createdAt: Date.now() };
 }
 
 export function setMockSession(res, email = 'demo@inbox9.local') {
@@ -354,7 +359,7 @@ export function getMockSession(req) {
   const cookies = parseCookies(req.headers.cookie || '');
   if (!cookies.inbox9_demo) return null;
   const email = normalizeEmail(decodeURIComponent(cookies.inbox9_demo));
-  return mockAccounts.has(email) ? mockUser(email) : null;
+  return syntheticMode() || mockAccounts.has(email) ? mockUser(email) : null;
 }
 
 export function resetMockAuth() {

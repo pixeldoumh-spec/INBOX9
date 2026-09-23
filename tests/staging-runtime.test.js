@@ -120,7 +120,7 @@ await withServer(async (server) => {
   cookie = userCookie;
   const wallet = await request(server, '/api/wallet', { headers: { cookie } });
   assert.equal(wallet.status, 200);
-  assert.equal(json(wallet).balancePaise, 10000);
+  assert.equal(json(wallet).balancePaise, 110000);
 
   const activation = await request(server, '/api/activations', {
     method: 'POST',

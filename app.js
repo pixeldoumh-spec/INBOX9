@@ -31,6 +31,7 @@ const state = {
   marketSearchTimer: null,
   marketServerStats: {},
   marketServerLoading: {},
+  tickTimer: null,
   purchaseFlow: {
     step: 'service',
     serviceId: null,
@@ -114,6 +115,7 @@ function loadPersisted() {
     state.orders = Array.isArray(parsed.orders) ? parsed.orders : seedOrders;
     const pending = parsed.pendingPurchaseKeys && typeof parsed.pendingPurchaseKeys === 'object' ? parsed.pendingPurchaseKeys : {};
     state.pendingPurchaseKeys = pending;
+    if (Number.isFinite(parsed.balancePaise)) state.balancePaise = Number(parsed.balancePaise);
   } catch {
     state.active = [];
     state.orders = seedOrders;
@@ -122,7 +124,7 @@ function loadPersisted() {
 }
 
 function persist() {
-  localStorage.setItem(STORAGE_KEY(), JSON.stringify({ active: state.active, orders: state.orders, pendingPurchaseKeys: state.pendingPurchaseKeys }));
+  localStorage.setItem(STORAGE_KEY(), JSON.stringify({ active: state.active, orders: state.orders, pendingPurchaseKeys: state.pendingPurchaseKeys, balancePaise: state.balancePaise }));
 }
 
 function isLiveActivation(item) {
@@ -242,6 +244,7 @@ async function submitAuth(event) {
     await refreshWallet();
     toast(state.authMode === 'register' ? 'Account created' : 'Signed in');
     render();
+    if (!state.tickTimer) state.tickTimer = window.setInterval(tick, 1000);
   } catch (error) { toast(error.message); }
 }
 
@@ -325,7 +328,7 @@ async function boot() {
     state.loading = false;
     render();
   }
-  setInterval(tick, 1000);
+  if (!state.tickTimer) state.tickTimer = window.setInterval(tick, 1000);
 }
 
 function resetPurchaseFlow() {
@@ -436,6 +439,7 @@ async function buy(serviceId, serverId = null) {
     state.active.unshift(activation);
     state.orders.unshift({ id: activation.id, service: activation.service, number: activation.number, pricePaise: activation.pricePaise, status: 'Active', otp: 'Waiting…', created: 'Just now' });
     if (Number.isFinite(activation.walletBalancePaise)) state.balancePaise = activation.walletBalancePaise;
+    else state.balancePaise = Math.max(0, state.balancePaise - Number(activation.pricePaise || 0));
     state.page = 'active';
     resetPurchaseFlow();
     persist();
@@ -476,6 +480,17 @@ async function buy(serviceId, serverId = null) {
 async function cancelActivation(id) {
   const item = state.active.find((entry) => entry.id === id);
   if (!item) return;
+  if (item?.metadata?.engine === 'synthetic-local') {
+    const index = state.active.findIndex((entry) => entry.id === id);
+    if (index >= 0) state.active.splice(index, 1);
+    state.balancePaise += Number(item.pricePaise || 0);
+    const order = state.orders.find((entry) => entry.id === id);
+    if (order) { order.status = 'Refunded'; order.otp = '—'; }
+    persist();
+    render();
+    toast('Synthetic activation cancelled • credits refunded');
+    return;
+  }
   try {
     const result = await api(`/api/activations/${encodeURIComponent(id)}/cancel`, { method: 'POST' });
     const index = state.active.findIndex((entry) => entry.id === id);
@@ -530,6 +545,29 @@ let lastActivationSync = 0;
 let activationSyncInFlight = false;
 
 async function syncActivationItem(item) {
+  if (item?.metadata?.engine === 'synthetic-local') {
+    const now = Date.now();
+    const updated = { ...item };
+    if (item.mockOtpAt && now >= item.mockOtpAt) {
+      updated.status = 'Completed';
+      updated.otp = item.syntheticOtp || updated.otp || '000000';
+    } else if (item.expiresAt && now >= item.expiresAt) {
+      updated.status = 'Expired';
+      updated.otp = null;
+    }
+    const order = state.orders.find((entry) => entry.id === item.id);
+    if (order) {
+      order.status = updated.status;
+      order.otp = updated.otp || (isLiveActivation(updated) ? 'Waiting…' : '—');
+    }
+    const index = state.active.findIndex((entry) => entry.id === item.id);
+    if (isLiveActivation(updated)) {
+      if (index >= 0) state.active[index] = updated;
+    } else if (index >= 0) {
+      state.active.splice(index, 1);
+    }
+    return;
+  }
   try {
     const latest = await api(`/api/activations/${encodeURIComponent(item.id)}`);
     const order = state.orders.find((entry) => entry.id === item.id);

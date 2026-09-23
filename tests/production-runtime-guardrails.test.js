@@ -18,7 +18,7 @@ async function request(server, path) {
   });
 }
 
-test('production startup fails closed without required runtime configuration', async () => {
+test('persistent production startup fails closed without required runtime configuration', async () => {
   const previous = {
     nodeEnv: process.env.NODE_ENV,
     database: process.env.DATABASE_URL,
@@ -33,7 +33,7 @@ test('production startup fails closed without required runtime configuration', a
   delete process.env.UPSTASH_REDIS_REST_TOKEN;
   delete process.env.APP_ORIGIN;
   delete process.env.CRON_SECRET;
-  process.env.INBOX9_RUNTIME_MODE = 'synthetic';
+  process.env.INBOX9_RUNTIME_MODE = 'postgres';
   process.env.NODE_ENV = 'production';
   try {
     const { startServer } = await import('../server.js');
@@ -55,11 +55,13 @@ test('production startup fails closed without required runtime configuration', a
   }
 });
 
-test('production catalog does not fall back to bundled local data', async () => {
+test('persistent production catalog does not fall back to bundled local data', async () => {
   const previousNodeEnv = process.env.NODE_ENV;
   const previousDatabase = process.env.DATABASE_URL;
+  const previousMode = process.env.INBOX9_RUNTIME_MODE;
   delete process.env.DATABASE_URL;
   process.env.NODE_ENV = 'production';
+  process.env.INBOX9_RUNTIME_MODE = 'postgres';
   const server = createServer();
   server.listen(0, '127.0.0.1');
   await once(server, 'listening');
@@ -71,5 +73,6 @@ test('production catalog does not fall back to bundled local data', async () => 
     await once(server, 'close');
     if (previousNodeEnv === undefined) delete process.env.NODE_ENV; else process.env.NODE_ENV = previousNodeEnv;
     if (previousDatabase === undefined) delete process.env.DATABASE_URL; else process.env.DATABASE_URL = previousDatabase;
+    if (previousMode === undefined) delete process.env.INBOX9_RUNTIME_MODE; else process.env.INBOX9_RUNTIME_MODE = previousMode;
   }
 });

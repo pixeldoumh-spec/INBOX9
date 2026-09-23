@@ -1,5 +1,6 @@
 import { applySecurityHeaders, requestId, rateLimitAsync } from '../_lib/security.js';
 import { dbEnabled } from '../_lib/db.js';
+import { isSyntheticProduction } from '../_lib/runtime-config.js';
 import { getSessionUser, getMockSession, requireUser } from '../_lib/auth.js';
 import { getWallet, listLedger, listRecharges } from '../_lib/wallet-repository.js';
 import { getMockWallet } from '../_lib/mock.js';

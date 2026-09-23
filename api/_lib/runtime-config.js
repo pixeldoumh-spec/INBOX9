@@ -10,6 +10,10 @@ export function isProduction() {
   return process.env.NODE_ENV === 'production';
 }
 
+export function isSyntheticProduction() {
+  return isProduction() && String(process.env.INBOX9_RUNTIME_MODE || 'synthetic').trim().toLowerCase() === 'synthetic';
+}
+
 export function productionConfiguration() {
   return {
     database: Boolean(process.env.DATABASE_URL),
@@ -21,7 +25,7 @@ export function productionConfiguration() {
 }
 
 export function assertProductionConfiguration() {
-  if (!isProduction()) return;
+  if (!isProduction() || isSyntheticProduction()) return;
   const config = productionConfiguration();
   const missing = [];
   if (!config.database) missing.push('DATABASE_URL');

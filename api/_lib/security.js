@@ -1,4 +1,5 @@
 import crypto from 'node:crypto';
+import { isSyntheticProduction } from './runtime-config.js';
 
 const buckets = new Map();
 const WINDOW_MS = 60_000;
@@ -65,7 +66,7 @@ export function rateLimit(req, res, name, limit, windowMs = WINDOW_MS, scopeKey 
 
 export async function rateLimitAsync(req, res, name, limit, windowMs = WINDOW_MS, scopeKey = '') {
   if (!sharedLimiterConfigured()) {
-    if (process.env.NODE_ENV === 'production') {
+    if (process.env.NODE_ENV === 'production' && !isSyntheticProduction()) {
       res.status(503).json({ error: 'Shared rate-limit service is not configured' });
       return false;
     }
@@ -89,7 +90,7 @@ export async function rateLimitAsync(req, res, name, limit, windowMs = WINDOW_MS
     return true;
   } catch (error) {
     console.error('rate_limit_store_failed', error);
-    if (process.env.NODE_ENV === 'production') {
+    if (process.env.NODE_ENV === 'production' && !isSyntheticProduction()) {
       res.status(503).json({ error: 'Rate-limit service unavailable' });
       return false;
     }
@@ -99,8 +100,9 @@ export async function rateLimitAsync(req, res, name, limit, windowMs = WINDOW_MS
 
 export function enforceSameOrigin(req, res) {
   if (process.env.NODE_ENV !== 'production') return true;
-  const expected = String(process.env.APP_ORIGIN || '').replace(/\/$/, '');
-  if (!expected) {
+  const expected = String(process.env.APP_ORIGIN || '').replace(/\/$/, '') || `https://${String(req.headers?.['x-forwarded-host'] || req.headers?.host || '').trim()}`.replace(/\/$/, '');
+  if (!expected || expected === 'https://') {
+    if (isSyntheticProduction()) return true;
     res.status(503).json({ error: 'Application origin is not configured' });
     return false;
   }

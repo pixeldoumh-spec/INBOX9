@@ -1,5 +1,6 @@
 import { applySecurityHeaders, requestId, rateLimitAsync, enforceSameOrigin, validateBodySize } from '../_lib/security.js';
 import { dbEnabled } from '../_lib/db.js';
+import { isSyntheticProduction } from '../_lib/runtime-config.js';
 import { register, login, registerMockUser, setMockSession, setSessionCookie } from '../_lib/auth.js';
 
 export default async function handler(req, res) {
