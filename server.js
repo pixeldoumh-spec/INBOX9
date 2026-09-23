@@ -33,7 +33,7 @@ import adminPaymentReconciliation from './api/admin/payment-reconciliation.js';
 import internalProviderReconcile from './api/internal-provider-reconcile.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const DEFAULT_PORT = 4173;
+const DEFAULT_PORT = Number(process.env.PORT || 4173);
 const MAX_BODY_BYTES = 32_000;
 
 const staticFiles = new Map([
