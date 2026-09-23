@@ -4,7 +4,7 @@ import fs from 'node:fs';
 
 const migration = fs.readFileSync(new URL('../db/migrations/010_payment_reconciliation.sql', import.meta.url), 'utf8');
 const walletRepo = fs.readFileSync(new URL('../api/_lib/wallet-repository.js', import.meta.url), 'utf8');
-const adminRoute = fs.readFileSync(new URL('../api/admin/recharges/[id].js', import.meta.url), 'utf8');
+const adminRoute = fs.readFileSync(new URL('../api/admin/recharges/_id.js', import.meta.url), 'utf8');
 const reconciliationRoute = fs.readFileSync(new URL('../api/admin/payment-reconciliation.js', import.meta.url), 'utf8');
 
 test('payment reconciliation migration records review events and flags', () => {

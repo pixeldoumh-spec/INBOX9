@@ -23,7 +23,7 @@ test('approval requires independent verified amount and UTR and records no fallb
   const fs = await import('node:fs/promises');
   const [repo, route] = await Promise.all([
     fs.readFile(new URL('../api/_lib/wallet-repository.js', import.meta.url), 'utf8'),
-    fs.readFile(new URL('../api/admin/recharges/[id].js', import.meta.url), 'utf8')
+    fs.readFile(new URL('../api/admin/recharges/_id.js', import.meta.url), 'utf8')
   ]);
   assert.match(repo, /decision === 'approve' && \(normalized\.amountPaise == null \|\| normalized\.utr == null\)/);
   assert.match(repo, /verifiedAmountPaise: observedAmount, verifiedUtr: observedUtr/);
