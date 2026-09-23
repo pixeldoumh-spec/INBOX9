@@ -17,7 +17,7 @@ export default async function handler(_req, res) {
       console.error('health.database_failed', error);
     }
   }
-  const sharedRateLimitConfigured = Boolean(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN);
+  const sharedRateLimitConfigured = databaseConfigured;
   const appOriginConfigured = Boolean(process.env.APP_ORIGIN);
   const cronSecretConfigured = Boolean(process.env.CRON_SECRET);
   const cronSecretManualFallbackConfigured = Boolean(process.env.INTERNAL_CRON_SECRET);
@@ -26,7 +26,7 @@ export default async function handler(_req, res) {
     : databaseConfigured && databaseReachable && (!production || (sharedRateLimitConfigured && appOriginConfigured && cronSecretConfigured));
   const body = { ok: true, ready, mode: isSyntheticProduction() ? 'synthetic' : (databaseConfigured ? 'postgres' : 'local'),
     dependencies: { database: { configured: databaseConfigured, reachable: databaseReachable },
-      sharedRateLimit: { configured: sharedRateLimitConfigured }, appOrigin: { configured: appOriginConfigured },
+      sharedRateLimit: { configured: sharedRateLimitConfigured, provider: 'postgres' }, appOrigin: { configured: appOriginConfigured },
       cronAuth: { configured: cronSecretConfigured, manualFallbackConfigured: cronSecretManualFallbackConfigured },
       syntheticRuntime: { enabled: isSyntheticProduction() } },
     timestamp: new Date().toISOString() };

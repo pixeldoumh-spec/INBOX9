@@ -1,7 +1,5 @@
 export const REQUIRED_PRODUCTION_ENV = [
   'DATABASE_URL',
-  'UPSTASH_REDIS_REST_URL',
-  'UPSTASH_REDIS_REST_TOKEN',
   'APP_ORIGIN',
   'CRON_SECRET',
 ];
@@ -28,7 +26,7 @@ export function isPersistentProduction() {
 export function productionConfiguration() {
   return {
     database: Boolean(process.env.DATABASE_URL),
-    sharedRateLimit: Boolean(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN),
+    sharedRateLimit: Boolean(process.env.DATABASE_URL),
     appOrigin: Boolean(process.env.APP_ORIGIN),
     cronAuth: Boolean(process.env.CRON_SECRET),
     syntheticRuntime: isSyntheticProduction(),
@@ -47,7 +45,6 @@ export function assertProductionConfiguration() {
 
   if (mode !== 'postgres') missing.push('INBOX9_RUNTIME_MODE=postgres');
   if (!config.database) missing.push('DATABASE_URL');
-  if (!config.sharedRateLimit) missing.push('UPSTASH_REDIS_REST_URL/UPSTASH_REDIS_REST_TOKEN');
   if (!config.appOrigin) missing.push('APP_ORIGIN');
   if (!config.cronAuth) missing.push('CRON_SECRET');
 

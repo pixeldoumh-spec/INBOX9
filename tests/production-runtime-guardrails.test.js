@@ -22,15 +22,11 @@ test('persistent production startup fails closed without required runtime config
   const previous = {
     nodeEnv: process.env.NODE_ENV,
     database: process.env.DATABASE_URL,
-    redisUrl: process.env.UPSTASH_REDIS_REST_URL,
-    redisToken: process.env.UPSTASH_REDIS_REST_TOKEN,
     origin: process.env.APP_ORIGIN,
     cron: process.env.CRON_SECRET,
     mode: process.env.INBOX9_RUNTIME_MODE,
   };
   delete process.env.DATABASE_URL;
-  delete process.env.UPSTASH_REDIS_REST_URL;
-  delete process.env.UPSTASH_REDIS_REST_TOKEN;
   delete process.env.APP_ORIGIN;
   delete process.env.CRON_SECRET;
   process.env.INBOX9_RUNTIME_MODE = 'postgres';
@@ -42,8 +38,6 @@ test('persistent production startup fails closed without required runtime config
     const restore = {
       NODE_ENV: previous.nodeEnv,
       DATABASE_URL: previous.database,
-      UPSTASH_REDIS_REST_URL: previous.redisUrl,
-      UPSTASH_REDIS_REST_TOKEN: previous.redisToken,
       APP_ORIGIN: previous.origin,
       CRON_SECRET: previous.cron,
       INBOX9_RUNTIME_MODE: previous.mode,
@@ -61,16 +55,12 @@ test('production always rejects synthetic mode on any host', async () => {
     nodeEnv: process.env.NODE_ENV,
     mode: process.env.INBOX9_RUNTIME_MODE,
     database: process.env.DATABASE_URL,
-    redisUrl: process.env.UPSTASH_REDIS_REST_URL,
-    redisToken: process.env.UPSTASH_REDIS_REST_TOKEN,
     origin: process.env.APP_ORIGIN,
     cron: process.env.CRON_SECRET,
   };
   process.env.NODE_ENV = 'production';
   process.env.INBOX9_RUNTIME_MODE = 'synthetic';
   delete process.env.DATABASE_URL;
-  delete process.env.UPSTASH_REDIS_REST_URL;
-  delete process.env.UPSTASH_REDIS_REST_TOKEN;
   delete process.env.APP_ORIGIN;
   delete process.env.CRON_SECRET;
   try {
@@ -84,8 +74,6 @@ test('production always rejects synthetic mode on any host', async () => {
       NODE_ENV: previous.nodeEnv,
       INBOX9_RUNTIME_MODE: previous.mode,
       DATABASE_URL: previous.database,
-      UPSTASH_REDIS_REST_URL: previous.redisUrl,
-      UPSTASH_REDIS_REST_TOKEN: previous.redisToken,
       APP_ORIGIN: previous.origin,
       CRON_SECRET: previous.cron,
     };

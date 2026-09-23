@@ -1,11 +1,12 @@
 import crypto from 'node:crypto';
 import { isProduction, isSyntheticProduction } from './runtime-config.js';
+import { getPool } from './db.js';
 
 const buckets = new Map();
 const WINDOW_MS = 60_000;
 const CSP_SCRIPT_HASH = 'sha256-neT8V8ebT/osdr/v5by0QUCTp0FWgCD+wpt1NXiuEVE=';
 
-function sharedLimiterConfigured() {
+function upstashConfigured() {
   return Boolean(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN);
 }
 
@@ -16,6 +17,40 @@ async function upstashCommand(commandPath) {
   });
   if (!response.ok) throw new Error(`Rate-limit store returned HTTP ${response.status}`);
   return response.json();
+}
+
+async function postgresRateLimit(rawKey, bucketStartMs, expiresAtMs, limit) {
+  const pool = await getPool();
+  if (!pool) throw new Error('DATABASE_URL is not configured');
+  const bucketKey = crypto.createHash('sha256').update(rawKey).digest('hex');
+  const result = await pool.query(
+    `INSERT INTO public.rate_limit_buckets (bucket_key, bucket_start, count, expires_at)
+     VALUES ($1, to_timestamp($2 / 1000.0), 1, to_timestamp($3 / 1000.0))
+     ON CONFLICT (bucket_key)
+     DO UPDATE SET count = public.rate_limit_buckets.count + 1
+     RETURNING count, expires_at`,
+    [bucketKey, bucketStartMs, expiresAtMs]
+  );
+  const row = result.rows[0];
+  if (Number(row.count) > limit) {
+    return {
+      allowed: false,
+      retryAfterSeconds: Math.max(1, Math.ceil((new Date(row.expires_at).getTime() - Date.now()) / 1000)),
+    };
+  }
+  if (Number(row.count) === 1) {
+    await pool.query(
+      `WITH stale AS (
+         SELECT ctid FROM public.rate_limit_buckets
+         WHERE expires_at < NOW()
+         ORDER BY expires_at
+         LIMIT 1000
+       )
+       DELETE FROM public.rate_limit_buckets
+       WHERE ctid IN (SELECT ctid FROM stale)`
+    ).catch((error) => console.error('rate_limit_cleanup_failed', error));
+  }
+  return { allowed: true, retryAfterSeconds: 0 };
 }
 
 export function clientIp(req) {
@@ -68,29 +103,38 @@ export function rateLimit(req, res, name, limit, windowMs = WINDOW_MS, scopeKey 
 }
 
 export async function rateLimitAsync(req, res, name, limit, windowMs = WINDOW_MS, scopeKey = '') {
-  if (!sharedLimiterConfigured()) {
-    if (isProduction() && !isSyntheticProduction()) {
-      res.status(503).json({ error: 'Shared rate-limit service is not configured' });
-      return false;
-    }
-    return rateLimit(req, res, name, limit, windowMs, scopeKey);
-  }
   const safeWindow = Math.max(1000, Math.floor(windowMs));
-  const windowSeconds = Math.max(1, Math.ceil(safeWindow / 1000));
-  const bucket = Math.floor(Date.now() / safeWindow);
+  const bucketStartMs = Math.floor(Date.now() / safeWindow) * safeWindow;
+  const expiresAtMs = bucketStartMs + safeWindow;
   const scoped = scopeKey ? `:${crypto.createHash('sha256').update(String(scopeKey)).digest('hex').slice(0, 24)}` : '';
-  const rawKey = `${name}:${clientIp(req)}${scoped}:${bucket}`;
-  const key = encodeURIComponent(rawKey);
+  const rawKey = `${name}:${clientIp(req)}${scoped}:${bucketStartMs}`;
+
   try {
-    const result = await upstashCommand(`incr/${key}`);
-    const count = Number(result?.result);
-    if (count === 1) await upstashCommand(`expire/${key}/${windowSeconds}`);
-    if (count > limit) {
-      res.setHeader('Retry-After', String(windowSeconds));
-      res.status(429).json({ error: 'Too many requests. Please try again later.' });
-      return false;
+    if (upstashConfigured()) {
+      const windowSeconds = Math.max(1, Math.ceil(safeWindow / 1000));
+      const key = encodeURIComponent(rawKey);
+      const result = await upstashCommand(`incr/${key}`);
+      const count = Number(result?.result);
+      if (count === 1) await upstashCommand(`expire/${key}/${windowSeconds}`);
+      if (count > limit) {
+        res.setHeader('Retry-After', String(windowSeconds));
+        res.status(429).json({ error: 'Too many requests. Please try again later.' });
+        return false;
+      }
+      return true;
     }
-    return true;
+
+    if (isProduction() && !isSyntheticProduction()) {
+      const result = await postgresRateLimit(rawKey, bucketStartMs, expiresAtMs, limit);
+      if (!result.allowed) {
+        res.setHeader('Retry-After', String(result.retryAfterSeconds));
+        res.status(429).json({ error: 'Too many requests. Please try again later.' });
+        return false;
+      }
+      return true;
+    }
+
+    return rateLimit(req, res, name, limit, windowMs, scopeKey);
   } catch (error) {
     console.error('rate_limit_store_failed', error);
     if (isProduction() && !isSyntheticProduction()) {

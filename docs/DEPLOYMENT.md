@@ -49,8 +49,6 @@ INBOX9_RUNTIME_MODE=postgres
 DATABASE_URL=<Supabase/PostgreSQL connection string>
 DATABASE_SSL=true
 DATABASE_SSL_REJECT_UNAUTHORIZED=true
-UPSTASH_REDIS_REST_URL=<shared-rate-limit-store>
-UPSTASH_REDIS_REST_TOKEN=<shared-rate-limit-token>
 APP_ORIGIN=https://your-public-host.example
 CRON_SECRET=<long-random-secret>
 INBOX9_ENABLE_RECHARGE=false
@@ -85,7 +83,7 @@ GitHub Free currently includes 2,000 hosted-runner minutes per month for private
 
 ## Free infrastructure
 
-Upstash Redis currently has a $0 Free tier with 256 MB data, 10 GB monthly bandwidth, and 500,000 monthly commands. It is suitable for a small shared rate limiter but is still quota-bound.
+Supabase PostgreSQL is both the durable application store and the shared rate-limit store. This keeps the free Render deployment to one required stateful dependency instead of requiring a separate Redis service.
 
 Supabase remains the PostgreSQL source of truth for this deployment.
 
@@ -106,7 +104,7 @@ For persistent staging:
 Before real customer traffic:
 
 1. Configure all production variables, including `INBOX9_RUNTIME_MODE=postgres`.
-2. Confirm `/api/health` reports database, shared rate limit, app origin, and cron configuration ready.
+2. Confirm `/api/health` reports database reachability, PostgreSQL shared rate limiting, app origin, and cron configuration ready.
 3. Confirm the active host deployment is healthy.
 4. Run `npm run check` and `npm test` in CI.
 5. Run the E2E and synthetic smoke suite against staging.
