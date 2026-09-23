@@ -293,46 +293,32 @@ async function loadCustomerData() {
   const [servicesResult, activationsResult, walletResult] = results;
   const failures = [];
 
-const results = await Promise.allSettled([
-      api('/api/services'),
-      api('/api/activations'),
-      api('/api/wallet')
-    ]);
-    const [servicesResult, activationsResult, walletResult] = results;
-    const failures = [];
-
-    if (servicesResult.status === 'fulfilled') {
-      state.services = Array.isArray(servicesResult.value.services) ? servicesResult.value.services : [];
-      prepareServiceCatalog();
-    } else {
-      failures.push(servicesResult.reason?.message || 'Service catalog unavailable');
-    }
-
-    if (activationsResult.status === 'fulfilled') {
-      const activationPayload = activationsResult.value;
-      if (activationPayload.persistent) syncFromServerActivations(activationPayload.activations);
-    } else {
-      failures.push(activationsResult.reason?.message || 'Activation history unavailable');
-    }
-
-    if (walletResult.status === 'fulfilled') {
-      const wallet = walletResult.value;
-      state.persistentState = Boolean(wallet.persistent);
-      state.balancePaise = Number(wallet.balancePaise || 0);
-      state.walletLedger = Array.isArray(wallet.ledger) ? wallet.ledger : [];
-      state.recharges = Array.isArray(wallet.recharges) ? wallet.recharges : [];
-      state.rechargeUpiId = wallet.rechargeEnabled ? (wallet.upiId || null) : null;
-    } else {
-      failures.push(walletResult.reason?.message || 'Wallet unavailable');
-    }
-
-    state.error = failures.join(' • ');
-  } catch (error) {
-    state.error = error.message;
-  } finally {
-    state.loading = false;
-    render();
+  if (servicesResult.status === 'fulfilled') {
+    state.services = Array.isArray(servicesResult.value.services) ? servicesResult.value.services : [];
+    prepareServiceCatalog();
+  } else {
+    failures.push(servicesResult.reason?.message || 'Service catalog unavailable');
   }
+
+  if (activationsResult.status === 'fulfilled') {
+    const activationPayload = activationsResult.value;
+    if (activationPayload.persistent) syncFromServerActivations(activationPayload.activations);
+  } else {
+    failures.push(activationsResult.reason?.message || 'Activation history unavailable');
+  }
+
+  if (walletResult.status === 'fulfilled') {
+    const wallet = walletResult.value;
+    state.persistentState = Boolean(wallet.persistent);
+    state.balancePaise = Number(wallet.balancePaise || 0);
+    state.walletLedger = Array.isArray(wallet.ledger) ? wallet.ledger : [];
+    state.recharges = Array.isArray(wallet.recharges) ? wallet.recharges : [];
+    state.rechargeUpiId = wallet.rechargeEnabled ? (wallet.upiId || null) : null;
+  } else {
+    failures.push(walletResult.reason?.message || 'Wallet unavailable');
+  }
+
+  state.error = failures.join(' • ');
 }
 
 async function boot() {
