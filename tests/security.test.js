@@ -27,9 +27,11 @@ test('production rate limiter fails closed without shared store', async () => {
   const previousNodeEnv = process.env.NODE_ENV;
   const previousUrl = process.env.UPSTASH_REDIS_REST_URL;
   const previousToken = process.env.UPSTASH_REDIS_REST_TOKEN;
+  const previousMode = process.env.INBOX9_RUNTIME_MODE;
   delete process.env.UPSTASH_REDIS_REST_URL;
   delete process.env.UPSTASH_REDIS_REST_TOKEN;
   process.env.NODE_ENV = 'production';
+  process.env.INBOX9_RUNTIME_MODE = 'postgres';
   try {
     const { rateLimitAsync } = await import('../api/_lib/security.js');
     const req = { headers: { 'x-forwarded-for': `prod-${crypto.randomUUID()}` }, socket: {} };
@@ -40,5 +42,6 @@ test('production rate limiter fails closed without shared store', async () => {
     if (previousNodeEnv === undefined) delete process.env.NODE_ENV; else process.env.NODE_ENV = previousNodeEnv;
     if (previousUrl === undefined) delete process.env.UPSTASH_REDIS_REST_URL; else process.env.UPSTASH_REDIS_REST_URL = previousUrl;
     if (previousToken === undefined) delete process.env.UPSTASH_REDIS_REST_TOKEN; else process.env.UPSTASH_REDIS_REST_TOKEN = previousToken;
+    if (previousMode === undefined) delete process.env.INBOX9_RUNTIME_MODE; else process.env.INBOX9_RUNTIME_MODE = previousMode;
   }
 });
