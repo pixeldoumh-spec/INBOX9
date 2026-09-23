@@ -1,12 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-test('reconciliation endpoint accepts only POST and Authorization Bearer CRON_SECRET', async () => {
+test('reconciliation endpoint accepts Vercel Cron GET or authenticated POST', async () => {
   const fs = await import('node:fs/promises');
   const src = await fs.readFile(new URL('../api/_internal-provider-reconcile.js', import.meta.url), 'utf8');
   assert.match(src, /process\.env\.CRON_SECRET/);
   assert.doesNotMatch(src, /INTERNAL_CRON_SECRET/);
-  assert.match(src, /req\.method !== 'POST'/);
+  assert.match(src, /x-vercel-cron-schedule/);
+  assert.match(src, /req\.method !== 'POST' && !isVercelCron/);
   assert.match(src, /Bearer /);
   assert.match(src, /timingSafeEqual/);
 });

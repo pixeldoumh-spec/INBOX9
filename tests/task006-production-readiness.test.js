@@ -33,6 +33,22 @@ test('TASK-006 wallet reconciliation write route has CSRF, rate and payload guar
   assert.match(src, /req\.method === 'POST'/);
 });
 
+test('TASK-006 wallet, catalog and session status reads apply common security and rate limiting', async () => {
+  const [wallet, services, me] = await Promise.all([
+    fs.readFile(new URL('../api/wallet/_index.js', import.meta.url), 'utf8'),
+    fs.readFile(new URL('../api/_services.js', import.meta.url), 'utf8'),
+    fs.readFile(new URL('../api/auth/_me.js', import.meta.url), 'utf8'),
+  ]);
+  for (const src of [wallet, services, me]) {
+    assert.match(src, /applySecurityHeaders/);
+    assert.match(src, /requestId/);
+    assert.match(src, /rateLimitAsync/);
+  }
+  assert.match(wallet, /wallet-read/);
+  assert.match(services, /services-list/);
+  assert.match(me, /auth-me/);
+});
+
 test('TASK-006 database TLS verification is not disabled by default', async () => {
   const src = await fs.readFile(new URL('../api/_lib/db.js', import.meta.url), 'utf8');
   assert.match(src, /DATABASE_SSL_REJECT_UNAUTHORIZED !== 'false'/);

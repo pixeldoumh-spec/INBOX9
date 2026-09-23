@@ -32,4 +32,4 @@ The mock implementation does not perform real third-party account verification o
 - The wallet reconciliation POST path enforces same-origin requests, payload limits and rate limiting.
 - PostgreSQL TLS certificate verification is enabled by default when SSL is enabled; provide `DATABASE_SSL_CA` for a private CA rather than disabling verification.
 - Login failures use a generic invalid-credentials response to reduce account-enumeration leakage.
-- The internal reconciliation job endpoint is POST-only and authenticates with `CRON_SECRET`.
+- The reconciliation handler exposes a Vercel Cron GET path authenticated with `CRON_SECRET` and validated with Vercel's cron schedule header; the existing authenticated POST form remains available for an external scheduler.
