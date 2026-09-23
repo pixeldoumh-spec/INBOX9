@@ -8,6 +8,7 @@ const recharges = new Map();
 const wallets = new Map();
 const ledgers = new Map();
 const TTL_MS = 3 * 60 * 1000;
+const SYNTHETIC_STARTING_BALANCE_PAISE = 100_000;
 
 export function makeId(prefix = 'ORD') {
   return `${prefix}-${crypto.randomInt(10000, 100000)}`;
@@ -45,6 +46,7 @@ export function reserveMock(service) {
     mockOtpAt,
     serverId: assignedServer?.id || null,
     providerActivationId,
+    syntheticOtp: generateSyntheticOtp(service.id || service.name, index, providerActivationId),
     metadata: {
       engine: 'synthetic-local',
       slot: index,
@@ -94,7 +96,7 @@ function userKey(userOrEmail) {
 
 function ensureMockWallet(email) {
   const key = userKey(email);
-  if (!wallets.has(key)) wallets.set(key, 0);
+  if (!wallets.has(key)) wallets.set(key, SYNTHETIC_STARTING_BALANCE_PAISE);
   if (!ledgers.has(key)) ledgers.set(key, []);
   return key;
 }
