@@ -10,43 +10,43 @@ FROM services
 ON CONFLICT (service_id,provider_id)
 DO UPDATE SET active=TRUE, priority=10;
 
-DO $
-DECLARE
-  table_name TEXT;
-BEGIN
-  FOREACH table_name IN ARRAY ARRAY[
-    'users','sessions','services','activations','wallets','wallet_ledger',
-    'recharge_requests','providers','service_provider_routes','audit_logs',
-    'provider_operations','activation_idempotency','wallet_reconciliation_runs',
-    'wallet_reconciliation_issues','payment_reconciliation_events','synthetic_slot_reservations'
-  ]
-  LOOP
-    EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY', table_name);
+ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.sessions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.services ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.activations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.wallets ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.wallet_ledger ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.recharge_requests ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.providers ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.service_provider_routes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.provider_operations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.activation_idempotency ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.wallet_reconciliation_runs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.wallet_reconciliation_issues ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.payment_reconciliation_events ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.synthetic_slot_reservations ENABLE ROW LEVEL SECURITY;
 
-    IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN
-      EXECUTE format('REVOKE ALL ON TABLE public.%I FROM anon', table_name);
-    END IF;
+REVOKE ALL ON TABLE public.users, public.sessions, public.services, public.activations,
+  public.wallets, public.wallet_ledger, public.recharge_requests, public.providers,
+  public.service_provider_routes, public.audit_logs, public.provider_operations,
+  public.activation_idempotency, public.wallet_reconciliation_runs,
+  public.wallet_reconciliation_issues, public.payment_reconciliation_events,
+  public.synthetic_slot_reservations FROM anon;
 
-    IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN
-      EXECUTE format('REVOKE ALL ON TABLE public.%I FROM authenticated', table_name);
-    END IF;
-  END LOOP;
-END $$;
+REVOKE ALL ON TABLE public.users, public.sessions, public.services, public.activations,
+  public.wallets, public.wallet_ledger, public.recharge_requests, public.providers,
+  public.service_provider_routes, public.audit_logs, public.provider_operations,
+  public.activation_idempotency, public.wallet_reconciliation_runs,
+  public.wallet_reconciliation_issues, public.payment_reconciliation_events,
+  public.synthetic_slot_reservations FROM authenticated;
 
 REVOKE EXECUTE ON FUNCTION public.prevent_wallet_ledger_mutation() FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.prevent_wallet_ledger_mutation() FROM anon;
+REVOKE EXECUTE ON FUNCTION public.prevent_wallet_ledger_mutation() FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.verify_wallet_balance_after_ledger_insert() FROM PUBLIC;
-
-DO $inbox9$
-BEGIN
-  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN
-    REVOKE EXECUTE ON FUNCTION public.prevent_wallet_ledger_mutation() FROM anon;
-    REVOKE EXECUTE ON FUNCTION public.verify_wallet_balance_after_ledger_insert() FROM anon;
-  END IF;
-  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN
-    REVOKE EXECUTE ON FUNCTION public.prevent_wallet_ledger_mutation() FROM authenticated;
-    REVOKE EXECUTE ON FUNCTION public.verify_wallet_balance_after_ledger_insert() FROM authenticated;
-  END IF;
-END $$;
+REVOKE EXECUTE ON FUNCTION public.verify_wallet_balance_after_ledger_insert() FROM anon;
+REVOKE EXECUTE ON FUNCTION public.verify_wallet_balance_after_ledger_insert() FROM authenticated;
 
 INSERT INTO schema_migrations(version)
 VALUES ('017_supabase_api_lockdown')
