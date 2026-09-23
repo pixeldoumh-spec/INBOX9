@@ -1,11 +1,11 @@
 import { applySecurityHeaders, requestId } from './_lib/security.js';
 import { getPool, dbEnabled } from './_lib/db.js';
-import { isSyntheticProduction } from './_lib/runtime-config.js';
+import { isSyntheticProduction, isProduction } from './_lib/runtime-config.js';
 
 export default async function handler(_req, res) {
   applySecurityHeaders(res);
   requestId(_req, res);
-  const production = process.env.NODE_ENV === 'production';
+  const production = isProduction();
   const databaseConfigured = dbEnabled();
   let databaseReachable = false;
   if (databaseConfigured) {
