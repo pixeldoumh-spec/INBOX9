@@ -1,6 +1,10 @@
 import { syntheticProvider } from './synthetic-provider.js';
+import { numberOtpProvider } from './numberotp-provider.js';
 
-const adapters = new Map([['synthetic', syntheticProvider]]);
+const adapters = new Map([
+  ['synthetic', syntheticProvider],
+  ['numberotp', numberOtpProvider],
+]);
 
 export function getProviderAdapter(adapterKey = 'synthetic') {
   const key = String(adapterKey || 'synthetic');
