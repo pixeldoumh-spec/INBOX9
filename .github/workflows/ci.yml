@@ -7,7 +7,9 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    name: Test / Ubuntu 24.04
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
     permissions:
       contents: read
     env:
@@ -27,11 +29,24 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     steps:
+      - name: Runner diagnostics
+        run: |
+          set -eux
+          echo "Runner: $RUNNER_NAME"
+          echo "OS: $RUNNER_OS"
+          echo "Arch: $RUNNER_ARCH"
+          echo "Image: $ImageVersion"
+          node --version || true
+          npm --version || true
+
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: npm install --ignore-scripts
+          cache: npm
+
+      - run: npm ci --ignore-scripts
+
       - name: Apply Supabase migrations to test PostgreSQL
         env:
           TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/inbox9_test
@@ -54,6 +69,7 @@ jobs:
       - run: npm run check
       - run: npm test
       - run: npm run issue9:e2e
+
       - name: Secret pattern scan
         shell: bash
         run: |
