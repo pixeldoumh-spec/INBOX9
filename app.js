@@ -11,6 +11,7 @@ const state = {
   orders: [],
   loading: true,
   error: '',
+  bootstrapError: '',
   persistentState: false,
   rechargeUpiId: null,
   mobileMenu: false,
@@ -217,6 +218,7 @@ function handleHashNavigation() {
 }
 
 function handleSessionExpired() {
+  state.bootstrapError = '';
   state.user = null;
   state.active = [];
   state.orders = [];
@@ -277,6 +279,7 @@ function scheduleDialogFocus() {
 
 async function submitAuth(event) {
   event.preventDefault();
+  state.bootstrapError = '';
   const form = event.currentTarget;
   const data = new FormData(form);
   const email = String(data.get('email') || '').trim();
@@ -450,46 +453,57 @@ function serverStatsMarkup(service) {
   const live = service.liveAvailability && service.liveAvailability.numberotp;
 
   if (state.marketServerLoading[service.id]) {
-    return '<div class="server-panel"><div class="server-loading">Loading live capacity…</div></div>';
+    return '<div class="server-panel"><div class="server-loading">Refreshing availability…</div></div>';
   }
   const error = state.marketServerErrors[service.id];
   if (error) {
-    return '<div class="server-panel"><div class="server-note"><span class="server-note-icon">!</span><div><strong>Capacity unavailable</strong><span>' + esc(error) + '</span></div></div></div>';
+    return '<div class="server-panel"><div class="server-note"><span class="server-note-icon">!</span><div><strong>Availability unavailable</strong><span>' + esc(error) + '</span></div></div></div>';
   }
   const payload = state.marketServerStats[service.id];
   const liveBlock = live
-    ? '<div class="external-provider-card"><div><strong>NumberOTP · India pool</strong><span>Real provider availability from the public feed</span></div><b>' + Number(live.available || 0).toLocaleString() + '</b><small>numbers available</small></div>'
-    : '<div class="external-provider-card unavailable"><div><strong>NumberOTP · India pool</strong><span>No live match available for this service</span></div></div>';
+    ? '<div class="external-provider-card"><div><strong>Live availability</strong><span>Current external inventory signal</span></div><b>' + Number(live.available || 0).toLocaleString() + '</b><small>numbers available</small></div>'
+    : '<div class="external-provider-card unavailable"><div><strong>Live availability</strong><span>No current availability signal for this service</span></div></div>';
   if (!payload) {
-    return '<div class="server-panel">' + liveBlock + '<div class="server-note"><span class="server-note-icon">⌁</span><div><strong>INBOX9 allocation</strong><span>Current INBOX9 capacity is synthetic test inventory. NumberOTP stock above is informational until authenticated provider routing is enabled.</span></div></div></div>';
+    return '<div class="server-panel">' + liveBlock + '<div class="server-note"><span class="server-note-icon">⌁</span><div><strong>Automatic allocation</strong><span>INBOX9 allocates available inventory automatically after you confirm the purchase.</span></div></div></div>';
   }
   const servers = Array.isArray(payload.servers) ? payload.servers : [];
   const totalAvailable = servers.reduce((sum, server) => sum + Number(server.availableCount || 0), 0);
   const totalCapacity = servers.reduce((sum, server) => sum + Number(server.capacity || 0), 0);
-  const rows = servers.map((server) => '<div class="server-row"><div class="server-number">' + esc(String(server.id || '').replace(/^server-/i, '#') || '—') + '</div><div class="server-info"><div class="server-name">' + esc(server.name || 'Activation server') + '</div><div class="server-stock">' + Number(server.availableCount || 0).toLocaleString() + ' available · ' + Number(server.reservedCount || 0).toLocaleString() + ' reserved</div></div><div class="server-price">' + Number(server.capacity || 0).toLocaleString() + ' slots</div></div>').join('');
-  return '<div class="server-panel">' + liveBlock + '<div class="server-note"><span class="server-note-icon">⌁</span><div><strong>INBOX9 automatic allocation</strong><span>' + servers.length + ' synthetic servers · ' + totalAvailable.toLocaleString() + ' available of ' + totalCapacity.toLocaleString() + ' test capacity.</span></div></div><div class="server-list">' + rows + '</div></div>';
+  return '<div class="server-panel">' + liveBlock + '<div class="server-note"><span class="server-note-icon">⌁</span><div><strong>Automatic allocation</strong><span>' + totalAvailable.toLocaleString() + ' available across the current inventory view' + (totalCapacity ? ' · ' + totalCapacity.toLocaleString() + ' total capacity' : '') + '. The platform selects the allocation automatically.</span></div></div></div>';
 }
 
-async function boot() {
-  state.page = pageFromHash();
+async function bootstrapSession() {
+  state.bootstrapError = '';
+  state.loading = true;
+  render();
   try {
     const session = await api('/api/auth/me');
     state.user = session.user;
     loadPersisted();
-  } catch {
-    state.user = null;
-    state.loading = false;
-    render();
-    return;
-  }
-  try {
     await loadCustomerData();
+    return true;
   } catch (error) {
-    state.error = error.message;
+    if (Number(error.status) === 401) {
+      state.user = null;
+      return false;
+    }
+    state.user = null;
+    state.bootstrapError = error.code === 'NETWORK_ERROR' ? 'We could not reach INBOX9. Check your connection and try again.' : 'INBOX9 is temporarily unavailable. Please retry in a moment.';
+    return false;
   } finally {
     state.loading = false;
     render();
   }
+}
+
+async function retryBootstrap() {
+  await bootstrapSession();
+}
+
+async function boot() {
+  state.page = pageFromHash();
+  await bootstrapSession();
+  if (!state.user) return;
   if (!state.tickTimer) state.tickTimer = window.setInterval(tick, 1000);
   window.addEventListener('hashchange', handleHashNavigation);
   window.addEventListener('popstate', handleHashNavigation);
@@ -551,7 +565,7 @@ function purchaseReviewModal() {
   const availability = Math.max(0, Number(data.service.stock || 0));
   const error = flow.error ? `<div class="purchase-error">${esc(flow.error)}</div>` : '';
   if (activating) return `<div class="purchase-overlay" role="presentation"><div class="purchase-backdrop"></div><section class="purchase-sheet purchase-sheet-loading" role="dialog" aria-modal="true" aria-labelledby="purchase-title" tabindex="-1"><div class="purchase-sheet-top"><div><span class="kicker">STEP 3 OF 3</span><h2 id="purchase-title">Getting your number</h2></div></div><div class="purchase-steps" aria-label="Purchase progress"><span class="purchase-step done"><b>1</b> Service</span><span class="purchase-step done"><b>2</b> Review</span><span class="purchase-step current"><b>3</b> Track</span></div><div class="purchase-activation-state"><div class="purchase-loader" aria-hidden="true"></div><span class="service-category">ACTIVATION</span><h3>Reserving your number…</h3><p>We’re assigning a number automatically now. Your live activation will appear next.</p></div></section></div>`;
-  return `<div class="purchase-overlay" role="presentation"><button class="purchase-backdrop" type="button" aria-label="Close purchase review" data-purchase-close></button><section class="purchase-sheet" role="dialog" aria-modal="true" aria-labelledby="purchase-title" tabindex="-1"><div class="purchase-sheet-top"><div><span class="kicker">STEP 2 OF 3</span><h2 id="purchase-title">Review your number</h2></div><button class="icon-btn" type="button" aria-label="Close" data-purchase-close>×</button></div><div class="purchase-steps" aria-label="Purchase progress"><span class="purchase-step done"><b>1</b> Service</span><span class="purchase-step current"><b>2</b> Review</span><span class="purchase-step"><b>3</b> Track</span></div><div class="purchase-service-card"><div class="service-icon large">${iconFor(data.service.category)}</div><div class="purchase-service-copy"><span class="service-category">${esc(data.service.category)}</span><strong>${esc(data.service.name)}</strong><span>India (+91) · OTP appears in about 20 seconds</span></div></div><div class="purchase-detail-grid"><div><span>Country</span><strong>India (+91)</strong><small>Current INBOX9 market</small></div><div><span>Price</span><strong>${money(data.pricePaise)}</strong><small>One activation</small></div><div><span>Availability</span><strong>${availability.toLocaleString()}</strong><small>numbers available</small></div><div><span>Activation window</span><strong>3 minutes</strong><small>INBOX9 lifecycle</small></div></div><div class="purchase-trust"><span>✓</span><div><strong>Number first. OTP next.</strong><small>INBOX9 reserves the number immediately. The OTP is generated automatically around 20 seconds into the activation.</small></div></div>${error}${insufficient ? `<div class="purchase-actions"><button class="secondary-btn" type="button" data-purchase-close>Back</button><button class="primary-btn" type="button" data-purchase-wallet>Add funds</button></div>` : `<div class="purchase-actions"><button class="secondary-btn" type="button" data-purchase-close>Back</button><button class="primary-btn purchase-confirm-btn" type="button" data-purchase-confirm>Get number <span>→</span></button></div>`}</section></div>`;
+  return `<div class="purchase-overlay" role="presentation"><button class="purchase-backdrop" type="button" aria-label="Close purchase review" data-purchase-close></button><section class="purchase-sheet" role="dialog" aria-modal="true" aria-labelledby="purchase-title" tabindex="-1"><div class="purchase-sheet-top"><div><span class="kicker">STEP 2 OF 3</span><h2 id="purchase-title">Review your number</h2></div><button class="icon-btn" type="button" aria-label="Close" data-purchase-close>×</button></div><div class="purchase-steps" aria-label="Purchase progress"><span class="purchase-step done"><b>1</b> Service</span><span class="purchase-step current"><b>2</b> Review</span><span class="purchase-step"><b>3</b> Track</span></div><div class="purchase-service-card"><div class="service-icon large">${iconFor(data.service.category)}</div><div class="purchase-service-copy"><span class="service-category">${esc(data.service.category)}</span><strong>${esc(data.service.name)}</strong><span>Number format: +91 · OTP appears in about 20 seconds</span></div></div><div class="purchase-detail-grid"><div><span>Number format</span><strong>+91</strong><small>Current marketplace format</small></div><div><span>Price</span><strong>${money(data.pricePaise)}</strong><small>One activation</small></div><div><span>Availability</span><strong>${availability.toLocaleString()}</strong><small>numbers available</small></div><div><span>Activation window</span><strong>3 minutes</strong><small>INBOX9 lifecycle</small></div></div><div class="purchase-trust"><span>✓</span><div><strong>Number first. OTP next.</strong><small>INBOX9 reserves the number immediately. The OTP is generated automatically around 20 seconds into the activation.</small></div></div>${error}${insufficient ? `<div class="purchase-actions"><button class="secondary-btn" type="button" data-purchase-close>Back</button><button class="primary-btn" type="button" data-purchase-wallet>Add funds</button></div>` : `<div class="purchase-actions"><button class="secondary-btn" type="button" data-purchase-close>Back</button><button class="primary-btn purchase-confirm-btn" type="button" data-purchase-confirm>Get number <span>→</span></button></div>`}</section></div>`;
 }
 
 async function confirmPurchase() {
@@ -656,7 +670,7 @@ async function cancelActivation(id) {
     if (order) { order.status = 'Refunded'; order.otp = '—'; }
     persist();
     render();
-    toast('Synthetic activation cancelled • credits refunded');
+    toast('Activation cancelled • credits refunded');
     return;
   }
   try {
@@ -953,6 +967,11 @@ function authPage() {
   return `<div class="auth-shell"><div class="auth-card"><div class="brand-row auth-brand"><div class="brand-mark">ϟ</div><div><div class="brand-name">INBOX9</div><div class="brand-sub">OTP MARKETPLACE</div></div></div><span class="kicker">SECURE ACCOUNT</span><h1>${register ? 'Create your account' : 'Welcome back'}</h1><p class="auth-copy">${register ? 'Create an account to access the marketplace.' : 'Sign in to continue to your INBOX9 dashboard.'}</p><form id="auth-form"><label>Email<input name="email" type="email" autocomplete="email" required placeholder="you@example.com"></label><label>Password<input name="password" type="password" autocomplete="${register ? 'new-password' : 'current-password'}" minlength="8" required placeholder="Minimum 8 characters"></label>${register ? '<label>Confirm password<input name="confirm" type="password" autocomplete="new-password" minlength="8" required placeholder="Repeat your password"></label>' : ''}<button class="primary-btn auth-submit" type="submit">${register ? 'Create account' : 'Sign in'}</button></form><div class="auth-switch">${register ? 'Already have an account?' : 'New to INBOX9?'} <button type="button" data-auth-mode="${register ? 'login' : 'register'}">${register ? 'Sign in' : 'Create account'}</button></div><div class="auth-note">Your account is protected with email and password. Secure access is required for every session.</div></div></div>`;
 }
 
+function bootstrapErrorPage() {
+  const message = esc(state.bootstrapError || 'The application is temporarily unavailable.');
+  return '<div class="auth-shell"><div class="auth-card"><div class="brand-row auth-brand"><div class="brand-mark">ϟ</div><div><div class="brand-name">INBOX9</div><div class="brand-sub">OTP MARKETPLACE</div></div></div><span class="kicker">CONNECTION CHECK</span><h1>We could not load INBOX9</h1><p class="auth-copy">' + message + '</p><button class="primary-btn auth-submit" type="button" data-action="retry-bootstrap">Retry</button><div class="auth-note">Your account data remains on the server. A temporary connection problem does not sign you out.</div></div></div>';
+}
+
 function securityModal() {
   return `<div class="security-overlay" role="presentation"><section class="security-modal" role="dialog" aria-modal="true" aria-labelledby="security-title" tabindex="-1"><div class="panel-head"><div><h3 id="security-title">Account security</h3><span>7-day sessions • maximum 5 retained sessions by default</span></div><button class="icon-btn" type="button" aria-label="Close" data-action="close-security">×</button></div><div class="security-body"><form id="change-password-form" class="security-form"><label>Current password<input name="currentPassword" type="password" autocomplete="current-password" minlength="8" required></label><label>New password<input name="newPassword" type="password" autocomplete="new-password" minlength="8" maxlength="128" required></label><label>Confirm new password<input name="confirmPassword" type="password" autocomplete="new-password" minlength="8" maxlength="128" required></label><button class="primary-btn" type="submit">Change password</button></form><div class="security-divider"></div><div class="security-danger"><div><strong>Sign out all sessions</strong><p>This invalidates every active session on all devices and returns you to the login screen.</p></div><button class="buy-btn" type="button" data-action="logout-all">Sign out all</button></div></div></section></div>`;
 }
@@ -960,7 +979,7 @@ function securityModal() {
 function render() {
   if (!state.user) {
     syncOverlayScrollLock();
-    document.getElementById('app').innerHTML = authPage();
+    document.getElementById('app').innerHTML = state.bootstrapError ? bootstrapErrorPage() : authPage();
     bindEvents();
     return;
   }
@@ -1050,11 +1069,11 @@ function serviceCard(service) {
   return '<article class="market-service-group customer-service-card ' + (expanded ? ' expanded' : '') + '">' +
     '<button class="service-group-header customer-service-main" type="button" data-toggle-service="' + esc(service.id) + '" aria-expanded="' + String(expanded) + '" aria-controls="capacity-' + esc(service.id) + '">' +
       '<span class="service-icon service-brand-icon">' + iconFor(service.category) + '</span>' +
-      '<span class="service-group-copy"><span class="service-category">' + esc(service.category) + '</span><strong>' + esc(service.name) + '</strong><small>India (+91) · Fast activation · ~20s OTP</small></span>' +
+      '<span class="service-group-copy"><span class="service-category">' + esc(service.category) + '</span><strong>' + esc(service.name) + '</strong><small>+91 · Fast activation · ~20s OTP</small></span>' +
       '<span class="service-group-meta"><span class="availability-pill ' + availabilityState + '"><span></span>' + availabilityLabel + '</span><span class="service-price">' + money(service.pricePaise) + '</span></span>' +
       '<span class="service-group-chevron" aria-hidden="true">⌄</span>' +
     '</button>' +
-    '<div class="customer-service-bottom"><span class="customer-service-fact"><b>3 min</b> activation window</span><span class="customer-service-fact"><b>' + availability.toLocaleString() + '</b> INBOX9 capacity</span><span class="customer-service-fact provider-live-fact"><b>' + liveLabel + '</b> NumberOTP live</span><button class="buy-btn customer-buy" type="button" data-buy-service="' + esc(service.id) + '" ' + (availability <= 0 ? 'disabled aria-disabled="true"' : '') + '>' + actionLabel + '</button></div>' +
+    '<div class="customer-service-bottom"><span class="customer-service-fact"><b>3 min</b> activation window</span><span class="customer-service-fact"><b>' + availability.toLocaleString() + '</b> available inventory</span><span class="customer-service-fact provider-live-fact"><b>' + liveLabel + '</b> live availability</span><button class="buy-btn customer-buy" type="button" data-buy-service="' + esc(service.id) + '" ' + (availability <= 0 ? 'disabled aria-disabled="true"' : '') + '>' + actionLabel + '</button></div>' +
     (expanded ? serverStatsMarkup(service) : '') +
   '</article>';
 }
@@ -1087,10 +1106,10 @@ function buyPage() {
   const showing = Math.min(state.marketVisibleCount, list.length);
   return `<div class="market-page">
     <div class="section-head market-section-head">
-      <div><span class="kicker">MARKETPLACE / INDIA</span><h2>Choose a service</h2><p class="section-subcopy">Pick the service you need. INBOX9 automatically handles number allocation behind the scenes.</p></div>
+      <div><span class="kicker">MARKETPLACE / +91</span><h2>Choose a service</h2><p class="section-subcopy">Pick the service you need. INBOX9 automatically handles number allocation behind the scenes.</p></div>
       <div class="market-summary"><span class="summary-dot"></span><strong>${list.length.toLocaleString()}</strong><span>matches</span></div>
     </div>
-    <div class="market-country-strip"><div class="market-country-pill"><span class="country-flag">IN</span><div><strong>India (+91)</strong><small>Current market</small></div></div><div class="country-note">Server and slot allocation are automatic</div></div>
+    <div class="market-country-strip"><div class="market-country-pill"><div><strong>+91 number format</strong><small>Current marketplace</small></div></div><div class="country-note">Server and slot allocation are automatic</div></div>
     <div class="controls market-controls">
       <div class="toolbar market-toolbar">
         <label class="search-box premium-search" aria-label="Search services"><span class="search-glyph">⌕</span><input id="service-search" value="${esc(state.search)}" placeholder="Search ${state.services.length.toLocaleString()} services…" autocomplete="off" spellcheck="false"><kbd>/</kbd></label>
@@ -1124,7 +1143,7 @@ function activeCard(activation) {
       <div class="service-meta"><span class="service-category">${esc(activation.service)}</span><h3>${esc(activation.number)}</h3></div>
       <span class="activation-status">${completed ? '✓ OTP received' : '↻ Waiting SMS'}</span>
     </div>
-    <div class="active-context"><span>India (+91)</span><span>${money(activation.pricePaise)}</span><span>Order ${esc(activation.id)}</span></div>
+    <div class="active-context"><span>+91 number format</span><span>${money(activation.pricePaise)}</span><span>Order ${esc(activation.id)}</span></div>
     ${completed ? `<div class="otp-panel"><div class="otp-label">VERIFICATION CODE</div><div class="otp-code">${esc(activation.otp)}</div><button class="copy-btn" type="button" data-copy="${esc(activation.otp.replace(/\\s/g, ''))}">⧉ Copy OTP</button></div>` : `<div class="otp-panel"><div class="otp-label">TIME REMAINING</div><div class="timer">◷ ${minutes}:${seconds}</div><div class="progress"><span style="width:${progress}%"></span></div><div class="waiting-note">▣ Your verification code will appear here automatically</div></div>`}
     <div class="active-footer"><span>Temporary number</span>${!completed ? `<button class="text-danger" type="button" data-cancel="${esc(activation.id)}">Cancel & refund</button>` : '<span>Verification complete</span>'}</div>
   </article>`;
@@ -1148,7 +1167,7 @@ function walletPage() {
       <div class="panel payment-panel"><div class="panel-head"><div><h3>1. Pay by UPI</h3><span>Use the configured INBOX9 payment destination.</span></div><span class="status-chip">MANUAL VERIFY</span></div><div class="upi-row"><span>UPI ID</span><code>${esc(state.rechargeUpiId)}</code><button class="copy-btn" type="button" data-copy="${esc(state.rechargeUpiId)}">Copy</button></div></div>
       <div class="panel payment-panel"><div class="panel-head"><div><h3>2. Submit payment</h3><span>Use the exact amount you paid and its UTR.</span></div></div><form id="recharge-form" class="recharge-form"><label>Amount (₹)<input id="recharge-amount" name="amount" type="number" min="100" max="5000" step="1" value="${state.rechargeAmount}" required></label><div class="amount-presets">${[100,500,1000,2000,5000].map(amount => `<button type="button" class="filter-btn ${state.rechargeAmount === amount ? 'selected' : ''}" data-recharge-amount="${amount}">₹${amount}</button>`).join('')}</div><label>UTR / Transaction reference<input name="utr" type="text" minlength="4" maxlength="64" autocomplete="off" placeholder="Enter UTR after payment" required></label><button class="primary-btn" type="submit">Submit recharge for verification</button><p class="form-note">Do not submit a UTR until the UPI payment is successful. Duplicate UTRs are rejected.</p></form></div>
     </div>`
-    : `<div class="panel payment-panel"><div class="panel-head"><div><h3>Wallet funding unavailable</h3><span>${state.persistentState ? 'Recharge is not configured on this deployment yet.' : 'Synthetic QA mode never accepts real payments.'}</span></div><span class="status-chip">${state.persistentState ? 'SETUP REQUIRED' : 'SYNTHETIC MODE'}</span></div><p class="form-note">Your account starts at ₹0.00. No fake balance or fake payment credit is created in the browser or server runtime.</p></div>`;
+    : `<div class="panel payment-panel"><div class="panel-head"><div><h3>Wallet funding unavailable</h3><span>${state.persistentState ? 'Recharge is not configured on this deployment yet.' : 'Payments are disabled in this environment.'}</span></div><span class="status-chip">${state.persistentState ? 'SETUP REQUIRED' : 'PAYMENTS OFF'}</span></div><p class="form-note">Your account starts at ₹0.00. No fake balance or fake payment credit is created in the browser or server runtime.</p></div>`;
   return `${returnPurchase}<div class="section-head"><div><span class="kicker">WALLET / INR</span><h2>Recharge & Wallet</h2></div><div class="page-head-actions"><span class="result-note">Min ₹100 · Max ₹5,000</span><button class="refresh-btn" type="button" data-action="refresh-customer">${state.customerDataRefreshing ? 'Refreshing…' : 'Refresh'}</button></div></div>
     <div class="wallet-grid">
       <div class="balance-card"><div class="wallet-card-top"><span>AVAILABLE BALANCE</span><span>INR</span></div><strong>${money(state.balancePaise)}</strong><small>Balance comes from the authoritative INBOX9 wallet service.</small></div>
@@ -1170,7 +1189,8 @@ function apiPage() {
 
 function bindEvents() {
   document.getElementById('auth-form')?.addEventListener('submit', submitAuth);
-  document.querySelectorAll('[data-auth-mode]').forEach((node) => node.addEventListener('click', () => { state.authMode = node.dataset.authMode; render(); }));
+  document.querySelectorAll('[data-auth-mode]').forEach((node) => node.addEventListener('click', () => { state.authMode = node.dataset.authMode; state.bootstrapError = ''; render(); }));
+  document.querySelectorAll('[data-action="retry-bootstrap"]').forEach((node) => node.addEventListener('click', () => void retryBootstrap()));
   document.querySelectorAll('[data-action="logout"]').forEach((node) => node.addEventListener('click', logout));
   document.querySelectorAll('[data-action="security"]').forEach((node) => node.addEventListener('click', openSecurity));
   document.querySelectorAll('[data-action="close-security"]').forEach((node) => node.addEventListener('click', closeSecurity));
