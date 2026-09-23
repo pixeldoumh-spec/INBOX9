@@ -48,10 +48,24 @@ export function validatePasswordPair(currentPassword, newPassword) {
 }
 
 function parseCookies(header = '') {
-  return Object.fromEntries(header.split(';').map(v => v.trim()).filter(Boolean).map(v => {
-    const i = v.indexOf('=');
-    return i < 0 ? [v, ''] : [v.slice(0, i), decodeURIComponent(v.slice(i + 1))];
-  }));
+  const entries = [];
+  for (const part of String(header || '').split(';')) {
+    const value = part.trim();
+    if (!value) continue;
+    const i = value.indexOf('=');
+    if (i < 0) {
+      entries.push([value, '']);
+      continue;
+    }
+    const name = value.slice(0, i);
+    const raw = value.slice(i + 1);
+    try {
+      entries.push([name, decodeURIComponent(raw)]);
+    } catch {
+      // Ignore malformed cookie values rather than turning a bad request into a 500.
+    }
+  }
+  return Object.fromEntries(entries);
 }
 
 function cookieOptions(maxAge) {
