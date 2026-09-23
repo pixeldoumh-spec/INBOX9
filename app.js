@@ -308,17 +308,30 @@ async function boot() {
     return;
   }
   try {
-    const [payload, activationPayload, wallet] = await Promise.all([
+    const results = await Promise.allSettled([
       api('/api/services'),
       api('/api/activations'),
       api('/api/wallet')
     ]);
-    state.services = Array.isArray(payload.services) ? payload.services : [];
-    prepareServiceCatalog();
-    if (activationPayload.persistent) syncFromServerActivations(activationPayload.activations);
-    state.balancePaise = Number(wallet.balancePaise || 0);
-    state.walletLedger = Array.isArray(wallet.ledger) ? wallet.ledger : [];
-    state.recharges = Array.isArray(wallet.recharges) ? wallet.recharges : [];
+    const [servicesResult, activationsResult, walletResult] = results;
+
+    if (servicesResult.status === 'fulfilled') {
+      state.services = Array.isArray(servicesResult.value.services) ? servicesResult.value.services : [];
+      prepareServiceCatalog();
+    } else {
+      state.error = servicesResult.reason?.message || 'Unable to load services';
+    }
+
+    if (activationsResult.status === 'fulfilled' && activationsResult.value.persistent) {
+      syncFromServerActivations(activationsResult.value.activations);
+    }
+
+    if (walletResult.status === 'fulfilled') {
+      const wallet = walletResult.value;
+      state.balancePaise = Number(wallet.balancePaise || 0);
+      state.walletLedger = Array.isArray(wallet.ledger) ? wallet.ledger : [];
+      state.recharges = Array.isArray(wallet.recharges) ? wallet.recharges : [];
+    }
   } catch (error) {
     state.error = error.message;
   } finally {
