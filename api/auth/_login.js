@@ -24,7 +24,7 @@ export default async function handler(req, res) {
     if (error.message === 'AUTH_DATABASE_REQUIRED') {
       return res.status(503).json({ error: 'Authentication database is not configured' });
     }
-    if (error.code === 'INVALID_CREDENTIALS' || error.code === 'ACCOUNT_DISABLED') {
+    if (error.code === 'INVALID_CREDENTIALS' || error.code === 'INVALID_MOCK_CREDENTIALS' || error.code === 'ACCOUNT_DISABLED') {
       return res.status(401).json({ error: error.message });
     }
     if (/^(Enter a valid email address|Password must be at least 8 characters|Password is too long)$/.test(String(error.message || ''))) {
