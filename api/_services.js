@@ -38,10 +38,19 @@ export default async function handler(req, res) {
   let numberOtp = null;
   let numberOtpError = null;
   try {
-    numberOtp = await getNumberOtpIndiaInventory();
+    numberOtp = await Promise.race([
+      getNumberOtpIndiaInventory(),
+      new Promise((resolve) => setTimeout(() => resolve(null), 1200)),
+    ]);
+    if (!numberOtp) numberOtpError = 'NumberOTP availability is still refreshing';
   } catch (error) {
     numberOtpError = 'NumberOTP availability unavailable';
     console.error('numberotp.catalog_attach_failed', error);
+  }
+  if (!numberOtp) {
+    void getNumberOtpIndiaInventory().catch((error) => {
+      console.error('numberotp.catalog_background_refresh_failed', error);
+    });
   }
 
   const services = attachNumberOtpAvailability(sourceServices, numberOtp);
