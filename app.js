@@ -312,8 +312,8 @@ async function boot() {
     }
 
     if (activationsResult.status === 'fulfilled') {
-      const payload = activationsResult.value;
-      if (payload.persistent) syncFromServerActivations(payload.activations);
+      const activationPayload = activationsResult.value;
+      if (activationPayload.persistent) syncFromServerActivations(activationPayload.activations);
     } else {
       failures.push(activationsResult.reason?.message || 'Activation history unavailable');
     }
