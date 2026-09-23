@@ -86,3 +86,97 @@ test('synthetic terminal release requirement distinguishes modern and legacy act
   assert.equal(shouldRequireSyntheticReservation({ engine: 'synthetic-local', slot: 1 }), false);
   assert.equal(shouldRequireSyntheticReservation({}), false);
 });
+
+
+test('PostgreSQL concurrent claims allow exactly one Reserved slot owner', { skip: !process.env.INBOX9_TEST_DATABASE_URL }, async () => {
+  process.env.DATABASE_URL = process.env.INBOX9_TEST_DATABASE_URL;
+  process.env.DATABASE_SSL = 'false';
+  const crypto = await import('node:crypto');
+  const { getPool } = await import('../api/_lib/db.js');
+
+  const pool = await getPool();
+  const userA = `USR-SYN-${crypto.randomUUID()}`;
+  const userB = `USR-SYN-${crypto.randomUUID()}`;
+  const activationA = `ACT-SYN-${crypto.randomUUID()}`;
+  const activationB = `ACT-SYN-${crypto.randomUUID()}`;
+  const slot = 4999;
+  const serviceId = 'whatsapp-0';
+  const serverId = 'server-11';
+
+  const fixture = await pool.connect();
+  try {
+    await fixture.query(
+      `INSERT INTO users (id,email,password_hash,role)
+       VALUES ($1,$2,'test-fixture-hash','user'),($3,$4,'test-fixture-hash','user')`,
+      [userA, `${userA}@example.com`, userB, `${userB}@example.com`]
+    );
+    await fixture.query(
+      `INSERT INTO activations
+       (id,user_id,service_id,service_name,country,phone_number,price_paise,currency,status,expires_at,provider_metadata)
+       VALUES
+       ($1,$2,'whatsapp-0','WhatsApp','IN','+919000000001',950,'INR','Active',NOW() + INTERVAL '10 minutes',
+        jsonb_build_object('engine','synthetic','slot',4999)),
+       ($3,$4,'whatsapp-0','WhatsApp','IN','+919000000002',950,'INR','Active',NOW() + INTERVAL '10 minutes',
+        jsonb_build_object('engine','synthetic','slot',4999))`,
+      [activationA, userA, activationB, userB]
+    );
+  } finally {
+    fixture.release();
+  }
+
+  const [clientA, clientB] = await Promise.all([pool.connect(), pool.connect()]);
+  const attempt = async (client, activationId) => {
+    await client.query('BEGIN');
+    try {
+      const row = await claimSyntheticSlot(client, {
+        activationId,
+        serviceId,
+        slot,
+        serverId,
+      });
+      return { outcome: 'won', row };
+    } catch (error) {
+      return { outcome: 'lost', error };
+    }
+  };
+
+  try {
+    const promiseA = attempt(clientA, activationA);
+    const promiseB = attempt(clientB, activationB);
+
+    const first = await Promise.race([promiseA, promiseB]);
+    const firstClient = first.outcome === 'won' ? (first.row.activation_id === activationA ? clientA : clientB) : null;
+
+    if (firstClient) await firstClient.query('COMMIT');
+
+    const results = await Promise.all([promiseA, promiseB]);
+
+    for (const client of [clientA, clientB]) {
+      await client.query('ROLLBACK').catch(() => {});
+    }
+
+    assert.equal(results.filter(result => result.outcome === 'won').length, 1);
+    assert.equal(results.filter(result => result.outcome === 'lost').length, 1);
+    const loser = results.find(result => result.outcome === 'lost');
+    assert.equal(loser.error?.code, 'SYNTHETIC_SLOT_CONFLICT');
+
+    const check = await pool.query(
+      `SELECT service_id,slot_index,COUNT(*)::int AS count,
+              COUNT(*) FILTER (WHERE status='Reserved')::int AS reserved_count
+         FROM synthetic_slot_reservations
+        WHERE service_id=$1 AND slot_index=$2
+        GROUP BY service_id,slot_index`,
+      [serviceId, slot]
+    );
+    assert.equal(check.rows.length, 1);
+    assert.equal(check.rows[0].count, 1);
+    assert.equal(check.rows[0].reserved_count, 1);
+  } finally {
+    await clientA.release();
+    await clientB.release();
+    await pool.query('DELETE FROM synthetic_slot_reservations WHERE activation_id IN ($1,$2)', [activationA, activationB]);
+    await pool.query('DELETE FROM activations WHERE id IN ($1,$2)', [activationA, activationB]);
+    await pool.query('DELETE FROM users WHERE id IN ($1,$2)', [userA, userB]);
+    await pool.end();
+  }
+});
