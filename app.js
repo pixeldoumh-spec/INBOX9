@@ -279,6 +279,30 @@ async function refreshCustomerData() {
 }
 
 
+async function boot() {
+  try {
+    const session = await api('/api/auth/me');
+    state.user = session.user;
+    loadPersisted();
+  } catch {
+    state.user = null;
+    state.loading = false;
+    render();
+    return;
+  }
+
+  try {
+    await loadCustomerData();
+  } catch (error) {
+    state.error = error.message;
+  } finally {
+    state.loading = false;
+    render();
+  }
+
+  if (!state.tickTimer) state.tickTimer = window.setInterval(tick, 1000);
+}
+
 function resetPurchaseFlow() {
   state.purchaseFlow = {
     step: 'service',
