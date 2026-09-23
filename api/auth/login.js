@@ -1,6 +1,6 @@
 import { applySecurityHeaders, requestId, rateLimitAsync, enforceSameOrigin, validateBodySize } from '../_lib/security.js';
 import { dbEnabled } from '../_lib/db.js';
-import { login, setMockSession, mockUser, setSessionCookie } from '../_lib/auth.js';
+import { login, loginMockUser, setMockSession, setSessionCookie } from '../_lib/auth.js';
 
 export default async function handler(req, res) {
   applySecurityHeaders(res);
