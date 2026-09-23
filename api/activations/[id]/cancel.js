@@ -2,7 +2,7 @@ import { applySecurityHeaders, requestId, rateLimitAsync, enforceSameOrigin } fr
 import { dbEnabled } from '../../_lib/db.js';
 import { getSessionUser, getMockSession, requireUser } from '../../_lib/auth.js';
 import { cancelActivation as cancelPersistedActivation } from '../../_lib/activation-repository.js';
-import { cancelMock } from '../../_lib/mock.js';
+import { cancelMock, creditMockWallet } from '../../_lib/mock.js';
 
 export default async function handler(req, res) {
   applySecurityHeaders(res);
@@ -21,5 +21,10 @@ export default async function handler(req, res) {
   }
   if (!item) return res.status(404).json({ error: 'Activation not found' });
   if (item.activation) return res.status(200).json({ ...item.activation, refundPaise: item.activation.refundPaise ?? item.activation.pricePaise, walletBalancePaise: item.balancePaise });
+  if (!dbEnabled() && item.refundPaise && !item.refundCredited) {
+    item.refundCredited = true;
+    const walletBalancePaise = creditMockWallet(user, Number(item.refundPaise), item.id, `Activation refund • ${item.service || ''}`);
+    return res.status(200).json({ ...item, refundPaise: item.refundPaise, walletBalancePaise });
+  }
   return res.status(200).json({ ...item, refundPaise: item.refundPaise ?? item.pricePaise });
 }
