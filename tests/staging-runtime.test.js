@@ -40,8 +40,10 @@ function cookieFrom(response, current = '') {
 async function withServer(work) {
   resetMocks();
   const originalNodeEnv = process.env.NODE_ENV;
+  const originalAdminEmail = process.env.INBOX9_LOCAL_ADMIN_EMAIL;
   delete process.env.DATABASE_URL;
   process.env.NODE_ENV = 'test';
+  process.env.INBOX9_LOCAL_ADMIN_EMAIL = 'admin-runtime@example.test';
 
   const server = createServer();
   server.listen(0, '127.0.0.1');
@@ -53,6 +55,8 @@ async function withServer(work) {
     await once(server, 'close');
     if (originalNodeEnv === undefined) delete process.env.NODE_ENV;
     else process.env.NODE_ENV = originalNodeEnv;
+    if (originalAdminEmail === undefined) delete process.env.INBOX9_LOCAL_ADMIN_EMAIL;
+    else process.env.INBOX9_LOCAL_ADMIN_EMAIL = originalAdminEmail;
     resetMocks();
   }
 }
@@ -86,9 +90,40 @@ await withServer(async (server) => {
   assert.equal(me.status, 200);
   assert.equal(json(me).authenticated, true);
 
+  const recharge = await request(server, '/api/recharges', {
+    method: 'POST',
+    headers: { cookie, origin: 'http://127.0.0.1' },
+    body: { amount: 100, utr: 'RUNTIME-UTR-0001' }
+  });
+  assert.equal(recharge.status, 201);
+
+  const adminEmail = 'admin-runtime@example.test';
+  const adminRegister = await request(server, '/api/auth/register', {
+    method: 'POST',
+    body: { email: adminEmail, password: 'RuntimeAdmin!123' }
+  });
+  assert.equal(adminRegister.status, 201);
+  const adminCookie = cookieFrom(adminRegister);
+
+  const pending = await request(server, '/api/admin/recharges', { headers: { cookie: adminCookie } });
+  assert.equal(pending.status, 200);
+  assert.ok(json(pending).recharges.some(item => item.utr === 'RUNTIME-UTR-0001'));
+  const pendingRecharge = json(pending).recharges.find(item => item.utr === 'RUNTIME-UTR-0001');
+  const approval = await request(server, '/api/admin/recharges/' + encodeURIComponent(pendingRecharge.id), {
+    method: 'POST',
+    headers: { cookie: adminCookie, origin: 'http://127.0.0.1' },
+    body: { decision: 'approve' }
+  });
+  assert.equal(approval.status, 200);
+
+  cookie = cookieFrom(recharge, cookie);
+  const wallet = await request(server, '/api/wallet', { headers: { cookie } });
+  assert.equal(wallet.status, 200);
+  assert.equal(json(wallet).balancePaise, 10000);
+
   const activation = await request(server, '/api/activations', {
     method: 'POST',
-    headers: { cookie, 'idempotency-key': 'runtime-activation-0001' },
+    headers: { cookie, 'idempotency-key': 'runtime-activation-0001', origin: 'http://127.0.0.1' },
     body: { serviceId: 'whatsapp-0' }
   });
   assert.equal(activation.status, 201);
