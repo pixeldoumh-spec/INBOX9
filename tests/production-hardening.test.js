@@ -44,3 +44,10 @@ test('recharge audit is available inside the financial transaction', async () =>
   assert.match(src, /recharge\.reject/);
   assert.match(src, /recharge\.flag/);
 });
+
+
+test('production runtime is pinned to a supported Node 22 major', async () => {
+  const fs = await import('node:fs/promises');
+  const pkg = JSON.parse(await fs.readFile(new URL('../package.json', import.meta.url), 'utf8'));
+  assert.equal(pkg.engines?.node, '22.x');
+});

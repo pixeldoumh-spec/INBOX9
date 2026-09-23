@@ -4,7 +4,7 @@ INBOX9 uses one Node HTTP runtime (server.js) locally and one Vercel catch-all A
 
 ## Local development
 
-Requirements: Node.js 22+.
+Requirements: Node.js 22.x.
 
 ```bash
 npm run check
@@ -33,7 +33,7 @@ Without PostgreSQL, local development intentionally uses the mock session mode a
 
 Production requires:
 
-- Node.js 22+.
+- Node.js 22.x.
 - Persistent PostgreSQL for account, wallet, activation and inventory state.
 - Shared Redis-compatible rate limiting.
 - HTTPS and a stable `APP_ORIGIN`.
