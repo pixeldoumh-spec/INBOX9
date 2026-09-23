@@ -1140,6 +1140,7 @@ function bindEvents() {
   document.querySelectorAll('[data-action="open-menu"]').forEach((node) => node.addEventListener('click', openMenu));
   document.querySelectorAll('[data-action="close-menu"]').forEach((node) => node.addEventListener('click', closeMenu));
   document.querySelectorAll('[data-action="reset"]').forEach((node) => node.addEventListener('click', resetDemo));
+  document.querySelectorAll('[data-action="refresh-customer"]').forEach((node) => node.addEventListener('click', () => void loadCustomerData({ renderAfter: true })));
   document.getElementById('recharge-form')?.addEventListener('submit', submitRecharge);
   document.querySelectorAll('[data-admin-tab]').forEach((node) => node.addEventListener('click', () => loadAdminTab(node.dataset.adminTab)));
   document.querySelectorAll('[data-admin-approve]').forEach((node) => node.addEventListener('click', () => {
@@ -1164,6 +1165,11 @@ function bindMarketplaceEvents() {
     if (event.target?.id === "service-search") scheduleMarketSearch(event.target.value);
   });
   root.addEventListener("click", (event) => {
+    const toggleService = event.target.closest("[data-toggle-service]");
+    if (toggleService && root.contains(toggleService)) {
+      void toggleServiceCapacity(toggleService.dataset.toggleService);
+      return;
+    }
     const category = event.target.closest("[data-category]");
     if (category && root.contains(category)) {
       window.clearTimeout(state.marketSearchTimer);
