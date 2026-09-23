@@ -21,6 +21,10 @@ export default async function handler(req, res) {
     catch (error) { return res.status(503).json({ error: 'Recharge service unavailable' }); }
   }
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+  if (!await rateLimitAsync(req, res, 'recharge-create', 10, 600_000) || !enforceSameOrigin(req, res)) return;
+  try { validateBodySize(req); } catch (e) { return res.status(413).json({ error: e.message }); }
+  const amountPaise = Math.round(Number(req.body?.amount || 0) * 100);
+  const utr = String(req.body?.utr || '').trim();
   if (!rechargeEnabled) return res.status(503).json({ error: 'Wallet recharge is not enabled on this deployment' });
   if (!dbEnabled()) {
     if (!Number.isInteger(amountPaise) || amountPaise < MIN_RECHARGE_PAISE || amountPaise > MAX_RECHARGE_PAISE) return res.status(400).json({ error: 'Recharge amount must be between ₹100 and ₹5,000' });
@@ -31,10 +35,6 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: error.message });
     }
   }
-  if (!await rateLimitAsync(req, res, 'recharge-create', 10, 600_000) || !enforceSameOrigin(req, res)) return;
-  try { validateBodySize(req); } catch (e) { return res.status(413).json({ error: e.message }); }
-  const amountPaise = Math.round(Number(req.body?.amount || 0) * 100);
-  const utr = String(req.body?.utr || '').trim();
   try {
     return res.status(201).json(await createRecharge(user.id, amountPaise, utr));
   } catch (error) {
