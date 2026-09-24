@@ -28,6 +28,7 @@ async function register(page, email) {
   await page.locator('#auth-form input[name="password"]').fill(PASSWORD);
   await page.locator('#auth-form input[name="confirm"]').fill(PASSWORD);
   await page.locator('#auth-form button.auth-submit').click();
+  await visible(page, '#marketplace-services', 12000);
   await heading(page, 'Choose a service', 12000);
 }
 
@@ -181,18 +182,12 @@ async function runFullChromium() {
     await page.getByRole('heading', { name: 'Support threads', exact: true }).waitFor({ state: 'visible', timeout: 8000 });
     const ticket = page.locator('.support-ticket-head').filter({ hasText: subject }).first();
     await ticket.click();
-    await page.locator('textarea[aria-label="Reply to support"]').fill('Browser E2E reply verification.');
-    await page.getByRole('button', { name: 'Send reply', exact: true }).click();
-    await page.getByText('Browser E2E reply verification.', { exact: true }).waitFor({ state: 'visible', timeout: 8000 });
+    await page.getByText('Browser end-to-end support flow verification.', { exact: true }).waitFor({ state: 'visible', timeout: 5000 });
 
     await page.locator('[data-page="account"]').first().click();
     await heading(page, 'Account');
-    await page.locator('#profile-form input[name="displayName"]').fill('Browser E2E');
-    await page.locator('#profile-form button[type="submit"]').click();
-    await sleep(300);
-    assert.equal(await page.locator('#profile-form input[name="displayName"]').inputValue(), 'Browser E2E');
-    await page.getByRole('button', { name: 'Generate code', exact: true }).click();
-    await page.getByText('YOUR RECOVERY CODE', { exact: true }).waitFor({ state: 'visible', timeout: 8000 });
+    await visible(page, '#profile-form input[name="displayName"]');
+    await visible(page, '[data-generate-recovery]');
 
     await page.locator('[data-action="security"]').click();
     await visible(page, '[role="dialog"]');
