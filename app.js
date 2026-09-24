@@ -980,7 +980,7 @@ function buyPage() {
   const catalogUnavailable = Boolean(state.catalogError && !state.services.length && !state.catalogLoading);
   return `<div class="market-page">
     <div class="section-head market-section-head">
-      <div><span class="kicker">MARKETPLACE / +91</span><h2>Choose a service</h2><p class="section-subcopy">Pick the service you need. INBOX9 automatically handles number allocation behind the scenes.</p></div>
+      <div><span class="kicker">MARKETPLACE / +91</span><h2>Choose a service</h2><p class="section-subcopy">Pick the service you need. Choose a service, review the price, and start your activation.</p></div>
       <div class="market-summary"><span class="summary-dot"></span><strong>${list.length.toLocaleString()}</strong><span>matches</span></div>
     </div>
     <div class="market-country-strip"><div class="market-country-pill"><div><strong>+91 number format</strong><small>Current marketplace</small></div></div><div class="country-note">Standard +91 marketplace</div></div>
