@@ -98,7 +98,6 @@ async function assertNoHorizontalOverflow(page) {
 
 function attachErrorCapture(page) {
   const errors = [];
-  const expectedConsoleText = new Set();
   page.on('pageerror', (error) => errors.push(String(error.message || error)));
   page.on('console', (message) => {
     if (message.type() !== 'error') return;
