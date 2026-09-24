@@ -224,11 +224,11 @@ test('recharge history explains pending, approved and rejected outcomes', async 
   const app = await read('app.js');
   const css = await read('styles.css');
   assert.match(app, /Pay → Submit UTR → Admin verifies → Wallet credited/);
-  assert.match(app, /Payment verified · wallet credited/);
-  assert.match(app, /Payment rejected · wallet not credited/);
-  assert.match(app, /recharge-reason/);
-  assert.match(css, /recharge-status-card/);
-  assert.match(css, /recharge-progress/);
+  assert.match(app, /Verified & credited/);
+  assert.match(app, /Rejected · not credited/);
+  assert.match(app, /UTR after payment/);
+  assert.match(css, /recharge-flow/);
+  assert.match(css, /recharge-progress-copy/);
 });
 
 test('customer notification center surfaces recharge and activation lifecycle events', async () => {
