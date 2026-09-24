@@ -18,5 +18,5 @@ jobs:
           node-version: 22
       - name: Run live Render smoke
         env:
-          RENDER_SMOKE_BASE_URL: https://inbox9.onrender.com
+          RENDER_SMOKE_URL: https://inbox9.onrender.com
         run: npm run render:smoke
