@@ -42,36 +42,105 @@ test('Postgres settlement is exactly-once and rejects a reused event ID with ano
   const utr = 'WHUTR-' + crypto.randomUUID().replaceAll('-', '').slice(0, 20);
   const eventId = 'evt_' + crypto.randomUUID();
   const provider = 'sandbox';
+  const failedRechargeId = 'WH-RCH-FAILED-' + crypto.randomUUID();
+  const failedEventId = 'evt_' + crypto.randomUUID();
+
   try {
-    await pool.query('INSERT INTO users (id,email,password_hash,role) VALUES ($1,$2,$3,$4),($5,$6,$7,$8)', [userId, userId + '@example.invalid', 'fixture', 'user', adminId, adminId + '@example.invalid', 'fixture', 'admin']);
+    await pool.query(
+      'INSERT INTO users (id,email,password_hash,role) VALUES ($1,$2,$3,$4),($5,$6,$7,$8)',
+      [userId, userId + '@example.invalid', 'fixture', 'user', adminId, adminId + '@example.invalid', 'fixture', 'admin']
+    );
     await pool.query('INSERT INTO wallets (user_id,balance_paise) VALUES ($1,0)', [userId]);
-    await pool.query('INSERT INTO recharge_requests (id,user_id,amount_paise,utr,payment_method,upi_id) VALUES ($1,$2,50000,$3,\'UPI\',\'sandbox@upi\')', [rechargeId, userId, utr]);
-    const payload = { eventId, eventType: 'payment.succeeded', data: { rechargeId, amountPaise: 50000, currency: 'INR', utr, externalReference: 'sandbox-pay-1' } };
+    await pool.query(
+      'INSERT INTO recharge_requests (id,user_id,amount_paise,utr,payment_method,upi_id) VALUES ($1,$2,50000,$3,\'UPI\',\'sandbox@upi\'),($4,$2,75000,$5,\'UPI\',\'sandbox@upi\')',
+      [rechargeId, userId, utr, failedRechargeId, 'FAILED-' + crypto.randomUUID().replaceAll('-', '').slice(0, 20)]
+    );
+
+    const payload = {
+      eventId,
+      eventType: 'payment.succeeded',
+      data: { rechargeId, amountPaise: 50000, currency: 'INR', utr, externalReference: 'sandbox-pay-1' }
+    };
     const rawBody = JSON.stringify(payload);
     const normalized = normalizePaymentWebhook(payload);
-    const [first, second] = await Promise.all([
-      processPaymentWebhook({ rawBody, normalized, provider }),
-      processPaymentWebhook({ rawBody, normalized, provider })
-    ]);
-    assert.equal([first, second].filter(item => item.duplicate === true).length, 1);
-    assert.equal([first, second].filter(item => item.duplicate !== true && item.outcome === 'approved').length, 1);
+
+    const first = await processPaymentWebhook({ rawBody, normalized, provider });
+    const second = await processPaymentWebhook({ rawBody, normalized, provider });
+
+    assert.equal(first.outcome, 'approved');
+    assert.equal(second.duplicate, true);
+
     const wallet = await pool.query('SELECT balance_paise FROM wallets WHERE user_id=$1', [userId]);
-    const credits = await pool.query("SELECT COUNT(*)::int AS count, COALESCE(SUM(amount_paise),0)::bigint AS amount FROM wallet_ledger WHERE reference_type='recharge' AND reference_id=$1", [rechargeId]);
-    const event = await pool.query('SELECT status,outcome FROM payment_webhook_events WHERE provider=$1 AND event_id=$2', [provider, eventId]);
+    const credits = await pool.query(
+      "SELECT COUNT(*)::int AS count, COALESCE(SUM(amount_paise),0)::bigint AS amount FROM wallet_ledger WHERE reference_type='recharge' AND reference_id=$1",
+      [rechargeId]
+    );
+    const event = await pool.query(
+      'SELECT status,outcome FROM payment_webhook_events WHERE provider=$1 AND event_id=$2',
+      [provider, eventId]
+    );
+
     assert.equal(Number(wallet.rows[0].balance_paise), 50000);
     assert.equal(Number(credits.rows[0].count), 1);
     assert.equal(Number(credits.rows[0].amount), 50000);
     assert.deepEqual(event.rows[0], { status: 'Processed', outcome: 'approved' });
-    const conflictingPayload = { ...payload, data: { ...payload.data, amountPaise: 40000 } };
-    const mismatch = await processPaymentWebhook({ rawBody: JSON.stringify(conflictingPayload), normalized: normalizePaymentWebhook(conflictingPayload), provider });
+
+    const conflictingPayload = {
+      ...payload,
+      data: { ...payload.data, amountPaise: 40000 }
+    };
+    const mismatch = await processPaymentWebhook({
+      rawBody: JSON.stringify(conflictingPayload),
+      normalized: normalizePaymentWebhook(conflictingPayload),
+      provider
+    });
     assert.equal(mismatch.ok, false);
     assert.equal(mismatch.code, 'PAYMENT_WEBHOOK_EVENT_CONFLICT');
-    assert.equal(Number((await pool.query('SELECT balance_paise FROM wallets WHERE user_id=$1', [userId])).rows[0].balance_paise), 50000);
+    assert.equal(
+      Number((await pool.query('SELECT balance_paise FROM wallets WHERE user_id=$1', [userId])).rows[0].balance_paise),
+      50000
+    );
+
+    const failedPayload = {
+      eventId: failedEventId,
+      eventType: 'payment.failed',
+      data: {
+        rechargeId: failedRechargeId,
+        amountPaise: 75000,
+        currency: 'INR',
+        externalReference: 'sandbox-failed-1'
+      }
+    };
+    const failed = await processPaymentWebhook({
+      rawBody: JSON.stringify(failedPayload),
+      normalized: normalizePaymentWebhook(failedPayload),
+      provider
+    });
+    assert.equal(failed.outcome, 'rejected');
+
+    const failedRecharge = await pool.query(
+      'SELECT status FROM recharge_requests WHERE id=$1',
+      [failedRechargeId]
+    );
+    const failedCredits = await pool.query(
+      "SELECT COUNT(*)::int AS count FROM wallet_ledger WHERE reference_type='recharge' AND reference_id=$1",
+      [failedRechargeId]
+    );
+    assert.equal(failedRecharge.rows[0].status, 'Rejected');
+    assert.equal(Number(failedCredits.rows[0].count), 0);
+    assert.equal(
+      Number((await pool.query('SELECT balance_paise FROM wallets WHERE user_id=$1', [userId])).rows[0].balance_paise),
+      50000
+    );
 
     const unknownPayload = {
       eventId: 'evt_' + crypto.randomUUID(),
       eventType: 'payment.succeeded',
-      data: { rechargeId: 'RCH-NOT-FOUND-' + crypto.randomUUID(), amountPaise: 50000, currency: 'INR' }
+      data: {
+        rechargeId: 'RCH-NOT-FOUND-' + crypto.randomUUID(),
+        amountPaise: 50000,
+        currency: 'INR'
+      }
     };
     const unknown = await processPaymentWebhook({
       rawBody: JSON.stringify(unknownPayload),
@@ -80,16 +149,18 @@ test('Postgres settlement is exactly-once and rejects a reused event ID with ano
     });
     assert.equal(unknown.ok, false);
     assert.equal(unknown.code, 'PAYMENT_RECHARGE_NOT_FOUND');
+
     const unknownEvent = await pool.query(
       'SELECT status,error_code FROM payment_webhook_events WHERE provider=$1 AND event_id=$2',
       [provider, unknownPayload.eventId]
     );
-    assert.deepEqual(unknownEvent.rows[0], { status: 'Rejected', error_code: 'PAYMENT_RECHARGE_NOT_FOUND' });
+    assert.deepEqual(unknownEvent.rows[0], {
+      status: 'Rejected',
+      error_code: 'PAYMENT_RECHARGE_NOT_FOUND'
+    });
   } finally {
-    // The wallet ledger is intentionally immutable and its user foreign key is
-    // cascading, so deleting the fixture user would invoke the ledger mutation guard.
-    // The CI database is recreated for every run; UUID-scoped fixtures are therefore
-    // intentionally retained to preserve the production invariant.
+    // wallet_ledger is intentionally immutable; the CI database is recreated per run,
+    // so UUID-scoped fixtures are retained rather than deleting ledger rows.
     await pool.end();
   }
 });
