@@ -33,6 +33,7 @@ export function productionConfiguration() {
     persistentRuntime: isPersistentProduction(),
     rechargeEnabled: String(process.env.INBOX9_ENABLE_RECHARGE || '').trim().toLowerCase() === 'true',
     upiDestination: Boolean(String(process.env.INBOX9_UPI_ID || '').trim()),
+    paymentWebhook: Boolean(String(process.env.INBOX9_PAYMENT_WEBHOOK_SECRET || '').trim()),
   };
 }
 
