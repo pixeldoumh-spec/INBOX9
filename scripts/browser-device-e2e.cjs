@@ -114,9 +114,17 @@ async function runFullChromium() {
     assert.equal(await page.title(), 'INBOX9 — OTP Marketplace');
 
     await register(page, customerEmail);
-    // Session continuity must survive a real browser reload after authentication.
-    await page.reload({ waitUntil: 'networkidle' });
+    // A slow session-check response must never expose the login form during reload.
+    await page.route('**/api/auth/me', async (route) => {
+      await sleep(1200);
+      await route.continue();
+    });
+    const reloadPromise = page.reload({ waitUntil: 'domcontentloaded' });
+    await visible(page, '.auth-card-loading', 3000);
+    assert.equal(await page.locator('#auth-form:visible').count(), 0, 'login form must remain hidden while session restoration is pending');
+    await reloadPromise;
     await heading(page, 'Choose a service', 12000);
+    await page.unroute('**/api/auth/me');
     await assertAccessibleButtons(page);
     await assertNoHorizontalOverflow(page);
     assert.ok(await page.locator('[data-buy-service]:visible').count() > 0, 'marketplace should render service actions');
