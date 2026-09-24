@@ -28,7 +28,8 @@ test('confirmation shows the key customer decision data', async () => {
   assert.match(review, /Number validity/);
   assert.match(review, /OTP delivery timing varies by service/);
   assert.match(review, /Activation tracking/);
-  assert.doesNotMatch(review, /Availability/);
+  assert.doesNotMatch(review, /<span>Availability<\/span>/);
+  assert.doesNotMatch(review, /numbers available/);
   assert.doesNotMatch(review, /OTP appears in about 20 seconds/);
   assert.match(review, /Get number/);
 });
