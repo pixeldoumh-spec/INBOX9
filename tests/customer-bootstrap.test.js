@@ -42,3 +42,11 @@ test('customer API client explicitly includes same-origin session credentials', 
   const apiClient = await fs.readFile(new URL('../customer/api-client.js', import.meta.url), 'utf8');
   assert.match(apiClient, /credentials: options\.credentials \?\? 'same-origin'/);
 });
+
+
+test('customer render keeps authentication form hidden while session bootstrap is pending', async () => {
+  const app = await fs.readFile(new URL('../app.js', import.meta.url), 'utf8');
+  assert.match(app, /document\.getElementById\('app'\)\.innerHTML = state\.loading/);
+  assert.match(app, /state\.loading \? sessionBootstrapPage\(\)/);
+  assert.match(app, /state\.bootstrapError \? bootstrapErrorPage\(\) : authPage\(\)/);
+});
