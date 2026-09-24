@@ -44,9 +44,14 @@ test('customer API client explicitly includes same-origin session credentials', 
 });
 
 
-test('customer render keeps authentication form hidden while session bootstrap is pending', async () => {
-  const app = await fs.readFile(new URL('../app.js', import.meta.url), 'utf8');
-  assert.match(app, /document\.getElementById\('app'\)\.innerHTML = state\.loading/);
-  assert.match(app, /state\.loading\s*\?\s*sessionBootstrapPage\(\)/);
-  assert.match(app, /state\.bootstrapError \? bootstrapErrorPage\(\) : authPage\(\)/);
+test('customer render restores the authenticated shell while session bootstrap is pending', async () => {
+  const [app, state] = await Promise.all([
+    fs.readFile(new URL('../app.js', import.meta.url), 'utf8'),
+    fs.readFile(new URL('../customer/state.js', import.meta.url), 'utf8')
+  ]);
+  assert.match(state, /sessionHint: null/);
+  assert.match(app, /SESSION_HINT_KEY = 'inbox9\.session-hint\.v1'/);
+  assert.match(app, /state\.sessionHint = readSessionHint\(\)/);
+  assert.match(app, /if \(state\.sessionHint\?\.user\) state\.user = state\.sessionHint\.user/);
+  assert.match(app, /state\.user = payload\.user;\s*state\.sessionHint = \{ user: payload\.user \};\s*writeSessionHint\(payload\.user\)/);
 });
