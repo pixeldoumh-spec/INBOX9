@@ -158,3 +158,30 @@ test('hero dashboard uses number validity instead of allocation or code timing',
   assert.doesNotMatch(app, /<span>Code timing<\/span>/);
   assert.doesNotMatch(app, /server selected at purchase/);
 });
+
+
+test('orders page is a mobile-friendly transaction timeline with authoritative refresh', async () => {
+  const app = await read('app.js');
+  assert.match(app, /function filteredOrders\(\)/);
+  assert.match(app, /function orderCard\(/);
+  assert.match(app, /data-order-filter/);
+  assert.match(app, /data-order-toggle/);
+  assert.match(app, /await loadCustomerData\(\{ silent: true \}\)/);
+});
+
+test('wallet page exposes authoritative balance, ledger totals, and pending top-ups', async () => {
+  const app = await read('app.js');
+  assert.match(app, /function walletSummary\(\)/);
+  assert.match(app, /LEDGER CREDITS/);
+  assert.match(app, /LEDGER DEBITS/);
+  assert.match(app, /PENDING TOP-UPS/);
+  assert.match(app, /Authoritative wallet balance/);
+});
+
+test('recharge form prevents duplicate submissions while a request is in flight', async () => {
+  const [app, state] = await Promise.all([read('app.js'), read('customer/state.js')]);
+  assert.match(state, /rechargeSubmitting: false/);
+  assert.match(app, /if \(state\.rechargeSubmitting\) return/);
+  assert.match(app, /state\.rechargeSubmitting = true/);
+  assert.match(app, /Submitting…/);
+});

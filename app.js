@@ -246,6 +246,9 @@ function handleSessionSignedOut() {
   state.orders = [];
   state.walletLedger = [];
   state.recharges = [];
+  state.rechargeSubmitting = false;
+  state.orderFilter = 'all';
+  state.expandedOrderId = null;
   state.securityOpen = false;
   state.expandedServiceId = null;
   resetPurchaseFlow();
@@ -535,18 +538,29 @@ async function refreshWallet() {
 
 async function submitRecharge(event) {
   event.preventDefault();
+  if (state.rechargeSubmitting) return;
   const form = event.currentTarget;
   const data = new FormData(form);
   const amount = Number(data.get('amount'));
   const utr = String(data.get('utr') || '').trim();
   if (!Number.isInteger(amount) || amount < 100 || amount > 5000) return toast('Recharge amount must be between ₹100 and ₹5,000');
   if (!/^[A-Za-z0-9._-]{4,64}$/.test(utr)) return toast('Enter a valid UTR / transaction reference');
+  state.rechargeSubmitting = true;
+  render();
   try {
     await api('/api/recharges', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ amount, utr }) });
     await refreshWallet();
     toast('Recharge submitted for verification');
+  } catch (error) {
+    if (Number(error.status) === 401) {
+      handleSessionExpired();
+      return;
+    }
+    toast(error.message);
+  } finally {
+    state.rechargeSubmitting = false;
     render();
-  } catch (error) { toast(error.message); }
+  }
 }
 
 function setRechargeAmount(amount) {
@@ -1029,33 +1043,86 @@ function activeCard(activation) {
   '</article>';
 }
 
-function ordersPage() {
-  const rows = state.orders.length
-    ? state.orders.map((order) => `<tr><td class="mono" data-label="Order">${esc(order.id)}</td><td data-label="Service"><strong>${esc(order.service)}</strong></td><td data-label="Number">${esc(order.number)}</td><td data-label="Status"><span class="table-status ${order.status.toLowerCase()}">${esc(order.status)}</span></td><td data-label="OTP">${esc(order.otp)}</td><td data-label="Price">${money(order.pricePaise)}</td><td data-label="Created">${esc(order.created)}</td></tr>`).join('')
-    : `<tr><td colspan="7"><div class="empty-mini">No orders yet. Completed and active activations appear here automatically.</div></td></tr>`;
-  return `<div class="section-head"><div><span class="kicker">ACCOUNT ACTIVITY</span><h2>Order history</h2></div><div class="page-head-actions"><span class="result-note">${state.orders.length} records</span><button class="refresh-btn" type="button" data-action="refresh-customer">${state.customerDataRefreshing ? 'Refreshing…' : 'Refresh'}</button></div></div><div class="panel table-panel"><table class="orders-table"><thead><tr><th>Order</th><th>Service</th><th>Number</th><th>Status</th><th>OTP</th><th>Price</th><th>Created</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+function orderStatusClass(status) {
+  return String(status || 'Unknown').toLowerCase().replace(/[^a-z]+/g, '-');
 }
+
+function filteredOrders() {
+  const source = Array.isArray(state.orders) ? state.orders : [];
+  if (state.orderFilter === 'active') return source.filter((order) => ['Active', 'Waiting'].includes(String(order.status)));
+  if (state.orderFilter === 'completed') return source.filter((order) => ['Completed', 'Expired', 'Cancelled', 'Refunded'].includes(String(order.status)));
+  return source;
+}
+
+function orderCard(order) {
+  const expanded = state.expandedOrderId === order.id;
+  const status = String(order.status || 'Unknown');
+  const otpReady = order.otp && !['Waiting…', '—'].includes(String(order.otp));
+  const detail = expanded
+    ? '<div class="order-detail-grid"><div><span>Order ID</span><strong>' + esc(order.id) + '</strong></div><div><span>Number</span><strong>' + esc(order.number || '—') + '</strong></div><div><span>Amount</span><strong>' + money(order.pricePaise) + '</strong></div><div><span>Created</span><strong>' + esc(order.created || '—') + '</strong></div></div>'
+    : '';
+  const otp = otpReady
+    ? '<div class="order-otp"><span>OTP</span><strong>' + esc(order.otp) + '</strong><button class="copy-btn" type="button" data-copy="' + esc(String(order.otp).replace(/\\s/g, '')) + '" data-copy-message="OTP copied">Copy</button></div>'
+    : '<span class="order-otp-wait">' + esc(status === 'Active' ? 'OTP waiting' : 'OTP not available') + '</span>';
+  return '<article class="order-card ' + (expanded ? 'expanded' : '') + '"><button class="order-card-main" type="button" data-order-toggle="' + esc(order.id) + '" aria-expanded="' + String(expanded) + '">' +
+    '<div class="order-service-icon">' + iconFor(state.services.find((service) => service.id === order.serviceId)?.category) + '</div>' +
+    '<div class="order-card-copy"><span>' + esc(order.service || 'Service') + '</span><strong>' + esc(order.number || 'Number reserved') + '</strong><small>' + esc(order.created || 'Recently') + '</small></div>' +
+    '<span class="table-status ' + orderStatusClass(status) + '">' + esc(status) + '</span>' +
+    '<span class="order-card-price">' + money(order.pricePaise) + '</span><span class="order-card-chevron" aria-hidden="true">⌄</span></button>' +
+    '<div class="order-card-body">' + otp + '</div>' + detail + '</article>';
+}
+
+function ordersPage() {
+  const list = filteredOrders();
+  const activeCount = state.orders.filter((order) => ['Active', 'Waiting'].includes(String(order.status))).length;
+  const completedCount = state.orders.filter((order) => ['Completed', 'Expired', 'Cancelled', 'Refunded'].includes(String(order.status))).length;
+  const filterButtons = [['all', 'All'], ['active', 'Active'], ['completed', 'Finished']].map(([value, label]) =>
+    '<button class="filter-btn ' + (state.orderFilter === value ? 'selected' : '') + '" type="button" data-order-filter="' + value + '">' + label + '<span class="filter-count">' + (value === 'all' ? state.orders.length : value === 'active' ? activeCount : completedCount) + '</span></button>'
+  ).join('');
+  const body = list.length
+    ? '<div class="orders-card-list">' + list.map(orderCard).join('') + '</div>'
+    : '<div class="panel empty"><div class="empty-icon">▤</div><h3>No matching orders</h3><p>Your activations and completed transactions will appear here automatically.</p><button class="refresh-btn empty-state-action" type="button" data-action="refresh-customer">Refresh orders</button></div>';
+  return '<div class="section-head with-action"><div><span class="kicker">ACCOUNT ACTIVITY</span><h2>Orders</h2><p class="section-subcopy">A transaction timeline for your number activations.</p></div><div class="page-head-actions"><span class="status-chip">' + state.orders.length + ' total</span><button class="refresh-btn" type="button" data-action="refresh-customer">' + (state.customerDataRefreshing ? 'Refreshing…' : 'Refresh') + '</button></div></div>' +
+    '<div class="order-summary-strip"><div><span>Active</span><strong>' + activeCount + '</strong></div><div><span>Finished</span><strong>' + completedCount + '</strong></div><div><span>Tracked</span><strong>' + state.orders.length + '</strong></div></div>' +
+    '<div class="order-filter-row" role="group" aria-label="Order filters">' + filterButtons + '</div>' + body;
+}
+
+
+function walletEntryLabel(entry) {
+  const type = entry.type === 'credit' ? 'Credit' : 'Debit';
+  return { type, sign: entry.type === 'credit' ? '+' : '−' };
+}
+
+function walletSummary() {
+  const ledger = Array.isArray(state.walletLedger) ? state.walletLedger : [];
+  const credits = ledger.filter((entry) => entry.type === 'credit').reduce((sum, entry) => sum + Number(entry.amountPaise || 0), 0);
+  const debits = ledger.filter((entry) => entry.type === 'debit').reduce((sum, entry) => sum + Number(entry.amountPaise || 0), 0);
+  const pending = (Array.isArray(state.recharges) ? state.recharges : [])
+    .filter((item) => String(item.status || '').toLowerCase() === 'pending')
+    .reduce((sum, item) => sum + Number(item.amountPaise || 0), 0);
+  return { credits, debits, pending };
+}
+
 function walletPage() {
   const returnPurchase = state.purchaseFlow.returnAfterWallet && state.purchaseFlow.serviceId
     ? '<div class="panel purchase-return-banner"><div><strong>Continue your activation</strong><span>Your selected service is saved.</span></div><button class="primary-btn" type="button" data-return-purchase>Back to purchase</button></div>'
     : '';
-  const ledgerRows = state.walletLedger.length ? state.walletLedger.map(entry => `<div class="ledger-row ${entry.type === 'credit' ? 'positive' : ''}"><span>${entry.type === 'credit' ? '↘' : '↗'} ${esc(entry.description)}</span><strong>${entry.type === 'credit' ? '+' : '−'} ${money(entry.amountPaise)}</strong><small>${new Date(entry.createdAt).toLocaleString()}</small></div>`).join('') : '<div class="empty-mini">No wallet transactions yet.</div>';
-  const rechargeRows = state.recharges.length ? state.recharges.map(item => `<div class="recharge-row"><div><strong>${money(item.amountPaise)}</strong><span class="table-status ${item.status.toLowerCase()}">${esc(item.status)}</span></div><code>${esc(item.utr)}</code><small>${new Date(item.submittedAt).toLocaleString()}</small></div>`).join('') : '<div class="empty-mini">No recharge requests yet.</div>';
+  const summary = walletSummary();
+  const ledgerRows = state.walletLedger.length ? state.walletLedger.map(entry => {
+    const meta = walletEntryLabel(entry);
+    return '<div class="ledger-row ' + (entry.type === 'credit' ? 'positive' : '') + '"><div class="ledger-main"><span class="ledger-kind">' + meta.type + '</span><strong>' + esc(entry.description) + '</strong><small>' + esc(new Date(entry.createdAt).toLocaleString()) + '</small></div><strong class="ledger-amount ' + (entry.type === 'credit' ? 'credit' : 'debit') + '">' + meta.sign + ' ' + money(entry.amountPaise) + '</strong></div>';
+  }).join('') : '<div class="empty-mini">No wallet transactions yet.</div>';
+  const rechargeRows = state.recharges.length ? state.recharges.map(item => '<div class="recharge-row"><div><strong>' + money(item.amountPaise) + '</strong><span class="table-status ' + String(item.status).toLowerCase() + '">' + esc(item.status) + '</span></div><code>' + esc(item.utr) + '</code><small>' + esc(new Date(item.submittedAt).toLocaleString()) + '</small></div>').join('') : '<div class="empty-mini">No recharge requests yet.</div>';
   const rechargeReady = Boolean(state.persistentState && state.rechargeUpiId);
+  const submitBusy = state.rechargeSubmitting;
   const fundingPanel = rechargeReady
-    ? `<div class="recharge-grid">
-      <div class="panel payment-panel"><div class="panel-head"><div><h3>1. Pay by UPI</h3><span>Use the configured INBOX9 payment destination.</span></div><span class="status-chip">MANUAL VERIFY</span></div><div class="upi-row"><span>UPI ID</span><code>${esc(state.rechargeUpiId)}</code><button class="copy-btn" type="button" data-copy="${esc(state.rechargeUpiId)}">Copy</button></div></div>
-      <div class="panel payment-panel"><div class="panel-head"><div><h3>2. Submit payment</h3><span>Use the exact amount you paid and its UTR.</span></div></div><form id="recharge-form" class="recharge-form"><label>Amount (₹)<input id="recharge-amount" name="amount" type="number" min="100" max="5000" step="1" value="${state.rechargeAmount}" required></label><div class="amount-presets">${[100,500,1000,2000,5000].map(amount => `<button type="button" class="filter-btn ${state.rechargeAmount === amount ? 'selected' : ''}" data-recharge-amount="${amount}">₹${amount}</button>`).join('')}</div><label>UTR / Transaction reference<input name="utr" type="text" minlength="4" maxlength="64" autocomplete="off" placeholder="Enter UTR after payment" required></label><button class="primary-btn" type="submit">Submit recharge for verification</button><p class="form-note">Do not submit a UTR until the UPI payment is successful. Duplicate UTRs are rejected.</p></form></div>
-    </div>`
-    : `<div class="panel payment-panel"><div class="panel-head"><div><h3>Wallet funding unavailable</h3><span>${state.persistentState ? 'Recharge is not configured on this deployment yet.' : 'Payments are disabled in this environment.'}</span></div><span class="status-chip">${state.persistentState ? 'SETUP REQUIRED' : 'PAYMENTS OFF'}</span></div><p class="form-note">Your account starts at ₹0.00. No fake balance or fake payment credit is created in the browser or server runtime.</p></div>`;
-  return `${returnPurchase}<div class="section-head"><div><span class="kicker">WALLET / INR</span><h2>Recharge & Wallet</h2></div><div class="page-head-actions"><span class="result-note">Min ₹100 · Max ₹5,000</span><button class="refresh-btn" type="button" data-action="refresh-customer">${state.customerDataRefreshing ? 'Refreshing…' : 'Refresh'}</button></div></div>
-    <div class="wallet-grid">
-      <div class="balance-card"><div class="wallet-card-top"><span>AVAILABLE BALANCE</span><span>INR</span></div><strong>${money(state.balancePaise)}</strong><small>Balance comes from the authoritative INBOX9 wallet service.</small></div>
-      <div class="panel wallet-info"><div class="info-icon">₹</div><div><h3>Recharge before buying numbers</h3><p>${rechargeReady ? 'Pay by UPI, then submit your UTR. Your balance is credited only after an authorized verification.' : 'Wallet funding is unavailable until persistent accounting and payment configuration are enabled.'}</p></div></div>
-    </div>
-    ${fundingPanel}
-    <div class="panel ledger"><div class="panel-head"><div><h3>Recharge requests</h3><span>Pending requests are not credited until verified.</span></div></div>${rechargeRows}</div>
-    <div class="panel ledger"><div class="panel-head"><div><h3>Wallet ledger</h3><span>Authoritative account activity</span></div></div>${ledgerRows}</div>`;
+    ? '<div class="recharge-grid"><div class="panel payment-panel"><div class="panel-head"><div><h3>1. Pay by UPI</h3><span>Use the configured INBOX9 payment destination.</span></div><span class="status-chip">MANUAL VERIFY</span></div><div class="upi-row"><span>UPI ID</span><code>' + esc(state.rechargeUpiId) + '</code><button class="copy-btn" type="button" data-copy="' + esc(state.rechargeUpiId) + '" data-copy-message="UPI ID copied">Copy</button></div></div><div class="panel payment-panel"><div class="panel-head"><div><h3>2. Submit payment</h3><span>Exact amount + UTR are required.</span></div></div><form id="recharge-form" class="recharge-form"><label>Amount (₹)<input id="recharge-amount" name="amount" type="number" min="100" max="5000" step="1" value="' + state.rechargeAmount + '" required ' + (submitBusy ? 'disabled' : '') + '></label><div class="amount-presets">' + [100,500,1000,2000,5000].map(amount => '<button type="button" class="filter-btn ' + (state.rechargeAmount === amount ? 'selected' : '') + '" data-recharge-amount="' + amount + '" ' + (submitBusy ? 'disabled' : '') + '>₹' + amount + '</button>').join('') + '</div><label>UTR / Transaction reference<input name="utr" type="text" minlength="4" maxlength="64" autocomplete="off" placeholder="Enter UTR after payment" required ' + (submitBusy ? 'disabled' : '') + '></label><button class="primary-btn" type="submit" ' + (submitBusy ? 'disabled' : '') + '>' + (submitBusy ? 'Submitting…' : 'Submit recharge for verification') + '</button><p class="form-note">A successful submission creates a pending request. Your wallet is credited only after verification.</p></form></div></div>'
+    : '<div class="panel payment-panel"><div class="panel-head"><div><h3>Wallet funding unavailable</h3><span>' + (state.persistentState ? 'Recharge is not configured on this deployment yet.' : 'Payments are disabled in this environment.') + '</span></div><span class="status-chip">' + (state.persistentState ? 'SETUP REQUIRED' : 'PAYMENTS OFF') + '</span></div><p class="form-note">No balance is created in the browser. Credits come from the authoritative wallet ledger.</p></div>';
+  return returnPurchase +
+    '<div class="section-head with-action"><div><span class="kicker">WALLET / INR</span><h2>Wallet</h2><p class="section-subcopy">Authoritative balance, funding requests, and account transactions.</p></div><div class="page-head-actions"><span class="result-note">Min ₹100 · Max ₹5,000</span><button class="refresh-btn" type="button" data-action="refresh-customer">' + (state.customerDataRefreshing ? 'Refreshing…' : 'Refresh') + '</button></div></div>' +
+    '<div class="wallet-summary-grid"><div class="balance-card"><div class="wallet-card-top"><span>AVAILABLE BALANCE</span><span>INR</span></div><strong>' + money(state.balancePaise) + '</strong><small>Authoritative wallet balance</small></div><div class="wallet-stat-card"><span>LEDGER CREDITS</span><strong>' + money(summary.credits) + '</strong><small>Recorded credits</small></div><div class="wallet-stat-card"><span>LEDGER DEBITS</span><strong>' + money(summary.debits) + '</strong><small>Activation spending</small></div><div class="wallet-stat-card pending"><span>PENDING TOP-UPS</span><strong>' + money(summary.pending) + '</strong><small>Not credited yet</small></div></div>' +
+    fundingPanel +
+    '<div class="wallet-two-column"><div class="panel ledger"><div class="panel-head"><div><h3>Wallet ledger</h3><span>Authoritative account activity</span></div></div>' + ledgerRows + '</div><div class="panel ledger"><div class="panel-head"><div><h3>Recharge requests</h3><span>Pending requests are not credited until verified.</span></div></div>' + rechargeRows + '</div></div>';
 }
 
 function apiPage() {
@@ -1085,6 +1152,16 @@ function bindEvents() {
     }
     setPage(page);
   }));
+  document.querySelectorAll('[data-order-filter]').forEach((node) => node.addEventListener('click', () => {
+    state.orderFilter = node.dataset.orderFilter || 'all';
+    state.expandedOrderId = null;
+    render();
+  }));
+  document.querySelectorAll('[data-order-toggle]').forEach((node) => node.addEventListener('click', () => {
+    state.expandedOrderId = state.expandedOrderId === node.dataset.orderToggle ? null : node.dataset.orderToggle;
+    render();
+  }));
+
   bindMarketplaceEvents();
   document.querySelectorAll('[data-cancel]').forEach((node) => node.addEventListener('click', () => {
     state.activeCancelId = node.dataset.cancel;

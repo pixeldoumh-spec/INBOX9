@@ -1527,3 +1527,151 @@ body::before{
 .service-detail-row strong{display:block;color:#dce5ee;font-size:10px}
 .service-detail-row div>span{display:block;margin-top:4px;color:#69778a;font-size:8px;line-height:1.5}
 @media(max-width:620px){.service-details-panel{grid-template-columns:1fr}}
+
+
+/* Wallet + orders transaction experience */
+.wallet-summary-grid{
+  display:grid;
+  grid-template-columns:1.5fr repeat(3,1fr);
+  gap:10px;
+  margin-bottom:14px;
+}
+.wallet-stat-card{
+  min-height:150px;
+  padding:15px;
+  border:1px solid #1c2a39;
+  border-radius:14px;
+  background:linear-gradient(180deg,#0d151e,#0a1118);
+}
+.wallet-stat-card>span{display:block;color:#5f7085;font-size:8px;letter-spacing:.08em}
+.wallet-stat-card>strong{display:block;margin-top:22px;color:#edf3f8;font:700 21px 'Space Grotesk'}
+.wallet-stat-card>small{display:block;margin-top:5px;color:#67768a;font-size:8px}
+.wallet-stat-card.pending{border-color:#3b3025;background:linear-gradient(180deg,#15110e,#0d0b09)}
+.wallet-two-column{
+  display:grid;
+  grid-template-columns:1.45fr 1fr;
+  gap:12px;
+  margin-top:12px;
+}
+.ledger-main{
+  display:flex;
+  min-width:0;
+  flex-direction:column;
+}
+.ledger-kind{
+  color:#596a7e;
+  font-size:7px;
+  text-transform:uppercase;
+  letter-spacing:.09em;
+}
+.ledger-row strong.ledger-amount{
+  margin-left:auto;
+  white-space:nowrap;
+}
+.ledger-amount.credit{color:#9fdf92}
+.ledger-amount.debit{color:#c9a4a0}
+.order-summary-strip{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:9px;
+  margin:6px 0 12px;
+}
+.order-summary-strip>div{
+  padding:12px 13px;
+  border:1px solid #1c2a39;
+  border-radius:12px;
+  background:#0b121a;
+}
+.order-summary-strip span{display:block;color:#5e7085;font-size:8px;text-transform:uppercase;letter-spacing:.08em}
+.order-summary-strip strong{display:block;margin-top:6px;color:#ecf3f8;font:700 19px 'Space Grotesk'}
+.order-filter-row{
+  display:flex;
+  gap:7px;
+  overflow:auto;
+  margin-bottom:10px;
+  padding-bottom:2px;
+  scrollbar-width:none;
+}
+.order-filter-row::-webkit-scrollbar{display:none}
+.order-filter-row .filter-btn{flex:none}
+.orders-card-list{
+  display:grid;
+  gap:8px;
+  max-width:980px;
+}
+.order-card{
+  overflow:hidden;
+  border:1px solid #202d3b;
+  border-radius:14px;
+  background:linear-gradient(180deg,#0d151e,#0a1118);
+}
+.order-card.expanded{border-color:#2a4054}
+.order-card-main{
+  width:100%;
+  min-height:76px;
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr) auto auto auto;
+  align-items:center;
+  gap:11px;
+  padding:12px 14px;
+  border:0;
+  background:transparent;
+  color:inherit;
+  text-align:left;
+}
+.order-service-icon{
+  width:40px;height:40px;
+  border:1px solid #26384a;
+  border-radius:11px;
+  display:grid;place-items:center;
+  background:#111b27;
+}
+.order-card-copy{min-width:0}
+.order-card-copy span,.order-card-copy small{display:block;color:#657489;font-size:8px}
+.order-card-copy strong{display:block;margin:3px 0;color:#dce6ef;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.order-card-price{color:#dfe9f1;font-weight:700;font-size:11px;white-space:nowrap}
+.order-card-chevron{color:#6e7f91;font-size:14px}
+.order-card-body{
+  display:flex;
+  justify-content:flex-end;
+  align-items:center;
+  gap:10px;
+  padding:0 14px 12px;
+}
+.order-otp{display:flex;align-items:center;gap:8px}
+.order-otp span{color:#5d6e82;font-size:8px;letter-spacing:.1em}
+.order-otp strong{color:#b5e6a8;font:700 16px 'Space Grotesk';letter-spacing:.12em}
+.order-otp-wait{color:#5f7083;font-size:8px}
+.order-detail-grid{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:7px;
+  padding:11px 14px 14px;
+  border-top:1px solid #1a2634;
+}
+.order-detail-grid div{
+  padding:9px;
+  border-radius:9px;
+  background:#0a1017;
+  border:1px solid #172331;
+}
+.order-detail-grid span{display:block;color:#596b80;font-size:7px;text-transform:uppercase}
+.order-detail-grid strong{display:block;margin-top:5px;color:#d8e2eb;font-size:9px;word-break:break-word}
+@media(max-width:900px){
+  .wallet-summary-grid{grid-template-columns:1.35fr 1fr 1fr}
+  .wallet-summary-grid .pending{grid-column:2 / span 2}
+  .wallet-two-column{grid-template-columns:1fr}
+}
+@media(max-width:620px){
+  .wallet-summary-grid{grid-template-columns:1fr 1fr}
+  .wallet-summary-grid .balance-card{grid-column:1 / -1;min-height:170px}
+  .wallet-summary-grid .pending{grid-column:auto}
+  .wallet-two-column{gap:9px}
+  .order-summary-strip{gap:6px}
+  .order-summary-strip>div{padding:10px}
+  .order-card-main{grid-template-columns:auto minmax(0,1fr) auto;gap:9px}
+  .order-card-main .table-status,.order-card-price{display:none}
+  .order-card-chevron{justify-self:end}
+  .order-card-body{justify-content:space-between}
+  .order-detail-grid{grid-template-columns:1fr 1fr}
+}
