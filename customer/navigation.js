@@ -7,6 +7,7 @@ export function createCustomerNavigation({
   refreshWallet,
   refreshCatalog,
   refreshSupport,
+  refreshAccount,
   resetPurchaseFlow,
   toast
 }) {
@@ -34,6 +35,7 @@ export function createCustomerNavigation({
     if (next === 'wallet') void refreshWallet().then(() => render());
     if (next === 'buy') void refreshCatalog({ silent: true });
     if (next === 'support') void refreshSupport().then(() => render());
+    if (next === 'account') void refreshAccount().then(() => render());
   }
 
   function handleHashNavigation() {
