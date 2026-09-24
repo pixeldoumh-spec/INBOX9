@@ -43,10 +43,10 @@ test('customer marketplace exposes resilient catalog loading and freshness state
   ]);
   assert.match(state, /catalogLoading: false/);
   assert.match(state, /catalogError: ''/);
-  assert.match(customerData, /state\\.catalogLoading = true/);
-  assert.match(customerData, /state\\.catalogError/);
-  assert.match(app, /catalogFreshnessText\\(\\)/);
-  assert.match(app, /catalogLoadingMarkup\\(\\)/);
+  assert.match(customerData, /state\.catalogLoading = true/);
+  assert.match(customerData, /state\.catalogError/);
+  assert.match(app, /catalogFreshnessText\(\)/);
+  assert.match(app, /catalogLoadingMarkup\(\)/);
   assert.match(app, /data-refresh-catalog/);
   assert.match(app, /Refreshing live catalog/);
   assert.match(css, /catalog-skeleton-card/);
