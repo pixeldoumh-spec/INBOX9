@@ -31,6 +31,7 @@ import adminAudit from './api/admin/_audit.js';
 import adminWalletReconciliation from './api/admin/_wallet-reconciliation.js';
 import adminPaymentReconciliation from './api/admin/_payment-reconciliation.js';
 import internalProviderReconcile from './api/_internal-provider-reconcile.js';
+import internalProxnumSync from './api/_internal-proxnum-sync.js';
 import { assertProductionConfiguration } from './api/_lib/runtime-config.js';
 import { applySecurityHeaders, requestId } from './api/_lib/security.js';
 
@@ -172,7 +173,8 @@ function routeFor(method, pathname) {
     ['GET /api/admin/audit', adminAudit],
     ['GET /api/admin/wallet-reconciliation', adminWalletReconciliation],
     ['GET /api/admin/payment-reconciliation', adminPaymentReconciliation],
-    ['POST /api/internal-provider-reconcile', internalProviderReconcile]
+    ['POST /api/internal-provider-reconcile', internalProviderReconcile],
+    ['POST /api/internal-proxnum-inventory-sync', internalProxnumSync]
   ]);
 
   const exactHandler = exact.get(`${method} ${pathname}`);

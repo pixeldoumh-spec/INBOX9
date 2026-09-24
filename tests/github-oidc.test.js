@@ -19,8 +19,9 @@ function claims(overrides = {}) {
   };
 }
 
-test('GitHub OIDC trust policy accepts only the INBOX9 reconciliation workflow on main', () => {
+test('GitHub OIDC trust policy accepts only the approved INBOX9 scheduled workflows on main', () => {
   assert.equal(isTrustedGithubOidcClaims(claims()), true);
+  assert.equal(isTrustedGithubOidcClaims(claims({ workflow: 'INBOX9 Proxnum inventory sync' })), true);
 });
 
 test('GitHub OIDC trust policy rejects wrong repository, id, ref, workflow, audience and event', () => {
@@ -31,6 +32,7 @@ test('GitHub OIDC trust policy rejects wrong repository, id, ref, workflow, audi
     ['workflow', 'other workflow'],
     ['aud', 'other-audience'],
     ['event_name', 'push'],
+    ['workflow', 'untrusted workflow'],
   ]) {
     assert.equal(isTrustedGithubOidcClaims(claims({ [key]: value })), false, key);
   }
@@ -39,6 +41,12 @@ test('GitHub OIDC trust policy rejects wrong repository, id, ref, workflow, audi
 test('GitHub OIDC trust policy rejects expired and not-yet-valid credentials', () => {
   assert.equal(isTrustedGithubOidcClaims(claims({ exp: Math.floor(Date.now() / 1000) - 1 })), false);
   assert.equal(isTrustedGithubOidcClaims(claims({ nbf: Math.floor(Date.now() / 1000) + 60 })), false);
+});
+
+test('OIDC config exposes both scoped scheduled workflows', () => {
+  assert.equal(githubOidcConfig.workflow, 'INBOX9 scheduled reconciliation');
+  assert.equal(githubOidcConfig.workflows.includes('INBOX9 scheduled reconciliation'), true);
+  assert.equal(githubOidcConfig.workflows.includes('INBOX9 Proxnum inventory sync'), true);
 });
 
 test('reconciliation implementation contains both shared-secret fallback and scoped OIDC authentication', async () => {

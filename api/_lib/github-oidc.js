@@ -6,7 +6,10 @@ const OIDC_AUDIENCE = 'inbox9';
 const TRUSTED_REPOSITORY = 'pixeldoumh-spec/INBOX9';
 const TRUSTED_REPOSITORY_ID = '1379257300';
 const TRUSTED_REF = 'refs/heads/main';
-const TRUSTED_WORKFLOW = 'INBOX9 scheduled reconciliation';
+const TRUSTED_WORKFLOWS = new Set([
+  'INBOX9 scheduled reconciliation',
+  'INBOX9 Proxnum inventory sync',
+]);
 const JWKS_CACHE_TTL_MS = 10 * 60 * 1000;
 const REQUEST_TIMEOUT_MS = 5_000;
 
@@ -73,7 +76,7 @@ export function isTrustedGithubOidcClaims(claims) {
   if (!claimEquals(claims.repository, TRUSTED_REPOSITORY)) return false;
   if (!claimEquals(claims.repository_id, TRUSTED_REPOSITORY_ID)) return false;
   if (!claimEquals(claims.ref, TRUSTED_REF)) return false;
-  if (!claimEquals(claims.workflow, TRUSTED_WORKFLOW)) return false;
+  if (!TRUSTED_WORKFLOWS.has(String(claims.workflow || ''))) return false;
   if (!['schedule', 'workflow_dispatch'].includes(String(claims.event_name || ''))) return false;
   if (claims.repository_visibility && claims.repository_visibility !== 'public') return false;
   return true;
@@ -104,5 +107,6 @@ export const githubOidcConfig = {
   repository: TRUSTED_REPOSITORY,
   repositoryId: TRUSTED_REPOSITORY_ID,
   ref: TRUSTED_REF,
-  workflow: TRUSTED_WORKFLOW,
+  workflow: 'INBOX9 scheduled reconciliation',
+  workflows: [...TRUSTED_WORKFLOWS],
 };
