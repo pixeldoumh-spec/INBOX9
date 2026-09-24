@@ -1,0 +1,290 @@
+const assert = require('node:assert/strict');
+const { chromium, firefox, webkit, devices } = require('playwright');
+
+const BASE_URL = String(process.env.E2E_BASE_URL || 'http://127.0.0.1:4173').replace(/\/$/, '');
+const ARTIFACT_DIR = process.env.E2E_ARTIFACT_DIR || 'artifacts/browser-e2e';
+const PASSWORD = 'BrowserE2E!123';
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function visible(page, selector, timeout = 10000) {
+  const locator = page.locator(selector).first();
+  await locator.waitFor({ state: 'visible', timeout });
+  return locator;
+}
+
+async function heading(page, name, timeout = 10000) {
+  const locator = page.getByRole('heading', { name, exact: true }).first();
+  await locator.waitFor({ state: 'visible', timeout });
+  return locator;
+}
+
+async function register(page, email) {
+  const switchButton = page.getByRole('button', { name: 'Create account', exact: true }).first();
+  if (await switchButton.isVisible().catch(() => false) && !await page.locator('#auth-form input[name="confirm"]').count()) {
+    await switchButton.click();
+  }
+  await visible(page, '#auth-form input[name="email"]');
+  await page.locator('#auth-form input[name="email"]').fill(email);
+  await page.locator('#auth-form input[name="password"]').fill(PASSWORD);
+  await page.locator('#auth-form input[name="confirm"]').fill(PASSWORD);
+  await page.locator('#auth-form button.auth-submit').click();
+  await heading(page, 'Choose a service', 12000);
+}
+
+async function login(page, email) {
+  await heading(page, 'Welcome back', 10000);
+  await page.locator('#auth-form input[name="email"]').fill(email);
+  await page.locator('#auth-form input[name="password"]').fill(PASSWORD);
+  await page.locator('#auth-form button.auth-submit').click();
+  await heading(page, 'Choose a service', 12000);
+}
+
+async function logout(page) {
+  await page.locator('[data-action="logout"]').click();
+  await heading(page, 'Welcome back', 10000);
+}
+
+async function createMockRecharge(page, amount, utr) {
+  const result = await page.evaluate(async ({ amount, utr }) => {
+    const response = await fetch('/api/recharges', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({ amount, utr })
+    });
+    return { status: response.status, body: await response.text() };
+  }, { amount, utr });
+  assert.equal(result.status, 201, 'test fixture recharge should be accepted');
+  return JSON.parse(result.body);
+}
+
+async function assertAccessibleButtons(page) {
+  const unnamed = await page.locator('button:visible').evaluateAll((buttons) => buttons.filter((button) => {
+    const name = button.getAttribute('aria-label') || button.textContent || button.getAttribute('title') || '';
+    return !String(name).trim();
+  }).map((button) => button.outerHTML.slice(0, 250)));
+  assert.deepEqual(unnamed, [], 'every visible button should have an accessible name');
+}
+
+async function assertNoHorizontalOverflow(page) {
+  const metrics = await page.evaluate(() => ({
+    viewport: window.innerWidth,
+    scrollWidth: document.documentElement.scrollWidth
+  }));
+  assert.ok(metrics.scrollWidth <= metrics.viewport + 1, 'page should not overflow horizontally');
+}
+
+function attachErrorCapture(page) {
+  const errors = [];
+  page.on('pageerror', (error) => errors.push(String(error.message || error)));
+  page.on('console', (message) => {
+    if (message.type() === 'error') errors.push(String(message.text() || message));
+  });
+  return errors;
+}
+
+async function runFullChromium() {
+  const browser = await chromium.launch({ headless: true });
+  const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
+  const page = await context.newPage();
+  const errors = attachErrorCapture(page);
+  const customerEmail = 'browser-e2e-' + Date.now() + '@example.test';
+  const adminEmail = 'admin-browser-e2e@example.test';
+  const utr = 'BROWSER-E2E-' + Date.now();
+
+  try {
+    await page.goto(BASE_URL, { waitUntil: 'networkidle' });
+    await heading(page, 'Welcome back');
+    assert.equal(await page.title(), 'INBOX9 — OTP Marketplace');
+
+    await register(page, customerEmail);
+    await assertAccessibleButtons(page);
+    await assertNoHorizontalOverflow(page);
+    assert.ok(await page.locator('[data-buy-service]:visible').count() > 0, 'marketplace should render service actions');
+
+    await page.locator('#service-search').fill('whatsapp');
+    await sleep(500);
+    assert.match(page.url(), /q=whatsapp/i, 'marketplace search should sync to the URL');
+    await page.locator('#service-search').fill('');
+    await sleep(350);
+
+    await createMockRecharge(page, 5000, utr);
+    await logout(page);
+
+    await page.locator('#auth-form button[data-auth-mode="register"]').click();
+    await register(page, adminEmail);
+    await page.locator('[data-page="admin"]').click();
+    await heading(page, 'Admin control center');
+    await page.locator('[data-admin-tab="recharges"]').click();
+    await visible(page, '[data-admin-approve]');
+    const rechargeRow = page.locator('tr').filter({ hasText: utr }).first();
+    await rechargeRow.waitFor({ state: 'visible', timeout: 8000 });
+    await rechargeRow.locator('[data-admin-approve]').click();
+    await sleep(300);
+    assert.ok(await page.getByText('No pending recharge requests.', { exact: true }).isVisible().catch(() => false), 'approved recharge should leave the pending queue');
+    await logout(page);
+
+    await login(page, customerEmail);
+    await page.locator('[data-page="wallet"]').first().click();
+    await heading(page, 'Wallet');
+    await page.getByText('Wallet recharge', { exact: true }).waitFor({ state: 'visible', timeout: 8000 });
+    const rechargeTransaction = page.locator('[data-wallet-detail]').filter({ hasText: 'Wallet recharge' }).first();
+    await rechargeTransaction.click();
+    await page.getByText(utr, { exact: true }).waitFor({ state: 'visible', timeout: 5000 });
+
+    await page.locator('[data-page="buy"]').first().click();
+    await heading(page, 'Choose a service');
+    const firstBuy = page.locator('[data-buy-service]:visible').first();
+    await firstBuy.click();
+    await page.getByRole('heading', { name: 'Review your number', exact: true }).waitFor({ state: 'visible' });
+    await page.getByRole('button', { name: /Get number/ }).click();
+    await heading(page, 'Active', 12000);
+
+    const cancelButton = page.locator('[data-cancel]:visible').first();
+    await cancelButton.waitFor({ state: 'visible', timeout: 5000 });
+    await cancelButton.click();
+    await page.locator('[data-cancel-confirm]:visible').first().click();
+    await page.getByText('Refunded', { exact: true }).waitFor({ state: 'visible', timeout: 8000 });
+
+    await page.locator('[data-page="buy"]').first().click();
+    await heading(page, 'Choose a service');
+    await page.locator('[data-buy-service]:visible').first().click();
+    await page.getByRole('heading', { name: 'Review your number', exact: true }).waitFor({ state: 'visible' });
+    await page.getByRole('button', { name: /Get number/ }).click();
+    await heading(page, 'Active', 12000);
+
+    await page.waitForFunction(() => {
+      const text = document.querySelector('.otp-code')?.textContent || '';
+      return text.replace(/\D/g, '').length === 6;
+    }, null, { timeout: 30000 });
+    assert.equal((await page.locator('.otp-code').first().textContent()).replace(/\D/g, '').length, 6, 'completed activation should display a six-digit OTP');
+
+    await page.locator('[data-page="orders"]').first().click();
+    await heading(page, 'Orders');
+    await visible(page, '.order-card');
+    assert.ok((await page.locator('.order-card').count()) >= 1, 'orders should contain the completed activation');
+
+    await page.locator('[aria-label="Notifications"]').click();
+    await page.getByText('All caught up', { exact: true }).waitFor({ state: 'visible', timeout: 5000 });
+
+    await page.locator('[data-page="support"]').first().click();
+    await heading(page, 'Help & Support');
+    const subject = 'Browser E2E support ticket';
+    await page.locator('#support-form input[name="subject"]').fill(subject);
+    await page.locator('#support-form textarea[name="message"]').fill('Browser end-to-end support flow verification.');
+    await page.locator('#support-form button[type="submit"]').click();
+    await page.getByRole('heading', { name: 'Support threads', exact: true }).waitFor({ state: 'visible', timeout: 8000 });
+    const ticket = page.locator('.support-ticket-head').filter({ hasText: subject }).first();
+    await ticket.click();
+    await page.locator('textarea[aria-label="Reply to support"]').fill('Browser E2E reply verification.');
+    await page.getByRole('button', { name: 'Send reply', exact: true }).click();
+    await page.getByText('Browser E2E reply verification.', { exact: true }).waitFor({ state: 'visible', timeout: 8000 });
+
+    await page.locator('[data-page="account"]').first().click();
+    await heading(page, 'Account');
+    await page.locator('#profile-form input[name="displayName"]').fill('Browser E2E');
+    await page.locator('#profile-form button[type="submit"]').click();
+    await sleep(300);
+    assert.equal(await page.locator('#profile-form input[name="displayName"]').inputValue(), 'Browser E2E');
+    await page.getByRole('button', { name: 'Generate code', exact: true }).click();
+    await page.getByText('YOUR RECOVERY CODE', { exact: true }).waitFor({ state: 'visible', timeout: 8000 });
+
+    await page.locator('[data-action="security"]').click();
+    await visible(page, '[role="dialog"]');
+    await page.getByRole('dialog').getByRole('button', { name: 'Close', exact: true }).click();
+
+    await context.setOffline(true);
+    await page.getByText('You are offline. Live updates are paused.', { exact: true }).waitFor({ state: 'visible', timeout: 4000 });
+    await context.setOffline(false);
+    await page.getByText('Connection restored', { exact: true }).waitFor({ state: 'visible', timeout: 8000 });
+
+    await assertAccessibleButtons(page);
+    await assertNoHorizontalOverflow(page);
+    assert.deepEqual(errors, [], 'browser run should finish without page errors or console errors');
+
+    return { name: 'Chromium desktop full customer flow', ok: true };
+  } finally {
+    await page.screenshot({ path: ARTIFACT_DIR + '/chromium-desktop-final.png', fullPage: true }).catch(() => {});
+    await context.close().catch(() => {});
+    await browser.close().catch(() => {});
+  }
+}
+
+async function runCompatibility(browserType, name) {
+  const browser = await browserType.launch({ headless: true });
+  const context = await browser.newContext({ viewport: { width: 1366, height: 900 } });
+  const page = await context.newPage();
+  const errors = attachErrorCapture(page);
+  const email = name.toLowerCase().replace(/[^a-z]+/g, '-') + '-' + Date.now() + '@example.test';
+
+  try {
+    await page.goto(BASE_URL, { waitUntil: 'networkidle' });
+    await register(page, email);
+    for (const target of ['active', 'orders', 'wallet', 'support', 'account']) {
+      await page.locator('[data-page="' + target + '"]').first().click();
+      const labels = { active: 'Active', orders: 'Orders', wallet: 'Wallet', support: 'Help & Support', account: 'Account' };
+      await heading(page, labels[target]);
+    }
+    await page.locator('[data-page="buy"]').first().click();
+    await heading(page, 'Choose a service');
+    await assertAccessibleButtons(page);
+    await assertNoHorizontalOverflow(page);
+    assert.deepEqual(errors, [], name + ' should finish without page errors or console errors');
+    return { name, ok: true };
+  } finally {
+    await page.screenshot({ path: ARTIFACT_DIR + '/' + name.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-final.png', fullPage: true }).catch(() => {});
+    await context.close().catch(() => {});
+    await browser.close().catch(() => {});
+  }
+}
+
+async function runMobileChromium() {
+  const browser = await chromium.launch({ headless: true });
+  const context = await browser.newContext({ ...devices['iPhone 15'] });
+  const page = await context.newPage();
+  const errors = attachErrorCapture(page);
+  const email = 'mobile-e2e-' + Date.now() + '@example.test';
+
+  try {
+    await page.goto(BASE_URL, { waitUntil: 'networkidle' });
+    await register(page, email);
+    await page.locator('button[aria-label="Open menu"]').click();
+    await visible(page, '.sidebar.open');
+    await page.locator('.sidebar [data-page="wallet"]').click();
+    await heading(page, 'Wallet');
+    await page.locator('.sidebar [data-page="support"]').click();
+    await heading(page, 'Help & Support');
+    await page.locator('button[aria-label="Open menu"]').click();
+    await assertNoHorizontalOverflow(page);
+    await assertAccessibleButtons(page);
+    assert.deepEqual(errors, [], 'mobile Chromium should finish without page errors or console errors');
+    return { name: 'Chromium iPhone 15 emulation', ok: true };
+  } finally {
+    await page.screenshot({ path: ARTIFACT_DIR + '/chromium-iphone15-final.png', fullPage: true }).catch(() => {});
+    await context.close().catch(() => {});
+    await browser.close().catch(() => {});
+  }
+}
+
+(async () => {
+  const results = [];
+  const run = async (fn) => {
+    try {
+      results.push(await fn());
+    } catch (error) {
+      results.push({ name: fn.name, ok: false, error: error.stack || String(error) });
+    }
+  };
+
+  await run(runFullChromium);
+  await run(() => runMobileChromium());
+  await run(() => runCompatibility(firefox, 'Firefox desktop compatibility'));
+  await run(() => runCompatibility(webkit, 'WebKit desktop compatibility'));
+
+  const failed = results.filter((result) => !result.ok);
+  console.log(JSON.stringify({ ok: failed.length === 0, base: BASE_URL, results }, null, 2));
+  if (failed.length) process.exit(1);
+})().catch((error) => {
+  console.error(error);
+  process.exit(1);
+});
