@@ -1785,3 +1785,27 @@ body::before{
 .admin-support-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}.admin-support-filters{display:flex;gap:7px;overflow:auto;padding-bottom:2px}.admin-support-filters .filter-btn{white-space:nowrap}.admin-support-filters .filter-btn b{font-size:9px;color:#657286;margin-left:3px}.admin-support-list{display:grid;gap:12px}.admin-support-card{padding:18px}.admin-support-head{display:flex;gap:14px;align-items:flex-start;justify-content:space-between}.admin-support-head h3{margin:4px 0 3px;font-size:14px;color:#e5ebf2;overflow-wrap:anywhere}.admin-support-head small{color:#59677a;font-size:9px}.admin-support-customer{display:flex;gap:10px;align-items:center;justify-content:space-between;margin-top:12px;padding:10px 11px;border:1px solid #1a2532;border-radius:10px;background:#0a1017}.admin-support-customer strong{font-size:11px;color:#dbe4ed;overflow-wrap:anywhere}.admin-support-customer span{font-size:9px;color:#5d6a7c;white-space:nowrap}.admin-support-message{margin:13px 0;color:#8996a8;font-size:11px;line-height:1.65;white-space:pre-wrap;overflow-wrap:anywhere}.admin-support-refs{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px}.admin-support-ref{display:inline-flex;padding:6px 8px;border:1px solid #1e2b38;border-radius:8px;background:#0a1017;color:#8491a4;font:500 9px/1 ui-monospace,SFMono-Regular,Menlo,monospace;overflow-wrap:anywhere}.admin-support-form{display:grid;grid-template-columns:180px minmax(0,1fr) auto;gap:10px;align-items:end;padding-top:14px;border-top:1px solid #19232e}.admin-support-form label{display:grid;gap:6px;color:#98a4b4;font-size:9px;font-weight:700}.admin-support-form select,.admin-support-form textarea{width:100%;box-sizing:border-box;border:1px solid #293444;border-radius:9px;background:#090e15;color:#e8eef5;outline:none;font:500 11px/1.4 system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}.admin-support-form select{height:40px;padding:0 10px}.admin-support-form textarea{min-height:74px;padding:9px 10px;resize:vertical}.admin-support-form select:focus,.admin-support-form textarea:focus{border-color:#53657d;box-shadow:0 0 0 3px rgba(141,242,107,.06)}.admin-support-actions{display:flex;flex-direction:column;gap:7px;align-items:stretch}.admin-support-actions span{font-size:8px;color:#59677a;text-align:center}.admin-support-actions .buy-btn{padding:0 14px;white-space:nowrap}.support-admin-note{margin:12px 0;padding:10px 11px;border-left:2px solid #53657d;border-radius:0 9px 9px 0;background:#0b121a}.support-admin-note span{display:block;color:#69778a;font-size:8px;font-weight:700;letter-spacing:.09em;text-transform:uppercase}.support-admin-note p{margin:5px 0 0;color:#aab5c3;font-size:10px;line-height:1.55;white-space:pre-wrap;overflow-wrap:anywhere}
 @media(max-width:900px){.admin-support-form{grid-template-columns:1fr}.admin-support-actions{align-items:stretch}.admin-support-actions .buy-btn{width:100%}}
 @media(max-width:600px){.admin-support-toolbar{align-items:stretch;flex-direction:column}.admin-support-toolbar .refresh-btn{width:100%}.admin-support-card{padding:14px}.admin-support-head{flex-direction:column}.admin-support-head .table-status{align-self:flex-start}.admin-support-customer{align-items:flex-start;flex-direction:column}.admin-support-customer span{white-space:normal}}
+
+
+/* Customer Marketplace Upgrade 1 — consistent, provider-neutral discovery */
+.market-recent{margin:0 0 18px;padding:15px;border:1px solid #202d3c;border-radius:16px;background:linear-gradient(180deg,#0d141d,#0a1017)}
+.market-recent-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:10px}
+.market-recent-head h3{margin:5px 0 0;color:#e6edf5;font:600 16px 'Space Grotesk'}
+.recent-service-chips{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+.recent-service-chip{min-width:0;min-height:58px;display:grid;grid-template-columns:34px minmax(0,1fr) 18px;align-items:center;gap:9px;padding:9px 10px;border:1px solid #1f2b39;border-radius:12px;background:#0b121a;color:inherit;text-align:left;cursor:pointer}
+.recent-service-chip:hover{border-color:#35506f;background:#101a25}
+.recent-service-chip .service-icon{height:34px;width:34px;border-radius:9px;font-size:13px}
+.recent-service-chip span:nth-child(2){min-width:0;display:flex;flex-direction:column}
+.recent-service-chip strong{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#dfe8f1;font-size:10px}
+.recent-service-chip small{margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#647387;font-size:8px}
+.recent-service-chip>b{color:#94b5df;font-size:15px;text-align:center}
+.customer-service-main .service-group-meta{margin-left:auto}
+.customer-service-main .service-price{white-space:nowrap}
+@media(max-width:900px){.recent-service-chips{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:620px){
+  .market-recent{padding:12px}
+  .market-recent-head{align-items:flex-start;flex-direction:column;gap:4px}
+  .recent-service-chips{display:flex;overflow:auto;padding-bottom:2px;scroll-snap-type:x proximity}
+  .recent-service-chip{flex:0 0 min(250px,82vw);scroll-snap-align:start}
+  .customer-service-main .service-price{font-size:12px}
+}
