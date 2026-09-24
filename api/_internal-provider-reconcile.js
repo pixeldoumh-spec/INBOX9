@@ -4,6 +4,7 @@ import { reconcileWallets } from './_lib/wallet-reconciliation.js';
 import { cleanupExpiredSessions } from './_lib/auth.js';
 import crypto from 'node:crypto';
 import { applySecurityHeaders, requestId } from './_lib/security.js';
+import { verifyGithubOidcToken } from './_lib/github-oidc.js';
 
 export default async function handler(req, res) {
   applySecurityHeaders(res); requestId(req, res);
@@ -11,8 +12,21 @@ export default async function handler(req, res) {
   const expected = process.env.CRON_SECRET;
   const bearer = String(req.headers.authorization || '');
   const supplied = bearer.startsWith('Bearer ') ? bearer.slice(7).trim() : String(req.headers['x-inbox9-cron-secret'] || '');
-  const valid = Boolean(expected && supplied && supplied.length === String(expected).length && crypto.timingSafeEqual(Buffer.from(supplied), Buffer.from(String(expected))));
-  if (!valid) return res.status(401).json({ error: 'Unauthorized' });
+
+  let validSharedSecret = false;
+  if (expected && supplied && supplied.length === String(expected).length) {
+    validSharedSecret = crypto.timingSafeEqual(Buffer.from(supplied), Buffer.from(String(expected)));
+  }
+
+  let validGithubOidc = false;
+  if (!validSharedSecret && String(process.env.GITHUB_OIDC_RECONCILIATION || '').trim().toLowerCase() === 'true') {
+    try {
+      await verifyGithubOidcToken(supplied);
+      validGithubOidc = true;
+    } catch {}
+  }
+
+  if (!validSharedSecret && !validGithubOidc) return res.status(401).json({ error: 'Unauthorized' });
   try {
     const cancellationResults = await reconcilePendingCancellations({ limit: 25 });
     const expirationResults = await reconcileExpiringActivations({ limit: 25 });
