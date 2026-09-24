@@ -1433,6 +1433,10 @@ function bootstrapErrorPage() {
   return '<div class="auth-shell"><div class="auth-card"><div class="brand-row auth-brand"><div class="brand-mark">ϟ</div><div><div class="brand-name">INBOX9</div><div class="brand-sub">OTP MARKETPLACE</div></div></div><span class="kicker">CONNECTION CHECK</span><h1>We could not load INBOX9</h1><p class="auth-copy">' + message + '</p><button class="primary-btn auth-submit" type="button" data-action="retry-bootstrap">Retry</button><div class="auth-note">Your account data remains on the server. A temporary connection problem does not sign you out.</div></div></div>';
 }
 
+function sessionBootstrapPage() {
+  return '<div class="auth-shell"><div class="auth-card auth-card-loading"><div class="brand-row auth-brand"><div class="brand-mark">ϟ</div><div><div class="brand-name">INBOX9</div><div class="brand-sub">OTP MARKETPLACE</div></div></div><span class="kicker">SECURE SESSION</span><h1>Restoring your session</h1><p class="auth-copy">Checking your secure session. Your account is not being signed out.</p><div class="boot-loader" role="status" aria-label="Restoring session"><div class="boot-spinner" aria-hidden="true"></div><div class="boot-loader-text">Loading your marketplace…</div></div><div class="auth-note">Please wait a moment while INBOX9 restores your account.</div></div></div>';
+}
+
 function securityModal() {
   return `<div class="security-overlay" role="presentation"><section class="security-modal" role="dialog" aria-modal="true" aria-labelledby="security-title" tabindex="-1"><div class="panel-head"><div><h3 id="security-title">Account security</h3><span>7-day sessions • maximum 5 retained sessions by default</span></div><button class="icon-btn" type="button" aria-label="Close" data-action="close-security">×</button></div><div class="security-body"><form id="change-password-form" class="security-form"><label>Current password<input name="currentPassword" type="password" autocomplete="current-password" minlength="8" required></label><label>New password<input name="newPassword" type="password" autocomplete="new-password" minlength="8" maxlength="128" required></label><label>Confirm new password<input name="confirmPassword" type="password" autocomplete="new-password" minlength="8" maxlength="128" required></label><button class="primary-btn" type="submit">Change password</button></form><div class="security-divider"></div><div class="security-danger"><div><strong>Sign out all sessions</strong><p>This invalidates every active session on all devices and returns you to the login screen.</p></div><button class="buy-btn" type="button" data-action="logout-all">Sign out all</button></div></div></section></div>`;
 }
@@ -1440,7 +1444,9 @@ function securityModal() {
 function render() {
   if (!state.user) {
     syncOverlayScrollLock();
-    document.getElementById('app').innerHTML = state.bootstrapError ? bootstrapErrorPage() : authPage();
+    document.getElementById('app').innerHTML = state.loading
+      ? sessionBootstrapPage()
+      : (state.bootstrapError ? bootstrapErrorPage() : authPage());
     bindEvents();
     return;
   }
