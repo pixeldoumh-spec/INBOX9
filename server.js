@@ -11,9 +11,17 @@ import authLogout from './api/auth/_logout.js';
 import authMe from './api/auth/_me.js';
 import authLogoutAll from './api/auth/_logout-all.js';
 import authChangePassword from './api/auth/_change-password.js';
+import authSessions from './api/auth/_sessions.js';
+import authSessionById from './api/auth/_sessions/_id.js';
+import authProfile from './api/auth/_profile.js';
+import authRecoveryCode from './api/auth/_recovery-code.js';
+import authRecover from './api/auth/_recover.js';
 import wallet from './api/wallet/_index.js';
 import recharges from './api/recharges/_index.js';
 import support from './api/support/_index.js';
+import supportReply from './api/support/_id/_replies.js';
+import notifications from './api/notifications/_index.js';
+import notificationById from './api/notifications/_id.js';
 import activations from './api/activations/_index.js';
 import activationById from './api/activations/_id.js';
 import activationCancel from './api/activations/_id/_cancel.js';
@@ -162,6 +170,12 @@ function routeFor(method, pathname) {
     ['GET /api/auth/me', authMe],
     ['POST /api/auth/logout-all', authLogoutAll],
     ['POST /api/auth/change-password', authChangePassword],
+    ['GET /api/auth/sessions', authSessions],
+    ['POST /api/auth/profile', authProfile],
+    ['POST /api/auth/recovery-code', authRecoveryCode],
+    ['POST /api/auth/recover', authRecover],
+    ['GET /api/notifications', notifications],
+    ['POST /api/notifications/read-all', notifications],
     ['GET /api/wallet', wallet],
     ['GET /api/recharges', recharges],
     ['POST /api/recharges', recharges],
@@ -189,7 +203,16 @@ function routeFor(method, pathname) {
   const exactHandler = exact.get(`${method} ${pathname}`);
   if (exactHandler) return { handler: exactHandler, query: {} };
 
-  let match = pathname.match(/^\/api\/activations\/([^/]+)\/cancel$/);
+  let match = pathname.match(/^\/api\/auth\/sessions\/([^/]+)$/);
+  if (match) return { handler: authSessionById, query: { id: decodeURIComponent(match[1]) } };
+
+  match = pathname.match(/^\/api\/notifications\/([^/]+)$/);
+  if (match) return { handler: notificationById, query: { id: decodeURIComponent(match[1]) } };
+
+  match = pathname.match(/^\/api\/support\/([^/]+)\/replies$/);
+  if (match) return { handler: supportReply, query: { id: decodeURIComponent(match[1]) } };
+
+  match = pathname.match(/^\/api\/activations\/([^/]+)\/cancel$/);
   if (match) return { handler: activationCancel, query: { id: decodeURIComponent(match[1]) } };
 
   match = pathname.match(/^\/api\/activations\/([^/]+)$/);

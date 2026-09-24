@@ -237,17 +237,10 @@ function processNotificationSnapshot({ announce = true } = {}) {
   notificationBaseline = current;
 }
 
-function markAllNotificationsRead() {
-  state.notifications = state.notifications.map((item) => ({ ...item, read: true }));
-  state.notificationsOpen = false;
-  render();
-}
-
-function openNotifications() {
-  processNotificationSnapshot({ announce: false });
-  state.notificationsOpen = !state.notificationsOpen;
-  render();
-}
+async function refreshNotifications(){if(!state.user)return null;state.notificationLoading=true;try{const payload=await api('/api/notifications');state.notifications=Array.isArray(payload.notifications)?payload.notifications:[];state.notificationError='';return payload;}catch(error){if(Number(error.status)===401){handleSessionExpired();return null;}state.notificationError=error.message||'Notifications unavailable';return null;}finally{state.notificationLoading=false;}}
+async function markNotificationRead(id){if(!id)return;try{await api('/api/notifications/'+encodeURIComponent(id),{method:'PATCH',headers:{'content-type':'application/json'},body:JSON.stringify({read:true})});}catch(error){toast(error.message);}}
+async function markAllNotificationsRead(){try{await api('/api/notifications/read-all',{method:'POST'});state.notifications=state.notifications.map(i=>({...i,read:true}));state.notificationsOpen=false;render();}catch(error){toast(error.message);}}
+function openNotifications(){state.notificationsOpen=!state.notificationsOpen;if(state.notificationsOpen)void refreshNotifications().then(()=>render());else render();}
 
 function notificationPanel() {
   const unread = state.notifications.filter((item) => !item.read).length;
@@ -255,7 +248,7 @@ function notificationPanel() {
     ? state.notifications.map((item) => {
         const elapsed = Math.max(0, Math.floor((Date.now() - item.createdAt) / 1000));
         const age = elapsed < 60 ? 'Just now' : elapsed < 3600 ? Math.floor(elapsed / 60) + 'm ago' : Math.floor(elapsed / 3600) + 'h ago';
-        return '<button class="notification-row ' + esc(item.tone) + ' ' + (item.read ? 'read' : 'unread') + '" type="button" data-notification-page="' + esc(item.page || '') + '">' +
+        return '<button class="notification-row ' + esc(item.tone) + ' ' + (item.read ? 'read' : 'unread') + '" type="button" data-notification-page="' + esc(item.page || '') + '" data-notification-id="' + esc(item.id) + '">' +
           '<span class="notification-icon">•</span><span class="notification-copy"><strong>' + esc(item.title) + '</strong><small>' + esc(item.body) + '</small><em>' + age + '</em></span></button>';
       }).join('')
     : '<div class="notification-empty"><span>✓</span><strong>All caught up</strong><small>Important wallet and activation updates will appear here.</small></div>';
@@ -328,6 +321,10 @@ async function submitAuth(event) {
   const data = new FormData(form);
   const email = String(data.get('email') || '').trim();
   const password = String(data.get('password') || '');
+  if (state.authMode === 'recover') {
+    if(password!==String(data.get('confirm')||'')) return toast('Passwords do not match');
+    try{const payload=await api('/api/auth/recover',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({email,recoveryCode:String(data.get('recoveryCode')||''),password})});state.user=payload.user;state.authMode='login';state.page='buy';loadPersisted();await loadCustomerData();render();toast('Password reset. You are signed in.');return;}catch(error){toast(error.message);return;}
+  }
   if (state.authMode === 'register' && password !== String(data.get('confirm') || '')) return toast('Passwords do not match');
   try {
     const endpoint = state.authMode === 'register' ? '/api/auth/register' : '/api/auth/login';
@@ -343,12 +340,7 @@ async function submitAuth(event) {
 }
 
 
-function openSecurity() {
-  state.dialogReturnFocus = { kind: 'security' };
-  state.securityOpen = true;
-  render();
-  scheduleDialogFocus();
-}
+function openSecurity(){setPage('account');}
 function closeSecurity() {
   state.securityOpen = false;
   render();
@@ -461,7 +453,9 @@ async function boot() {
   await bootstrapSession();
   if (!state.user) return;
   if (!state.tickTimer) state.tickTimer = window.setInterval(tick, 1000);
-  window.addEventListener('hashchange', handleHashNavigation);
+  function handleConnectivityChange(){const online=navigator.onLine,wasOffline=state.online===false;state.online=online;if(online&&wasOffline&&state.user){state.reconnecting=true;render();void loadCustomerData({silent:true}).then(()=>refreshNotifications()).finally(()=>{state.reconnecting=false;render();toast('Connection restored');});}else if(!online&&state.user){state.reconnecting=false;render();toast('You are offline. Live updates are paused.');}}
+
+window.addEventListener('hashchange', handleHashNavigation);
   window.addEventListener('popstate', handleHashNavigation);
   window.addEventListener('popstate', handleMarketplaceUrlNavigation);
 }
@@ -536,7 +530,7 @@ async function refreshSupport({ announce = false, silent = false } = {}) {
     state.supportTickets = Array.isArray(payload.tickets) ? payload.tickets : [];
     if (announce && notificationBaseline) {
       notificationBaseline = before;
-      processNotificationSnapshot({ announce: true });
+      void refreshNotifications();
     } else {
       notificationBaseline = notificationSnapshot();
     }
@@ -551,6 +545,8 @@ async function refreshSupport({ announce = false, silent = false } = {}) {
     supportSyncInFlight = false;
   }
 }
+
+async function submitSupportReply(event,ticketId){event.preventDefault();if(state.supportReplyBusyById[ticketId])return;const message=String(new FormData(event.currentTarget).get('message')||'').trim();if(message.length<2)return toast('Reply must contain at least 2 characters');state.supportReplyBusyById[ticketId]=true;render();try{await api('/api/support/'+encodeURIComponent(ticketId)+'/replies',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({message})});await refreshSupport();state.expandedSupportTicketId=ticketId;toast('Reply sent');}catch(error){if(Number(error.status)===401){handleSessionExpired();return;}toast(error.message);}finally{delete state.supportReplyBusyById[ticketId];render();}}
 
 async function submitSupportTicket(event) {
   event.preventDefault();
@@ -999,11 +995,12 @@ async function adminUpdateSupport(id, form) {
   const data = new FormData(form);
   const status = String(data.get('status') || 'Open');
   const adminNote = String(data.get('adminNote') || '').trim();
+  const reply = String(data.get('reply') || '').trim();
   try {
     await api(`/api/admin/support/${encodeURIComponent(id)}`, {
       method: 'PATCH',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ status, adminNote })
+      body: JSON.stringify({ status, adminNote, reply })
     });
     toast('Support ticket updated');
     await loadAdminTab('support');
@@ -1073,45 +1070,7 @@ function adminRechargesPage() {
   return `<div class="panel table-panel"><div class="panel-head"><div><h3>Pending UTR verification</h3><span>Verify the payment independently before approving.</span></div></div><table><thead><tr><th>Request</th><th>User</th><th>Amount</th><th>UTR</th><th>Submitted</th><th>Action</th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 
-function adminSupportPage() {
-  const tickets = Array.isArray(state.admin.support) ? state.admin.support : [];
-  const filter = state.adminSupportFilter || 'all';
-  const counts = tickets.reduce((acc, ticket) => {
-    const status = String(ticket.status || 'Open');
-    acc[status] = (acc[status] || 0) + 1;
-    return acc;
-  }, {});
-  const visible = filter === 'all' ? tickets : tickets.filter((ticket) => String(ticket.status || 'Open') === filter);
-  const filters = [
-    ['all', 'All', tickets.length],
-    ['Open', 'Open', counts.Open || 0],
-    ['In Progress', 'In Progress', counts['In Progress'] || 0],
-    ['Resolved', 'Resolved', counts.Resolved || 0],
-    ['Closed', 'Closed', counts.Closed || 0]
-  ];
-  const cards = visible.length ? visible.map(ticket => {
-    const status = String(ticket.status || 'Open');
-    const activation = ticket.activation ? '<span class="admin-support-ref">Activation · ' + esc(ticket.activation.id) + (ticket.activation.service ? ' · ' + esc(ticket.activation.service) : '') + (ticket.activation.status ? ' · ' + esc(ticket.activation.status) : '') + '</span>' : '';
-    const recharge = ticket.recharge ? '<span class="admin-support-ref">Recharge · ' + esc(ticket.recharge.id) + (ticket.recharge.status ? ' · ' + esc(ticket.recharge.status) : '') + '</span>' : '';
-    return '<article class="panel admin-support-card">' +
-      '<div class="admin-support-head"><div><span class="kicker">' + esc(ticket.category || 'other') + '</span><h3>' + esc(ticket.subject) + '</h3><small class="mono">' + esc(ticket.id) + ' · ' + esc(new Date(ticket.createdAt).toLocaleString()) + '</small></div><span class="table-status ' + supportStatusClass(status) + '">' + esc(status) + '</span></div>' +
-      '<div class="admin-support-customer"><div><strong>' + esc(ticket.email || 'Unknown customer') + '</strong><small>Created ' + esc(new Date(ticket.createdAt).toLocaleString()) + '</small></div><span>Last updated ' + esc(new Date(ticket.updatedAt || ticket.createdAt).toLocaleString()) + '</span></div>' +
-      '<div class="admin-support-assignment"><span>Assigned to <strong>' + esc(ticket.assignedAdminEmail || 'Unassigned') + '</strong></span><span class="admin-support-assign-actions">' +
-        (ticket.assignedAdminId === state.user?.id ? '<button class="filter-btn selected" type="button" disabled>Assigned to me</button>' : '<button class="filter-btn" type="button" data-admin-support-assign="' + esc(ticket.id) + '">Assign to me</button>') +
-        (ticket.assignedAdminId ? '<button class="filter-btn" type="button" data-admin-support-unassign="' + esc(ticket.id) + '">Unassign</button>' : '') +
-      '</span></div>';
-      '<p class="admin-support-message">' + esc(ticket.message) + '</p>' +
-      '<div class="admin-support-refs">' + activation + recharge + '</div>' +
-      '<form class="admin-support-form" data-admin-support-form="' + esc(ticket.id) + '">' +
-        '<label>Status<select name="status">' + ['Open','In Progress','Resolved','Closed'].map(s => '<option value="' + esc(s) + '" ' + (status === s ? 'selected' : '') + '>' + esc(s) + '</option>').join('') + '</select></label>' +
-        '<label>Customer response / note<textarea name="adminNote" maxlength="1000" rows="3" placeholder="Write a concise response or resolution note.">' + esc(ticket.adminNote || '') + '</textarea></label>' +
-        '<div class="admin-support-actions"><span>Changes are audited.</span><button class="buy-btn" type="submit">Save update</button></div>' +
-      '</form>' +
-    '</article>';
-  }).join('') : '<div class="panel support-empty"><div class="empty-icon">✓</div><h3>No tickets in this view</h3><p>New customer support requests will appear here.</p></div>';
-  return '<div class="admin-support-toolbar"><div class="admin-support-filters">' + filters.map(([id,label,count]) => '<button class="filter-btn ' + (filter === id ? 'selected' : '') + '" type="button" data-admin-support-filter="' + esc(id) + '">' + esc(label) + ' <b>' + count + '</b></button>').join('') + '</div><button class="refresh-btn" type="button" data-admin-support-refresh>Refresh</button></div>' +
-    '<div class="admin-support-list">' + cards + '</div>';
-}
+function adminSupportPage(){const tickets=Array.isArray(state.admin.support)?state.admin.support:[],filter=state.adminSupportFilter||'all';const counts=tickets.reduce((a,t)=>{const st=String(t.status||'Open');a[st]=(a[st]||0)+1;return a;},{});const visible=filter==='all'?tickets:tickets.filter(t=>String(t.status||'Open')===filter);const filters=[['all','All',tickets.length],['Open','Open',counts.Open||0],['In Progress','In Progress',counts['In Progress']||0],['Resolved','Resolved',counts.Resolved||0],['Closed','Closed',counts.Closed||0]];const cards=visible.length?visible.map(ticket=>{const status=String(ticket.status||'Open');const activation=ticket.activation?'<span class="admin-support-ref">Activation · '+esc(ticket.activation.id)+(ticket.activation.service?' · '+esc(ticket.activation.service):'')+(ticket.activation.status?' · '+esc(ticket.activation.status):'')+'</span>':'';const recharge=ticket.recharge?'<span class="admin-support-ref">Recharge · '+esc(ticket.recharge.id)+(ticket.recharge.status?' · '+esc(ticket.recharge.status):'')+'</span>':'';const messages=Array.isArray(ticket.messages)?ticket.messages:[];const thread=messages.length?'<div class="admin-support-thread">'+messages.map(m=>'<div class="admin-support-message-row"><strong>'+esc(m.authorRole==='admin'?'Support':'Customer')+'</strong><span>'+esc(new Date(m.createdAt).toLocaleString())+'</span><p>'+esc(m.body)+'</p></div>').join('')+'</div>':'<p class="admin-support-message">'+esc(ticket.message)+'</p>';return'<article class="panel admin-support-card"><div class="admin-support-head"><div><span class="kicker">'+esc(ticket.category||'other')+'</span><h3>'+esc(ticket.subject)+'</h3><small class="mono">'+esc(ticket.id)+' · '+esc(new Date(ticket.createdAt).toLocaleString())+'</small></div><span class="table-status '+supportStatusClass(status)+'">'+esc(status)+'</span></div><div class="admin-support-customer"><div><strong>'+esc(ticket.email||'Unknown customer')+'</strong><small>Created '+esc(new Date(ticket.createdAt).toLocaleString())+'</small></div><span>Last updated '+esc(new Date(ticket.updatedAt||ticket.createdAt).toLocaleString())+'</span></div><div class="admin-support-assignment"><span>Assigned to <strong>'+esc(ticket.assignedAdminEmail||'Unassigned')+'</strong></span><span class="admin-support-assign-actions">'+(ticket.assignedAdminId===state.user?.id?'<button class="filter-btn selected" type="button" disabled>Assigned to me</button>':'<button class="filter-btn" type="button" data-admin-support-assign="'+esc(ticket.id)+'">Assign to me</button>')+(ticket.assignedAdminId?'<button class="filter-btn" type="button" data-admin-support-unassign="'+esc(ticket.id)+'">Unassign</button>':'')+'</span></div>'+thread+'<div class="admin-support-refs">'+activation+recharge+'</div><form class="admin-support-form" data-admin-support-form="'+esc(ticket.id)+'"><label>Status<select name="status">'+['Open','In Progress','Resolved','Closed'].map(st=>'<option value="'+esc(st)+'" '+(status===st?'selected':'')+'>'+esc(st)+'</option>').join('')+'</select></label><label>Internal note<textarea name="adminNote" maxlength="1000" rows="3" placeholder="Internal note for the support record.">'+esc(ticket.adminNote||'')+'</textarea></label><label><span>Support response</span><textarea name="reply" maxlength="4000" rows="3" placeholder="Reply directly to the customer."></textarea></label><div class="admin-support-actions"><span>Changes are audited.</span><button class="buy-btn" type="submit">Save update</button></div></form></article>';}).join(''):'<div class="panel support-empty"><div class="empty-icon">✓</div><h3>No tickets in this view</h3><p>New customer support requests will appear here.</p></div>';return'<div class="admin-support-toolbar"><div class="admin-support-filters">'+filters.map(([id,label,count])=>'<button class="filter-btn '+(filter===id?'selected':'')+'" type="button" data-admin-support-filter="'+esc(id)+'">'+esc(label)+' <b>'+count+'</b></button>').join('')+'</div><button class="refresh-btn" type="button" data-admin-support-refresh>Refresh</button></div><div class="admin-support-list">'+cards+'</div>';}
 function adminServicesPage() {
   const rows = state.admin.services.length ? state.admin.services.map(s => `<tr><td><strong>${esc(s.name)}</strong><small class="table-sub">${esc(s.category)} · ${esc(s.id)}</small></td><td><form class="admin-service-form" data-admin-service-form="${esc(s.id)}"><input name="price" type="number" min="0" max="1000000" step="0.01" value="${(s.pricePaise/100).toFixed(2)}" aria-label="Price for ${esc(s.name)}"><input name="stock" type="number" min="0" max="1000000" step="1" value="${s.stock}" aria-label="Stock for ${esc(s.name)}"><select name="availability" aria-label="Availability for ${esc(s.name)}"><option value="high" ${s.availability==='high'?'selected':''}>High</option><option value="medium" ${s.availability==='medium'?'selected':''}>Medium</option><option value="low" ${s.availability==='low'?'selected':''}>Low</option></select><label class="check-inline"><input name="active" type="checkbox" ${s.active?'checked':''}> Active</label><button class="buy-btn" type="submit">Save</button></form></td></tr>`).join('') : `<tr><td colspan="2"><div class="empty-mini">No services found.</div></td></tr>`;
   return `<div class="panel table-panel"><div class="panel-head"><div><h3>Service catalog controls</h3><span>Price is entered in INR; stored as paise.</span></div><span>${state.admin.services.length} services</span></div><table class="admin-services-table"><thead><tr><th>Service</th><th>Configuration</th></tr></thead><tbody>${rows}</tbody></table></div>`;
@@ -1154,11 +1113,7 @@ function adminAuditPage() {
   return `<div class="panel table-panel"><div class="panel-head"><div><h3>Audit log</h3><span>Administrative actions are append-only.</span></div></div><table><thead><tr><th>Event</th><th>Actor</th><th>Action</th><th>Target</th><th>Target ID</th><th>Metadata</th><th>Created</th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 
-function authPage() {
-  const register = state.authMode === 'register';
-  return `<div class="auth-shell"><div class="auth-card"><div class="brand-row auth-brand"><div class="brand-mark">ϟ</div><div><div class="brand-name">INBOX9</div><div class="brand-sub">OTP MARKETPLACE</div></div></div><span class="kicker">SECURE ACCOUNT</span><h1>${register ? 'Create your account' : 'Welcome back'}</h1><p class="auth-copy">${register ? 'Create an account to access the marketplace.' : 'Sign in to continue to your INBOX9 dashboard.'}</p><form id="auth-form"><label>Email<input name="email" type="email" autocomplete="email" required placeholder="you@example.com"></label><label>Password<input name="password" type="password" autocomplete="${register ? 'new-password' : 'current-password'}" minlength="8" required placeholder="Minimum 8 characters"></label>${register ? '<label>Confirm password<input name="confirm" type="password" autocomplete="new-password" minlength="8" required placeholder="Repeat your password"></label>' : ''}<button class="primary-btn auth-submit" type="submit">${register ? 'Create account' : 'Sign in'}</button></form><div class="auth-switch">${register ? 'Already have an account?' : 'New to INBOX9?'} <button type="button" data-auth-mode="${register ? 'login' : 'register'}">${register ? 'Sign in' : 'Create account'}</button></div><div class="auth-note">Your account is protected with email and password. Secure access is required for every session.</div></div></div>`;
-}
-
+function authPage(){const register=state.authMode==='register',recover=state.authMode==='recover';if(recover)return'<div class="auth-shell"><div class="auth-card"><div class="brand-row auth-brand"><div class="brand-mark">ϟ</div><div><div class="brand-name">INBOX9</div><div class="brand-sub">OTP MARKETPLACE</div></div></div><span class="kicker">ACCOUNT RECOVERY</span><h1>Recover your account</h1><p class="auth-copy">Use the single-use recovery code saved from Account.</p><form id="auth-form"><label>Email<input name="email" type="email" autocomplete="email" required></label><label>Recovery code<input name="recoveryCode" type="text" autocomplete="one-time-code" required placeholder="REC-XXXXXXXXXXXXXXXX"></label><label>New password<input name="password" type="password" autocomplete="new-password" minlength="8" maxlength="128" required></label><label>Confirm password<input name="confirm" type="password" autocomplete="new-password" minlength="8" maxlength="128" required></label><button class="primary-btn auth-submit" type="submit">Reset password</button></form><div class="auth-switch"><button type="button" data-auth-mode="login">Back to sign in</button></div><div class="auth-note">Recovery codes are single-use. Store them offline.</div></div></div>';return'<div class="auth-shell"><div class="auth-card"><div class="brand-row auth-brand"><div class="brand-mark">ϟ</div><div><div class="brand-name">INBOX9</div><div class="brand-sub">OTP MARKETPLACE</div></div></div><span class="kicker">SECURE ACCOUNT</span><h1>'+(register?'Create your account':'Welcome back')+'</h1><p class="auth-copy">'+(register?'Create an account to access the marketplace.':'Sign in to continue to your INBOX9 dashboard.')+'</p><form id="auth-form"><label>Email<input name="email" type="email" autocomplete="email" required></label><label>Password<input name="password" type="password" autocomplete="'+(register?'new-password':'current-password')+'" minlength="8" required></label>'+(register?'<label>Confirm password<input name="confirm" type="password" autocomplete="new-password" minlength="8" required></label>':'')+'<button class="primary-btn auth-submit" type="submit">'+(register?'Create account':'Sign in')+'</button></form><div class="auth-switch">'+(register?'Already have an account?':'New to INBOX9?')+' <button type="button" data-auth-mode="'+(register?'login':'register')+'">'+(register?'Sign in':'Create account')+'</button></div>'+(!register?'<button class="link-btn auth-forgot" type="button" data-auth-mode="recover">Forgot password? Use a recovery code</button>':'')+'<div class="auth-note">Secure access is required for every session.</div></div></div>';}
 function bootstrapErrorPage() {
   const message = esc(state.bootstrapError || 'The application is temporarily unavailable.');
   return '<div class="auth-shell"><div class="auth-card"><div class="brand-row auth-brand"><div class="brand-mark">ϟ</div><div><div class="brand-name">INBOX9</div><div class="brand-sub">OTP MARKETPLACE</div></div></div><span class="kicker">CONNECTION CHECK</span><h1>We could not load INBOX9</h1><p class="auth-copy">' + message + '</p><button class="primary-btn auth-submit" type="button" data-action="retry-bootstrap">Retry</button><div class="auth-note">Your account data remains on the server. A temporary connection problem does not sign you out.</div></div></div>';
@@ -1187,7 +1142,7 @@ function render() {
         </div>
         <div class="nav-label">MARKET</div>
         <nav>
-          ${appNav().map(([id, label, glyph]) => `<button class="nav-item ${state.page === id ? 'active' : ''}" type="button" data-page="${id}"><span>${glyph}</span>${label}${id === 'active' && state.active.length ? `<span class="count-badge">${state.active.length}</span>` : ''}</button>`).join('')}
+          ${appNav().map(([id, label, glyph]) => `<button class="nav-item ${state.page === id ? 'active' : ''}" type="button" data-page="${id}" aria-current="${state.page === id ? 'page' : 'false'}"><span>${glyph}</span>${label}${id === 'active' && state.active.length ? `<span class="count-badge">${state.active.length}</span>` : ''}</button>`).join('')}
         </nav>
         <div class="sidebar-spacer"></div>
         <div class="trust-card"><span>✓</span><div><strong>Secure activation</strong><span>Protected service layer</span></div></div>
@@ -1286,51 +1241,16 @@ function supportStatusClass(status) {
   return String(status || 'Open').toLowerCase().replace(/[^a-z]+/g, '-');
 }
 
-function supportTicketCard(ticket) {
-  const status = String(ticket.status || 'Open');
-  const category = SUPPORT_CATEGORIES.find(([id]) => id === ticket.category)?.[1] || 'Support';
-  const created = ticket.createdAt ? new Date(ticket.createdAt).toLocaleString() : 'Recently';
-  return '<article class="support-ticket-card">' +
-    '<div class="support-ticket-head"><div><span class="kicker">' + esc(category) + '</span><h3>' + esc(ticket.subject) + '</h3><small>#' + esc(ticket.id) + ' · ' + esc(created) + '</small></div><span class="table-status ' + supportStatusClass(status) + '">' + esc(status) + '</span></div>' +
-    '<p>' + esc(ticket.message) + '</p>' +
-    (ticket.activationId ? '<span class="support-reference">Activation: ' + esc(ticket.activationId) + '</span>' : '') +
-    (ticket.rechargeId ? '<span class="support-reference">Recharge: ' + esc(ticket.rechargeId) + '</span>' : '') +
-    (ticket.adminNote ? '<div class="support-admin-note"><span>Support response</span><p>' + esc(ticket.adminNote) + '</p></div>' : '') +
-    '<div class="support-ticket-foot"><span>We’ll update this ticket when action is taken.</span><span class="support-live-dot">● ' + esc(status) + '</span></div>' +
-  '</article>';
-}
-
-function supportPage() {
-  const tickets = Array.isArray(state.supportTickets) ? state.supportTickets : [];
-  const form = state.supportForm || {};
-  const activeOptions = state.active.map((item) => '<option value="' + esc(item.id) + '">' + esc(item.service) + ' · ' + esc(item.number) + '</option>').join('');
-  const rechargeOptions = state.recharges.map((item) => '<option value="' + esc(item.id) + '">' + money(item.amountPaise) + ' · ' + esc(item.status) + ' · UTR ' + esc(item.utr) + '</option>').join('');
-  const busy = state.supportSubmitting;
-  const recovery = '<div class="support-recovery-grid">' +
-    '<button class="panel recovery-card" type="button" data-recovery="active"><span class="recovery-icon">◌</span><div><strong>Activation recovery</strong><small>Refresh active numbers and OTP status.</small></div><span>→</span></button>' +
-    '<button class="panel recovery-card" type="button" data-recovery="wallet"><span class="recovery-icon">▱</span><div><strong>Wallet recovery</strong><small>Refresh balance and recharge status.</small></div><span>→</span></button>' +
-    '<button class="panel recovery-card" type="button" data-recovery="orders"><span class="recovery-icon">▤</span><div><strong>Order recovery</strong><small>Reload the authoritative activation timeline.</small></div><span>→</span></button>' +
-  '</div>';
-  const formBlock = '<section class="support-form-panel panel"><div class="panel-head"><div><h3>Report an issue</h3><span>Include the activation or recharge reference when possible.</span></div><span class="status-chip">SECURE TICKET</span></div>' +
-    '<form id="support-form" class="support-form"><div class="support-form-grid">' +
-    '<label>Issue type<select name="category">' + SUPPORT_CATEGORIES.map(([id,label]) => '<option value="' + id + '" ' + (form.category === id ? 'selected' : '') + '>' + label + '</option>').join('') + '</select></label>' +
-    '<label>Subject<input name="subject" maxlength="120" value="' + esc(form.subject || '') + '" placeholder="Example: OTP not received" required></label></div>' +
-    '<label>Message<textarea name="message" maxlength="2000" rows="5" placeholder="Tell us what happened and what you expected." required>' + esc(form.message || '') + '</textarea></label>' +
-    '<div class="support-form-grid"><label>Activation reference<select name="activationId"><option value="">Not linked</option>' + activeOptions + '</select></label><label>Recharge reference<select name="rechargeId"><option value="">Not linked</option>' + rechargeOptions + '</select></label></div>' +
-    '<div class="support-form-actions"><span>Never share passwords, OTPs, or card PINs here.</span><button class="primary-btn" type="submit" ' + (busy ? 'disabled' : '') + '>' + (busy ? 'Sending…' : 'Create support ticket') + '</button></div></form></section>';
-  const ticketBlock = tickets.length
-    ? '<section class="support-tickets"><div class="section-head recent-section-head"><div><span class="kicker">YOUR TICKETS</span><h3>Recent support</h3></div><span class="result-note">' + tickets.length + ' shown</span></div><div class="support-ticket-list">' + tickets.map(supportTicketCard).join('') + '</div></section>'
-    : '<div class="panel support-empty"><div class="empty-icon">?</div><h3>No support tickets</h3><p>Create a ticket when an activation, wallet, recharge, or account issue needs help.</p></div>';
-  const err = state.supportError ? '<div class="panel active-sync-error" role="alert"><span>' + esc(state.supportError) + '</span><button class="refresh-btn" type="button" data-action="refresh-support">Retry</button></div>' : '';
-  return '<div class="support-page"><div class="section-head with-action"><div><span class="kicker">CUSTOMER CARE</span><h2>Help & Support</h2><p class="section-subcopy">Recovery tools and account-specific support in one place.</p></div><div class="page-head-actions"><button class="refresh-btn" type="button" data-action="refresh-support">' + (state.supportLoading ? 'Refreshing…' : 'Refresh') + '</button></div></div>' + err + recovery + formBlock + ticketBlock + '</div>';
-}
-
+function supportTicketCard(ticket){const status=String(ticket.status||'Open'),category=SUPPORT_CATEGORIES.find(([id])=>id===ticket.category)?.[1]||'Support',expanded=state.expandedSupportTicketId===ticket.id;const messages=Array.isArray(ticket.messages)&&ticket.messages.length?ticket.messages:[{id:'initial-'+ticket.id,authorRole:'customer',body:ticket.message,createdAt:ticket.createdAt}];const refs=(ticket.activation?'<span class="support-reference">Activation · '+esc(ticket.activation.id)+(ticket.activation.service?' · '+esc(ticket.activation.service):'')+(ticket.activation.status?' · '+esc(ticket.activation.status):'')+'</span>':'')+(ticket.recharge?'<span class="support-reference">Recharge · '+esc(ticket.recharge.id)+(ticket.recharge.status?' · '+esc(walletStatusLabel({source:'recharge',status:ticket.recharge.status})):'')+'</span>':'');const thread=messages.map(m=>'<div class="support-message '+(m.authorRole==='admin'?'from-support':'from-customer')+'"><div class="support-message-head"><strong>'+esc(m.authorRole==='admin'?'INBOX9 Support':'You')+'</strong><small>'+esc(new Date(m.createdAt).toLocaleString())+'</small></div><p>'+esc(m.body)+'</p></div>').join('');const reply=status==='Closed'?'<small class="thread-closed-note">Closed tickets cannot receive new replies.</small>':'<form class="support-reply-form" data-support-reply="'+esc(ticket.id)+'"><textarea name="message" maxlength="4000" placeholder="Reply to support…" aria-label="Reply to support"></textarea><button class="primary-btn" type="submit">'+(state.supportReplyBusyById[ticket.id]?'Sending…':'Send reply')+'</button></form>';return'<article class="support-ticket-card '+(expanded?'expanded':'')+'"><button class="support-ticket-head" type="button" data-support-toggle="'+esc(ticket.id)+'" aria-expanded="'+String(expanded)+'"><span><span class="kicker">'+esc(category)+'</span><h3>'+esc(ticket.subject)+'</h3><small>#'+esc(ticket.id)+' · '+esc(new Date(ticket.createdAt).toLocaleString())+'</small></span><span class="table-status '+supportStatusClass(status)+'">'+esc(status)+' · '+messages.length+' messages</span></button>'+(expanded?'<div class="support-thread"><div class="support-thread-messages">'+thread+'</div><div class="support-thread-refs">'+refs+'</div>'+reply+'</div>':'<div class="support-ticket-preview"><span>Latest message</span><strong>'+esc(messages[messages.length-1]?.body||ticket.message)+'</strong></div>')+'</article>';}
+function supportRecoveryCards(){return '<div class="support-recovery-grid"><button class="panel recovery-card" type="button" data-recovery="active"><span class="recovery-icon">◌</span><div><strong>Activation recovery</strong><small>Refresh active numbers and OTP status.</small></div><span>→</span></button><button class="panel recovery-card" type="button" data-recovery="wallet"><span class="recovery-icon">▱</span><div><strong>Wallet recovery</strong><small>Refresh balance and recharge status.</small></div><span>→</span></button><button class="panel recovery-card" type="button" data-recovery="orders"><span class="recovery-icon">▤</span><div><strong>Order recovery</strong><small>Reload the authoritative activation timeline.</small></div><span>→</span></button></div>';}
+function supportPage(){const tickets=Array.isArray(state.supportTickets)?state.supportTickets:[],form=state.supportForm||{};const activeOptions=state.active.map(i=>'<option value="'+esc(i.id)+'">'+esc(i.service)+' · '+esc(i.number)+'</option>').join('');const rechargeOptions=state.recharges.map(i=>'<option value="'+esc(i.id)+'">'+money(i.amountPaise)+' · '+esc(i.status)+' · UTR '+esc(i.utr)+'</option>').join('');return'<div class="support-page"><div class="section-head with-action"><div><span class="kicker">CUSTOMER CARE</span><h2>Help & Support</h2><p class="section-subcopy">Threaded conversations, historical references, and replies.</p></div><button class="refresh-btn" type="button" data-action="refresh-support">'+(state.supportLoading?'Refreshing…':'Refresh')+'</button></div>'+(state.supportError?'<div class="panel active-sync-error" role="alert"><span>'+esc(state.supportError)+'</span><button class="refresh-btn" type="button" data-action="refresh-support">Retry</button></div>':'')+'<section class="support-form-panel panel"><div class="panel-head"><div><h3>Report an issue</h3><span>Link an activation or recharge when possible.</span></div><span class="status-chip">SECURE THREAD</span></div><form id="support-form" class="support-form"><div class="support-form-grid"><label>Issue type<select name="category">'+SUPPORT_CATEGORIES.map(([id,label])=>'<option value="'+id+'" '+(form.category===id?'selected':'')+'>'+label+'</option>').join('')+'</select></label><label>Subject<input name="subject" maxlength="120" value="'+esc(form.subject||'')+'" required></label></div><label>Message<textarea name="message" maxlength="2000" rows="5" required>'+esc(form.message||'')+'</textarea></label><div class="support-form-grid"><label>Activation reference<select name="activationId"><option value="">Not linked</option>'+activeOptions+'</select></label><label>Recharge reference<select name="rechargeId"><option value="">Not linked</option>'+rechargeOptions+'</select></label></div><div class="support-form-actions"><span>Never share passwords, OTPs, or card PINs here.</span><button class="primary-btn" type="submit" '+(state.supportSubmitting?'disabled':'')+'>'+(state.supportSubmitting?'Sending…':'Create support ticket')+'</button></div></form></section>'+supportRecoveryCards()+(tickets.length?'<section class="support-tickets"><div class="section-head recent-section-head"><div><span class="kicker">YOUR TICKETS</span><h3>Support threads</h3></div><span class="result-note">'+tickets.length+' shown</span></div><div class="support-ticket-list">'+tickets.map(supportTicketCard).join('')+'</div></section>':'<div class="panel support-empty"><div class="empty-icon">?</div><h3>No support threads</h3><p>Create a thread when you need help.</p></div>')+'</div>';}
 function content() {
   if (state.loading) return `<div class="service-grid customer-service-grid catalog-initial-loading">${catalogLoadingMarkup()}</div>`;
   if (state.page === 'active') return activePage();
   if (state.page === 'orders') return ordersPage();
   if (state.page === 'wallet') return walletPage();
   if (state.page === 'support') return supportPage();
+  if (state.page === 'account') return accountPage();
   if (state.page === 'api') return apiPage();
   if (state.page === 'admin') return adminPage();
   return buyPage();
@@ -1549,47 +1469,18 @@ function walletEntryLabel(entry) {
   return { type, sign: entry.type === 'credit' ? '+' : '−' };
 }
 
-function walletSummary() {
-  const summary = state.walletSummary || {};
-  return {
-    credits: Number(summary.creditPaise || 0),
-    debits: Number(summary.debitPaise || 0),
-    pending: Number(summary.pendingPaise || 0),
-    creditCount: Number(summary.creditCount || 0),
-    debitCount: Number(summary.debitCount || 0),
-    pendingCount: Number(summary.pendingCount || 0)
-  };
-}
-
-function walletPage() {
-  const returnPurchase = state.purchaseFlow.returnAfterWallet && state.purchaseFlow.serviceId
-    ? '<div class="panel purchase-return-banner"><div><strong>Continue your activation</strong><span>Your selected service is saved.</span></div><button class="primary-btn" type="button" data-return-purchase>Back to purchase</button></div>'
-    : '';
-  const summary = walletSummary();
-  const statusCopy = { Pending: 'Payment received details submitted · awaiting verification', Approved: 'Payment verified · wallet credited', Rejected: 'Payment rejected · wallet not credited' };
-  const ledgerRows = state.walletLedger.length ? state.walletLedger.map(entry => {
-    const meta = walletEntryLabel(entry);
-    return '<div class="ledger-row ' + (entry.type === 'credit' ? 'positive' : '') + '"><div class="ledger-main"><span class="ledger-kind">' + meta.type + '</span><strong>' + esc(entry.description) + '</strong><small>' + esc(new Date(entry.createdAt).toLocaleString()) + '</small></div><strong class="ledger-amount ' + (entry.type === 'credit' ? 'credit' : 'debit') + '">' + meta.sign + ' ' + money(entry.amountPaise) + '</strong></div>';
-  }).join('') : '<div class="empty-mini">No wallet transactions yet.</div>';
-  const rechargeRows = state.recharges.length ? state.recharges.map(item => {
-    const status = String(item.status || 'Pending');
-    const statusText = statusCopy[status] || 'Recharge request status updated';
-    const reviewed = item.reviewedAt ? 'Reviewed ' + new Date(item.reviewedAt).toLocaleString() : 'Submitted ' + new Date(item.submittedAt).toLocaleString();
-    const reason = status === 'Rejected' && item.rejectionReason ? '<small class="recharge-reason">' + esc(item.rejectionReason) + '</small>' : '';
-    return '<article class="recharge-status-card ' + status.toLowerCase() + '"><div class="recharge-status-head"><div><strong>' + money(item.amountPaise) + '</strong><span class="table-status ' + status.toLowerCase() + '">' + esc(status) + '</span></div><code>UTR ' + esc(item.utr) + '</code></div><div class="recharge-progress" aria-label="Recharge status"><span class="' + (status === 'Pending' ? 'done' : 'done') + '">1</span><i></i><span class="' + (status !== 'Pending' ? 'done' : '') + '">2</span><i></i><span class="' + (status === 'Approved' || status === 'Rejected' ? 'done' : '') + '">3</span></div><p>' + esc(statusText) + '</p><small>' + esc(reviewed) + '</small>' + reason + '</article>';
-  }).join('') : '<div class="empty-mini">No recharge requests yet.</div>';
-  const rechargeReady = Boolean(state.persistentState && state.rechargeUpiId);
-  const submitBusy = state.rechargeSubmitting;
-  const fundingPanel = rechargeReady
-    ? '<div class="recharge-grid"><div class="panel payment-panel"><div class="panel-head"><div><h3>1. Pay by UPI</h3><span>Use the configured INBOX9 payment destination.</span></div><span class="status-chip">MANUAL VERIFY</span></div><div class="upi-row"><span>UPI ID</span><code>' + esc(state.rechargeUpiId) + '</code><button class="copy-btn" type="button" data-copy="' + esc(state.rechargeUpiId) + '" data-copy-message="UPI ID copied">Copy</button></div></div><div class="panel payment-panel"><div class="panel-head"><div><h3>2. Submit payment</h3><span>Exact amount + UTR are required.</span></div></div><form id="recharge-form" class="recharge-form"><label>Amount (₹)<input id="recharge-amount" name="amount" type="number" min="100" max="5000" step="1" value="' + state.rechargeAmount + '" required ' + (submitBusy ? 'disabled' : '') + '></label><div class="amount-presets">' + [100,500,1000,2000,5000].map(amount => '<button type="button" class="filter-btn ' + (state.rechargeAmount === amount ? 'selected' : '') + '" data-recharge-amount="' + amount + '" ' + (submitBusy ? 'disabled' : '') + '>₹' + amount + '</button>').join('') + '</div><label>UTR / Transaction reference<input name="utr" type="text" minlength="4" maxlength="64" autocomplete="off" placeholder="Enter UTR after payment" required ' + (submitBusy ? 'disabled' : '') + '></label><button class="primary-btn" type="submit" ' + (submitBusy ? 'disabled' : '') + '>' + (submitBusy ? 'Submitting…' : 'Submit recharge for verification') + '</button><p class="form-note">A successful submission creates a pending request. Your wallet is credited only after verification.</p></form></div></div>'
-    : '<div class="panel payment-panel"><div class="panel-head"><div><h3>Wallet funding unavailable</h3><span>' + (state.persistentState ? 'Recharge is not configured on this deployment yet.' : 'Payments are disabled in this environment.') + '</span></div><span class="status-chip">' + (state.persistentState ? 'SETUP REQUIRED' : 'PAYMENTS OFF') + '</span></div><p class="form-note">No balance is created in the browser. Credits come from the authoritative wallet ledger.</p></div>';
-  return returnPurchase +
-    '<div class="section-head with-action"><div><span class="kicker">WALLET / INR</span><h2>Wallet</h2><p class="section-subcopy">Authoritative balance, funding requests, and account transactions.</p></div><div class="page-head-actions"><span class="result-note">Min ₹100 · Max ₹5,000</span><button class="refresh-btn" type="button" data-action="refresh-customer">' + (state.customerDataRefreshing ? 'Refreshing…' : 'Refresh') + '</button></div></div>' +
-    '<div class="wallet-summary-grid"><div class="balance-card"><div class="wallet-card-top"><span>AVAILABLE BALANCE</span><span>INR</span></div><strong>' + money(state.balancePaise) + '</strong><small>Authoritative wallet balance</small></div><div class="wallet-stat-card"><span>LEDGER CREDITS</span><strong>' + money(summary.credits) + '</strong><small>' + summary.creditCount + ' recorded credits</small></div><div class="wallet-stat-card"><span>LEDGER DEBITS</span><strong>' + money(summary.debits) + '</strong><small>' + summary.debitCount + ' recorded debits</small></div><div class="wallet-stat-card pending"><span>PENDING TOP-UPS</span><strong>' + money(summary.pending) + '</strong><small>' + summary.pendingCount + ' awaiting review</small></div></div>' +
-    fundingPanel +
-    '<div class="wallet-two-column"><div class="panel ledger"><div class="panel-head"><div><h3>Wallet ledger</h3><span>Authoritative account activity</span></div></div>' + ledgerRows + '</div><div class="panel ledger"><div class="panel-head"><div><h3>Recharge status</h3><span>Submitted → Verified → Wallet outcome</span></div></div>' + rechargeRows + '</div></div>';
-}
-
+function walletSummary(){const s=state.walletSummary||{};return{credits:Number(s.creditPaise||0),debits:Number(s.debitPaise||0),pending:Number(s.pendingPaise||0),creditCount:Number(s.creditCount||0),debitCount:Number(s.debitCount||0),pendingCount:Number(s.pendingCount||0)};}
+function walletActivityItems(){const ledger=(state.walletLedger||[]).map(e=>({id:'ledger:'+e.id,source:'ledger',type:e.type==='credit'?'credit':'debit',title:e.description||'Wallet transaction',amountPaise:Number(e.amountPaise||0),createdAt:Number(e.createdAt||0),referenceType:e.referenceType||'',referenceId:e.referenceId||''}));const recharges=(state.recharges||[]).map(e=>({id:'recharge:'+e.id,source:'recharge',type:'recharge',title:'Wallet recharge',amountPaise:Number(e.amountPaise||0),createdAt:Number(e.submittedAt||0),status:String(e.status||'Pending'),utr:e.utr||'',reviewedAt:e.reviewedAt||null,rejectionReason:e.rejectionReason||''}));return[...ledger,...recharges].sort((a,b)=>b.createdAt-a.createdAt);}
+function filteredWalletActivity(){const items=walletActivityItems();if(state.walletFilter==='credits')return items.filter(i=>i.type==='credit');if(state.walletFilter==='debits')return items.filter(i=>i.type==='debit');if(state.walletFilter==='recharges')return items.filter(i=>i.source==='recharge');return items;}
+function walletStatusLabel(i){if(i.source==='ledger')return i.type==='credit'?'Credited':'Charged';if(i.status==='Approved')return'Verified & credited';if(i.status==='Rejected')return'Rejected · not credited';return'Awaiting verification';}
+function walletActivityCard(i){const expanded=state.expandedWalletTransactionId===i.id;const detail=expanded?'<div class="wallet-transaction-detail"><div><span>Status</span><strong>'+esc(walletStatusLabel(i))+'</strong></div><div><span>Created</span><strong>'+esc(i.createdAt?new Date(i.createdAt).toLocaleString():'—')+'</strong></div>'+(i.referenceId?'<div><span>Reference</span><strong>'+esc((i.referenceType?i.referenceType+' · ':'')+i.referenceId)+'</strong></div>':'')+(i.utr?'<div><span>UTR</span><strong>'+esc(i.utr)+'</strong></div>':'')+(i.reviewedAt?'<div><span>Reviewed</span><strong>'+esc(new Date(i.reviewedAt).toLocaleString())+'</strong></div>':'')+(i.rejectionReason?'<div><span>Reason</span><strong>'+esc(i.rejectionReason)+'</strong></div>':'')+'</div>':'';
+const tone=i.source==='recharge'?(i.status==='Rejected'?'rejected':i.status==='Approved'?'approved':'pending'):(i.type==='credit'?'approved':'debit');const amount=(i.source==='recharge'?'':(i.type==='credit'?'+ ':'− '))+money(i.amountPaise);return'<article class="wallet-transaction '+tone+'"><button class="wallet-transaction-main" type="button" data-wallet-detail="'+esc(i.id)+'" aria-expanded="'+String(expanded)+'"><span class="wallet-transaction-icon">'+(i.source==='recharge'?'↥':i.type==='credit'?'+':'−')+'</span><span class="wallet-transaction-copy"><strong>'+esc(i.title)+'</strong><small>'+esc(i.createdAt?new Date(i.createdAt).toLocaleString():'—')+'</small></span><span class="wallet-transaction-status">'+esc(walletStatusLabel(i))+'</span><strong class="wallet-transaction-amount">'+esc(amount)+'</strong><span aria-hidden="true">⌄</span></button>'+detail+'</article>';}
+function walletPage(){const summary=walletSummary(),activity=filteredWalletActivity();const filters=[['all','All'],['credits','Money in'],['debits','Money out'],['recharges','Recharges']].map(([v,l])=>'<button class="filter-btn '+(state.walletFilter===v?'selected':'')+'" type="button" data-wallet-filter="'+v+'">'+l+'</button>').join('');const rechargeReady=Boolean(state.persistentState&&state.rechargeUpiId);const funding=rechargeReady?'<div class="recharge-flow panel"><div class="recharge-flow-head"><div><span class="kicker">WALLET FUNDING</span><h3>Add funds by UPI</h3><p>Pay the exact amount, then submit the UTR. Wallet changes only after verification.</p></div><span class="status-chip">MANUAL VERIFY</span></div><p class="recharge-progress-copy">Submitted → Verified → Wallet outcome</p><div class="recharge-steps"><span class="done"><b>1</b> Pay</span><i></i><span class="current"><b>2</b> Submit</span><i></i><span><b>3</b> Verify</span></div><div class="recharge-grid"><div class="panel payment-panel"><div class="panel-head"><div><h3>Pay by UPI</h3><span>Use the configured INBOX9 destination.</span></div></div><div class="upi-row"><span>UPI ID</span><code>'+esc(state.rechargeUpiId)+'</code><button class="copy-btn" type="button" data-copy="'+esc(state.rechargeUpiId)+'" data-copy-message="UPI ID copied">Copy</button></div><p class="form-note">Keep the transaction reference from your UPI app.</p></div><div class="panel payment-panel"><div class="panel-head"><div><h3>Submit payment</h3><span>Exact amount + UTR are required.</span></div></div><form id="recharge-form" class="recharge-form"><label>Amount (₹)<input id="recharge-amount" name="amount" type="number" min="100" max="5000" step="1" value="'+state.rechargeAmount+'" required></label><div class="amount-presets">'+[100,500,1000,2000,5000].map(a=>'<button type="button" class="filter-btn '+(state.rechargeAmount===a?'selected':'')+'" data-recharge-amount="'+a+'">₹'+a+'</button>').join('')+'</div><label>UTR / Transaction reference<input name="utr" type="text" minlength="4" maxlength="64" autocomplete="off" placeholder="Enter UTR after payment" required></label><button class="primary-btn" type="submit" '+(state.rechargeSubmitting?'disabled':'')+'>'+(state.rechargeSubmitting?'Submitting…':'Submit for verification')+'</button><p class="form-note">Pending = submitted and awaiting review. Payment verified · wallet credited. <span class="recharge-reason">Payment rejected · wallet not credited.</span></p></form></div></div></div>':'<div class="panel payment-panel"><div class="panel-head"><div><h3>Wallet funding unavailable</h3><span>'+(state.persistentState?'Recharge is not configured on this deployment yet.':'Payments are disabled in this environment.')+'</span></div><span class="status-chip">'+(state.persistentState?'SETUP REQUIRED':'PAYMENTS OFF')+'</span></div></div>';return'<div class="section-head with-action"><div><span class="kicker">WALLET / INR</span><h2>Wallet</h2><p class="section-subcopy">Recharge status, transaction filters, and transaction detail.</p></div><button class="refresh-btn" type="button" data-action="refresh-customer">'+(state.customerDataRefreshing?'Refreshing…':'Refresh')+'</button></div><div class="wallet-summary-grid"><div class="balance-card"><div class="wallet-card-top"><span>AVAILABLE BALANCE</span><span>INR</span></div><strong>'+money(state.balancePaise)+'</strong><small>Authoritative wallet balance</small></div><div class="wallet-stat-card"><span>LEDGER CREDITS</span><strong>'+money(summary.credits)+'</strong><small>'+summary.creditCount+' recorded credits</small></div><div class="wallet-stat-card"><span>LEDGER DEBITS</span><strong>'+money(summary.debits)+'</strong><small>'+summary.debitCount+' recorded debits</small></div><div class="wallet-stat-card pending"><span>PENDING TOP-UPS</span><strong>'+money(summary.pending)+'</strong><small>'+summary.pendingCount+' awaiting review</small></div></div>'+funding+'<section class="panel wallet-activity-panel"><div class="panel-head"><div><h3>Transactions</h3><span>Money movement and recharge requests in one timeline.</span></div><span class="status-chip">'+activity.length+' shown</span></div><div class="wallet-filter-row">'+filters+'</div><div class="wallet-transaction-list">'+(activity.length?activity.map(walletActivityCard).join(''):'<div class="empty-mini">No transactions match this filter.</div>')+'</div></section><section class="panel wallet-recharge-history"><div class="panel-head"><div><h3>Recharge history</h3><span>Semantic payment outcomes</span></div></div>'+(state.recharges.length?'<div class="recharge-history">'+state.recharges.slice(0,10).map(r=>'<div class="recharge-history-row"><div><strong>'+money(r.amountPaise)+'</strong><span>UTR '+esc(r.utr)+'</span></div><span class="table-status '+String(r.status||'Pending').toLowerCase()+'">'+esc(walletStatusLabel({source:'recharge',status:r.status}))+'</span></div>').join('')+'</div>':'<div class="empty-mini">No recharge requests yet.</div>')+'</section>';}
+function refreshAccount(){if(!state.user)return false;state.accountLoading=true;state.accountError='';return Promise.all([api('/api/auth/sessions'),api('/api/auth/me')]).then(([sessions,me])=>{state.accountSessions=Array.isArray(sessions.sessions)?sessions.sessions:[];if(me.user)state.user=me.user;return true;}).catch(error=>{if(Number(error.status)===401){handleSessionExpired();return false;}state.accountError=error.message||'Account data unavailable';return false;}).finally(()=>{state.accountLoading=false;});}
+function saveProfile(event){event.preventDefault();const displayName=String(new FormData(event.currentTarget).get('displayName')||'').trim();api('/api/auth/profile',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({displayName})}).then(p=>{state.user=p.user;toast('Profile saved');render();}).catch(error=>toast(error.message));}
+function generateRecoveryCode(){if(state.accountRecoveryBusy)return;state.accountRecoveryBusy=true;state.accountRecoveryCode='';render();api('/api/auth/recovery-code',{method:'POST'}).then(p=>{state.accountRecoveryCode=p.code||'';toast('Recovery code generated');}).catch(error=>toast(error.message)).finally(()=>{state.accountRecoveryBusy=false;render();});}
+function revokeSession(id){api('/api/auth/sessions/'+encodeURIComponent(id),{method:'DELETE'}).then(result=>{if(result.current){handleSessionSignedOut();return;}return refreshAccount().then(()=>{render();toast('Session signed out');});}).catch(error=>toast(error.message));}
+function accountPage(){const user=state.user||{},sessions=Array.isArray(state.accountSessions)?state.accountSessions:[];const rows=sessions.length?sessions.map(sess=>'<div class="account-session-row"><div><strong>'+esc(sess.current?'Current session':'Signed-in session')+'</strong><small>Started '+esc(sess.createdAt?new Date(sess.createdAt).toLocaleString():'—')+' · Last active '+esc(sess.lastUsedAt?new Date(sess.lastUsedAt).toLocaleString():'—')+'</small></div><span>'+(sess.current?'<span class="status-chip">CURRENT</span>':'<button class="filter-btn" type="button" data-revoke-session="'+esc(sess.id)+'">Sign out</button>')+'</span></div>').join(''):'<div class="empty-mini">No active session records are available.</div>';return'<div class="account-page"><div class="section-head with-action"><div><span class="kicker">ACCOUNT</span><h2>Account</h2><p class="section-subcopy">Profile, password recovery, and signed-in sessions.</p></div><button class="refresh-btn" type="button" data-action="refresh-account">'+(state.accountLoading?'Refreshing…':'Refresh')+'</button></div>'+(state.accountError?'<div class="panel active-sync-error" role="alert"><span>'+esc(state.accountError)+'</span><button class="refresh-btn" type="button" data-action="refresh-account">Retry</button></div>':'')+'<div class="account-grid"><section class="panel account-card"><div class="panel-head"><div><h3>Profile</h3><span>Set a display name.</span></div></div><form id="profile-form" class="account-form"><label>Display name<input name="displayName" maxlength="64" value="'+esc(user.displayName||'')+'" placeholder="Your display name"></label><label>Email<input value="'+esc(user.email||'')+'" readonly aria-readonly="true"></label><button class="primary-btn" type="submit">Save profile</button></form></section><section class="panel account-card"><div class="panel-head"><div><h3>Password</h3><span>Changing it signs out other sessions.</span></div></div><form id="change-password-form" class="security-form"><label>Current password<input name="currentPassword" type="password" autocomplete="current-password" required></label><label>New password<input name="newPassword" type="password" autocomplete="new-password" minlength="8" maxlength="128" required></label><label>Confirm new password<input name="confirmPassword" type="password" autocomplete="new-password" minlength="8" maxlength="128" required></label><button class="primary-btn" type="submit">Change password</button></form></section></div><section class="panel account-card"><div class="panel-head"><div><h3>Recovery code</h3><span>Generate while signed in and store it offline.</span></div><button class="secondary-btn" type="button" data-generate-recovery '+(state.accountRecoveryBusy?'disabled':'')+'>'+(state.accountRecoveryBusy?'Generating…':'Generate code')+'</button></div>'+(state.accountRecoveryCode?'<div class="recovery-code-box" role="alert"><span>YOUR RECOVERY CODE</span><strong>'+esc(state.accountRecoveryCode)+'</strong><div><button class="primary-btn" type="button" data-copy="'+esc(state.accountRecoveryCode)+'" data-copy-message="Recovery code copied">Copy code</button><small>A new code invalidates the previous unused code.</small></div></div>':'<div class="account-note">The recovery code is shown only after generation.</div>')+'</section><section class="panel account-card"><div class="panel-head"><div><h3>Active sessions</h3><span>7-day sessions · up to 5 retained by default.</span></div><button class="buy-btn" type="button" data-action="logout-all">Sign out all</button></div><div class="account-session-list">'+rows+'</div></section></div>';}
 function apiPage() {
   return `<div class="section-head"><div><span class="kicker">OPERATIONS</span><h2>API foundation</h2></div><span class="status-chip">ADMIN ONLY</span></div><div class="api-grid"><div class="panel api-card"><div class="api-title"><div class="info-icon">ϟ</div><div><h3>Provider adapter contract</h3><p>Upstream integrations stay behind a server-only adapter and never leak provider credentials to the browser.</p></div></div><pre>interface ProviderAdapter {
   listServices(): Promise&lt;Service[]&gt;
@@ -1620,14 +1511,13 @@ function bindEvents() {
   document.querySelectorAll('[data-action="close-security"]').forEach((node) => node.addEventListener('click', closeSecurity));
   document.querySelectorAll('[data-action="logout-all"]').forEach((node) => node.addEventListener('click', logoutAll));
   document.querySelectorAll('[data-action="notifications"]').forEach((node) => node.addEventListener('click', openNotifications));
-  document.querySelectorAll('[data-action="notifications-read"]').forEach((node) => node.addEventListener('click', markAllNotificationsRead));
-  document.querySelectorAll('[data-notification-page]').forEach((node) => node.addEventListener('click', () => {
-    state.notifications = state.notifications.map((item) => ({ ...item, read: true }));
-    const page = node.dataset.notificationPage;
-    state.notificationsOpen = false;
-    if (page) setPage(page); else render();
-  }));
+  document.querySelectorAll('[data-action="notifications-read"]').forEach((node)=>node.addEventListener('click',()=>void markAllNotificationsRead()));
+  document.querySelectorAll('[data-notification-page]').forEach((node)=>node.addEventListener('click',()=>{const id=node.dataset.notificationId,page=node.dataset.notificationPage;void markNotificationRead(id).finally(()=>{state.notifications=state.notifications.map(item=>item.id===id?{...item,read:true}:item);state.notificationsOpen=false;if(page)setPage(page);else render();});}));
   document.getElementById('change-password-form')?.addEventListener('submit', submitChangePassword);
+  document.getElementById('profile-form')?.addEventListener('submit', saveProfile);
+  document.querySelectorAll('[data-action="refresh-account"]').forEach((n)=>n.addEventListener('click',()=>void refreshAccount().then(()=>render())));
+  document.querySelectorAll('[data-generate-recovery]').forEach((n)=>n.addEventListener('click',generateRecoveryCode));
+  document.querySelectorAll('[data-revoke-session]').forEach((n)=>n.addEventListener('click',()=>revokeSession(n.dataset.revokeSession)));
   document.getElementById('support-form')?.addEventListener('submit', submitSupportTicket);
   document.querySelectorAll('[data-action="refresh-support"]').forEach((node) => node.addEventListener('click', () => void refreshSupport().then(() => render())));
   document.querySelectorAll('[data-recovery]').forEach((node) => node.addEventListener('click', () => void runRecovery(node.dataset.recovery)));
@@ -1843,4 +1733,6 @@ window.addEventListener('hashchange', handleHashNavigation);
 window.addEventListener('popstate', handleHashNavigation);
 document.addEventListener('visibilitychange', handleCustomerVisibilityRefresh);
 window.addEventListener('focus', handleCustomerVisibilityRefresh);
+window.addEventListener('online', handleConnectivityChange);
+window.addEventListener('offline', handleConnectivityChange);
 boot();

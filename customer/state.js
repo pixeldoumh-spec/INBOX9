@@ -3,7 +3,8 @@ export const NAV = [
   ['active', 'Active', '◌'],
   ['orders', 'Orders', '▤'],
   ['wallet', 'Wallet', '▱'],
-  ['support', 'Help & Support', '?']
+  ['support', 'Help & Support', '?'],
+  ['account', 'Account', '◉']
 ];
 
 export const DEFAULT_CATEGORIES = ['Social', 'Productivity', 'Rummy', 'Games', 'Other'];
@@ -23,13 +24,21 @@ export function createCustomerState() {
     notifications: [],
     notificationsOpen: false,
     notificationsNextId: 1,
+    notificationLoading: false,
+    notificationError: '',
+    online: typeof navigator === 'undefined' ? true : navigator.onLine,
+    reconnecting: false,
     supportTickets: [],
     supportLoading: false,
     supportSubmitting: false,
+    supportReplyBusyById: {},
+    expandedSupportTicketId: null,
     supportError: '',
     supportForm: { category: 'activation', subject: '', message: '', activationId: '', rechargeId: '' },
     lastSupportSyncAt: 0,
     rechargeSubmitting: false,
+    walletFilter: 'all',
+    expandedWalletTransactionId: null,
     orderFilter: 'all',
     expandedOrderId: null,
     services: [],
@@ -57,6 +66,11 @@ export function createCustomerState() {
     purchaseBusy: new Set(),
     securityOpen: false,
     dialogReturnFocus: null,
+    accountLoading: false,
+    accountError: '',
+    accountSessions: [],
+    accountRecoveryCode: '',
+    accountRecoveryBusy: false,
     expandedServiceId: null,
     marketVisibleCount: MARKET_PAGE_SIZE,
     categoryCounts: {},

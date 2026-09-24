@@ -9,17 +9,30 @@ export class ApiError extends Error {
 }
 
 export async function api(url, options = {}) {
+  const method = String(options.method || 'GET').toUpperCase();
+  const retryable = method === 'GET';
+  const attempts = retryable ? 3 : 1;
   let response;
-  try {
-    response = await fetch(url, {
-      ...options,
-      headers: {
-        accept: 'application/json',
-        ...(options.headers || {})
-      }
-    });
-  } catch (networkError) {
-    throw new ApiError(networkError?.message || 'Network request failed', { status: 0, code: 'NETWORK_ERROR' });
+  let lastNetworkError = null;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      response = await fetch(url, {
+        ...options,
+        headers: {
+          accept: 'application/json',
+          ...(options.headers || {})
+        }
+      });
+      lastNetworkError = null;
+      break;
+    } catch (networkError) {
+      lastNetworkError = networkError;
+      if (attempt === attempts) break;
+      await new Promise((resolve) => setTimeout(resolve, 250 * 2 ** (attempt - 1)));
+    }
+  }
+  if (!response) {
+    throw new ApiError(lastNetworkError?.message || 'Network request failed', { status: 0, code: 'NETWORK_ERROR' });
   }
 
   let payload;
