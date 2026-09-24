@@ -367,9 +367,10 @@ async function markAllNotificationsRead(){try{await api('/api/notifications/read
 function openNotifications(){state.notificationsOpen=!state.notificationsOpen;if(state.notificationsOpen)void refreshNotifications().then(()=>render());else render();}
 
 function notificationPanel() {
-  const unread = state.notifications.filter((item) => !item.read).length;
-  const rows = state.notifications.length
-    ? state.notifications.map((item) => {
+  const visibleNotifications = state.notifications.filter((item) => !notificationIsPopupSuppressed(item));
+  const unread = visibleNotifications.filter((item) => !item.read).length;
+  const rows = visibleNotifications.length
+    ? visibleNotifications.map((item) => {
         const elapsed = Math.max(0, Math.floor((Date.now() - item.createdAt) / 1000));
         const age = elapsed < 60 ? 'Just now' : elapsed < 3600 ? Math.floor(elapsed / 60) + 'm ago' : Math.floor(elapsed / 3600) + 'h ago';
         return '<button class="notification-row ' + esc(item.tone) + ' ' + (item.read ? 'read' : 'unread') + '" type="button" data-notification-page="' + esc(item.page || '') + '" data-notification-id="' + esc(item.id) + '">' +
@@ -513,6 +514,10 @@ function handleSessionSignedOut() {
   state.authMode = 'login';
   state.notifications = [];
   state.notificationsOpen = false;
+  state.notificationPopup = null;
+  state.notificationPopupQueue = [];
+  window.clearTimeout(state.notificationPopupTimer);
+  state.notificationPopupTimer = null;
   state.user = null;
   state.active = [];
   state.recentActivations = [];
@@ -863,6 +868,19 @@ async function buy(serviceId, serverId = null) {
     });
     delete state.pendingPurchaseKeys[purchaseKey];
     state.purchaseBusy.delete(purchaseKey);
+    const numberPopupDelay = Number(activation.syntheticNumberRevealAt || 0)
+      ? Math.max(0, Number(activation.syntheticNumberRevealAt) - Date.now())
+      : 0;
+    queueNotificationPopup({
+      title: 'Number fetched successfully',
+      body: 'Your ' + activation.service + ' number ' + activation.number + ' is ready to use.',
+      page: 'active',
+      tone: 'success',
+      sourceType: 'activation',
+      sourceId: activation.id,
+      eventKey: 'status:Active',
+      delayMs: numberPopupDelay
+    });
     state.active.unshift(activation);
     state.orders.unshift({ id: activation.id, service: activation.service, number: activation.number, pricePaise: activation.pricePaise, status: 'Active', otp: 'Waiting…', created: 'Just now' });
     if (Number.isFinite(activation.walletBalancePaise)) state.balancePaise = activation.walletBalancePaise;
@@ -1052,6 +1070,19 @@ async function syncActivationItem(item) {
     if (order) {
       order.status = latest.status;
       order.otp = latest.otp || (isLiveActivation(latest) ? 'Waiting…' : '—');
+    }
+    const previousOtp = String(item.otp || '').trim();
+    const latestOtp = String(latest.otp || '').trim();
+    if (latestOtp && ['Waiting…', '—'].includes(previousOtp)) {
+      queueNotificationPopup({
+        title: 'OTP received successfully',
+        body: 'Your verification code is ready for order ' + item.id + '.',
+        page: 'active',
+        tone: 'success',
+        sourceType: 'activation',
+        sourceId: item.id,
+        eventKey: 'status:Completed'
+      });
     }
     const index = state.active.findIndex((entry) => entry.id === item.id);
     if (isLiveActivation(latest)) {
@@ -1445,6 +1476,7 @@ function render() {
         </section>
       </main>
       ${state.securityOpen ? securityModal() : ''}
+      ${renderNotificationPopup()}
     </div>`;
   bindEvents();
   syncOverlayScrollLock();
