@@ -98,3 +98,12 @@ export function createCustomerDataController({
     }
   }
 }
+
+  return {
+    loadPersisted,
+    persist,
+    syncFromServerActivations,
+    loadCustomerData,
+    refreshCatalog
+  };
+}
