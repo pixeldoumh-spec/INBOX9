@@ -106,6 +106,7 @@ function maxSessionsPerUser() {
 async function createSession(client, userId, sessionVersion) {
   const { token, tokenHash } = sessionToken();
   const sessionId = 'SES-' + crypto.randomUUID();
+  const sessionId = 'SES-' + crypto.randomUUID();
   const expiresAt = new Date(Date.now() + SESSION_DAYS * 86400000);
   await client.query(
     `INSERT INTO sessions (session_id,token_hash,user_id,session_version,expires_at,last_used_at,revoked_at)
