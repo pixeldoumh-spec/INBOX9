@@ -1,0 +1,23 @@
+name: INBOX9 production observability
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    name: Production health and telemetry canary
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Run production observability smoke
+        env:
+          PRODUCTION_BASE_URL: https://inbox9.onrender.com
+        run: node scripts/production-observability-smoke.mjs
