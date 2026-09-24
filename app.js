@@ -152,6 +152,7 @@ function notificationSnapshot() {
 }
 
 let notificationBaseline = null;
+let supportSyncInFlight = false;
 
 function addNotification({ title, body, page = null, tone = 'info' }) {
   state.notifications = [{
@@ -380,6 +381,7 @@ async function logout() {
 
 function handleSessionSignedOut() {
   notificationBaseline = null;
+  state.authMode = 'login';
   state.notifications = [];
   state.notificationsOpen = false;
   state.user = null;
@@ -528,6 +530,7 @@ const {
   refreshWallet,
   refreshCatalog,
   refreshSupport,
+  refreshAccount,
   resetPurchaseFlow,
   toast
 });
