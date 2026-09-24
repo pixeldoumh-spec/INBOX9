@@ -844,8 +844,7 @@ function hero() {
       <div class="hero-live"><span class="live-dot"></span><strong>Backend connected</strong><span>LIVE API</span></div>
       <div class="hero-stat-grid">
         <div class="hero-stat"><span>Services</span><strong>${state.services.length.toLocaleString()}</strong><small>ready to browse</small></div>
-        <div class="hero-stat"><span>Allocation</span><strong>Auto</strong><small>server selected at purchase</small></div>
-        <div class="hero-stat"><span>Code timing</span><strong>20s</strong><small>automatic delivery</small></div>
+        <div class="hero-stat"><span>Number validity</span><strong>25 min</strong><small>maximum validity</small></div>
         <div class="hero-stat"><span>Active now</span><strong>${activeCount}</strong><small>${activeCount === 1 ? 'activation' : 'activations'}</small></div>
       </div>
     </div>
@@ -954,7 +953,7 @@ function buyPage() {
   const showing = Math.min(state.marketVisibleCount, list.length);
   const freshness = catalogFreshnessText();
   const catalogUnavailable = Boolean(state.catalogError && !state.services.length && !state.catalogLoading);
-  return `<div class="market-page">
+  return `<div class="market-page" id="marketplace-services">
     <div class="section-head market-section-head">
       <div><span class="kicker">MARKETPLACE / +91</span><h2>Choose a service</h2><p class="section-subcopy">Pick the service you need. Choose a service, review the price, and start your activation.</p></div>
       <div class="market-summary"><span class="summary-dot"></span><strong>${list.length.toLocaleString()}</strong><span>matches</span></div>
@@ -1077,7 +1076,15 @@ function bindEvents() {
   document.querySelectorAll('[data-action="close-security"]').forEach((node) => node.addEventListener('click', closeSecurity));
   document.querySelectorAll('[data-action="logout-all"]').forEach((node) => node.addEventListener('click', logoutAll));
   document.getElementById('change-password-form')?.addEventListener('submit', submitChangePassword);
-  document.querySelectorAll('[data-page]').forEach((node) => node.addEventListener('click', () => setPage(node.dataset.page)));
+  document.querySelectorAll('[data-page]').forEach((node) => node.addEventListener('click', () => {
+    const page = node.dataset.page;
+    if (page === 'buy' && state.page === 'buy') {
+      document.getElementById('marketplace-services')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      setTimeout(() => document.getElementById('service-search')?.focus({ preventScroll: true }), 350);
+      return;
+    }
+    setPage(page);
+  }));
   bindMarketplaceEvents();
   document.querySelectorAll('[data-cancel]').forEach((node) => node.addEventListener('click', () => {
     state.activeCancelId = node.dataset.cancel;
