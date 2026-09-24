@@ -254,30 +254,6 @@ function handleSessionSignedOut() {
   render();
 }
 
-async function toggleServiceCapacity(serviceId) {
-  if (state.expandedServiceId === serviceId) {
-    state.expandedServiceId = null;
-    renderBuyCatalog();
-    return;
-  }
-  state.expandedServiceId = serviceId;
-  state.marketServerErrors[serviceId] = '';
-  state.marketServerLoading[serviceId] = true;
-  renderBuyCatalog();
-  try {
-    state.marketServerStats[serviceId] = await api('/api/services/' + encodeURIComponent(serviceId) + '/servers');
-  } catch (error) {
-    if (Number(error.status) === 401) {
-      handleSessionExpired();
-      return;
-    }
-    state.marketServerErrors[serviceId] = error.message || 'Unable to load current capacity';
-  } finally {
-    state.marketServerLoading[serviceId] = false;
-    if (state.page === 'buy' && state.expandedServiceId === serviceId) renderBuyCatalog();
-  }
-}
-
 function serviceDetailsMarkup() {
   return '<div class="server-panel service-details-panel">' +
     '<div class="service-detail-row"><span class="service-detail-icon">◷</span><div><strong>Number validity</strong><span>Your number remains valid for up to 25 minutes after reservation.</span></div></div>' +
