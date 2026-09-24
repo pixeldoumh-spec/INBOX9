@@ -8,6 +8,16 @@ export class ApiError extends Error {
   }
 }
 
+function shouldSignalSessionExpiry(url, method) {
+  const path = String(url || '').split('?')[0];
+  if (method === 'GET' && path === '/api/auth/me') return false;
+  return !['/api/auth/login', '/api/auth/register', '/api/auth/recover'].includes(path);
+}
+
+function signalSessionExpiry() {
+  try { window.dispatchEvent(new CustomEvent('inbox9:session-expired')); } catch {}
+}
+
 export async function api(url, options = {}) {
   const method = String(options.method || 'GET').toUpperCase();
   const retryable = method === 'GET';
@@ -18,9 +28,6 @@ export async function api(url, options = {}) {
     try {
       response = await fetch(url, {
         ...options,
-        // Keep authenticated same-origin requests explicitly cookie-aware.
-        // The browser default is same-origin, but making it explicit protects
-        // session bootstrap/login continuity across reloads and environments.
         credentials: options.credentials ?? 'same-origin',
         headers: {
           accept: 'application/json',
@@ -47,6 +54,7 @@ export async function api(url, options = {}) {
   }
 
   if (!response.ok) {
+    if (response.status === 401 && shouldSignalSessionExpiry(url, method)) signalSessionExpiry();
     throw new ApiError(payload.error || `Request failed (${response.status})`, {
       status: response.status,
       code: payload.code || null,
