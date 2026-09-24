@@ -4,6 +4,57 @@ import { esc, money, iconFor, isLiveActivation, normalizeSearchText } from './cu
 import { createCustomerNavigation } from './customer/navigation.js';
 import { createCustomerDataController } from './customer/customer-data.js';
 
+const CLIENT_ERROR_MAX_REPORTS = 20;
+const reportedClientErrors = new Map();
+
+function clientErrorFingerprint(name, message, source) {
+  return [name, message, source].map((value) => String(value || '').slice(0, 180)).join('|');
+}
+
+function reportClientError(payload = {}) {
+  const name = String(payload.name || 'BrowserError').slice(0, 120);
+  const message = String(payload.message || 'Unknown browser error').slice(0, 1000);
+  const source = String(payload.source || 'browser').slice(0, 100);
+  if (!message) return;
+  const fingerprint = clientErrorFingerprint(name, message, source);
+  const now = Date.now();
+  for (const [key, seenAt] of reportedClientErrors) {
+    if (now - seenAt > 10 * 60 * 1000) reportedClientErrors.delete(key);
+  }
+  if (reportedClientErrors.has(fingerprint) || reportedClientErrors.size >= CLIENT_ERROR_MAX_REPORTS) return;
+  reportedClientErrors.set(fingerprint, now);
+  const path = window.location.pathname || '/';
+  const stack = String(payload.stack || '').slice(0, 8000);
+  void fetch('/api/client-errors', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    credentials: 'same-origin',
+    keepalive: true,
+    body: JSON.stringify({ name, message, stack, path, source })
+  }).catch(() => {});
+}
+
+window.addEventListener('error', (event) => {
+  const error = event.error;
+  if (error instanceof Error) {
+    reportClientError({ name: error.name, message: error.message, stack: error.stack, source: 'window.error' });
+    return;
+  }
+  const target = event.target;
+  const resource = target?.src || target?.href || '';
+  reportClientError({
+    name: 'ResourceLoadError',
+    message: resource ? 'Resource failed to load' : String(event.message || 'Browser error'),
+    stack: '',
+    source: 'window.error'
+  });
+});
+
+window.addEventListener('unhandledrejection', (event) => {
+  const reason = event.reason instanceof Error ? event.reason : new Error(String(event.reason || 'Unhandled promise rejection'));
+  reportClientError({ name: reason.name, message: reason.message, stack: reason.stack, source: 'unhandledrejection' });
+});
+
 const state = createCustomerState();
 
 function appNav() {
