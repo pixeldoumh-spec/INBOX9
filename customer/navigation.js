@@ -53,6 +53,8 @@ export function createCustomerNavigation({
   }
 
   function handleSessionExpired() {
+    try { window.sessionStorage.removeItem('inbox9.session-hint.v1'); } catch {}
+    state.sessionHint = null;
     state.bootstrapError = '';
     state.user = null;
     state.authMode = 'login';
