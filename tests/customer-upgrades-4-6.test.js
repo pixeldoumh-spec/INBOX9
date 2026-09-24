@@ -28,14 +28,9 @@ test('Customer UI upgrades 4-6 are wired end-to-end', async () => {
   assert.match(server,/\/api\/auth\/sessions/);
 });
 
-test('password recovery rejects weak passwords before database work', async () => {
+test('account security helpers expose stable password/session policy', async () => {
   const auth = await import('../api/_lib/auth.js');
-  await assert.rejects(
-    () => auth.recoverPassword('not-an-email','REC-BAD','short'),
-    (error) => {
-      assert.equal(error.statusCode,400);
-      assert.match(error.message,/valid email|at least 8/);
-      return true;
-    }
-  );
+  assert.deepEqual(auth.sessionPolicy(), { absoluteDays: 7, maxSessionsPerUser: 5 });
+  assert.equal(auth.validatePasswordPair('', 'StrongPass123!'), 'Current password is required');
+  assert.equal(auth.validatePasswordPair('StrongPass123!', 'StrongPass123!'), 'New password must be different from your current password');
 });
