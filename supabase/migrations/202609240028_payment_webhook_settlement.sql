@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS public.payment_webhook_events (
   event_id TEXT NOT NULL,
   event_type TEXT NOT NULL CHECK (event_type IN ('payment.succeeded','payment.failed')),
   payload_hash TEXT NOT NULL,
-  recharge_id TEXT NOT NULL REFERENCES public.recharge_requests(id) ON DELETE CASCADE,
+  recharge_id TEXT NOT NULL,
   observed_amount_paise BIGINT NOT NULL CHECK (observed_amount_paise > 0),
   currency TEXT NOT NULL CHECK (currency = 'INR'),
   observed_utr TEXT,
