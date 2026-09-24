@@ -435,9 +435,41 @@ function toast(message) {
   state.toastTimer = setTimeout(() => node.remove(), 2300);
 }
 
-function resetDemo() {
-  state.pendingPurchaseKeys = {};
-  toast('Browser cache cleared; server account data is unchanged');
+function setRefreshUi(active, label = active ? 'Syncing' : 'Connected') {
+  const status = document.querySelector('[data-global-sync]');
+  if (status) {
+    status.classList.toggle('syncing', active);
+    status.classList.toggle('reconnecting', !active && state.reconnecting);
+    const text = status.querySelector('span:last-child');
+    if (text) text.textContent = state.reconnecting ? 'Reconnecting' : label;
+  }
+  document.querySelectorAll('[data-action="refresh-customer"]').forEach((button) => {
+    button.disabled = Boolean(active);
+    button.textContent = active ? 'Refreshing…' : 'Refresh';
+  });
+}
+
+async function refreshCurrentCustomerPage() {
+  const page = state.page;
+  if (page === 'buy') return refreshCatalog({ silent: false });
+  if (page === 'wallet') {
+    const result = await refreshWallet();
+    render();
+    return result;
+  }
+  if (page === 'support') {
+    const result = await refreshSupport();
+    render();
+    return result;
+  }
+  if (page === 'account') {
+    const result = await refreshAccount();
+    render();
+    return result;
+  }
+  if (page === 'admin') return loadAdminTab(state.adminTab);
+  if (page === 'api') return true;
+  return loadCustomerData({ renderAfter: true });
 }
 
 function openMenu() { state.mobileMenu = true; render(); }
@@ -640,14 +672,17 @@ function handleConnectivityChange(){
   state.online = online;
   if (online && wasOffline && state.user) {
     state.reconnecting = true;
+    setRefreshUi(true, 'Reconnecting');
     render();
     void loadCustomerData({silent:true}).then(()=>refreshNotifications()).finally(()=>{
       state.reconnecting = false;
       render();
+      setRefreshUi(false, 'Connected');
       toast('Connection restored');
     });
   } else if (!online && state.user) {
     state.reconnecting = false;
+    setRefreshUi(false, 'Offline');
     render();
     toast('You are offline. Live updates are paused.');
   }
@@ -1525,7 +1560,7 @@ function render() {
       <main class="main">
         <header class="topbar">
           <div class="breadcrumb"><button class="menu-btn icon-btn" type="button" aria-label="Open menu" data-action="open-menu">☰</button><span>Market</span><span>/</span><strong>${esc(current)}</strong></div>
-          <div class="top-actions"><button class="wallet-chip" type="button" data-page="wallet">▱ ${money(state.balancePaise)} <b>+</b></button><span class="topbar-live-status"><span class="live-dot"></span><span>Connected</span></span>${notificationPanel()}</div>
+          <div class="top-actions"><button class="wallet-chip" type="button" data-page="wallet">▱ ${money(state.balancePaise)} <b>+</b></button><span class="topbar-live-status ${state.reconnecting ? 'reconnecting' : state.customerDataRefreshing ? 'syncing' : ''}" data-global-sync role="status" aria-live="polite"><span class="live-dot"></span><span>${state.reconnecting ? 'Reconnecting' : state.customerDataRefreshing ? 'Syncing' : 'Connected'}</span></span>${notificationPanel()}</div>
         </header>
         <section class="content-wrap">
           ${state.page === 'buy' ? hero() : ''}
@@ -1850,11 +1885,6 @@ function ordersPage() {
 }
 
 
-function walletEntryLabel(entry) {
-  const type = entry.type === 'credit' ? 'Credit' : 'Debit';
-  return { type, sign: entry.type === 'credit' ? '+' : '−' };
-}
-
 function walletSummary(){const s=state.walletSummary||{};return{credits:Number(s.creditPaise||0),debits:Number(s.debitPaise||0),pending:Number(s.pendingPaise||0),creditCount:Number(s.creditCount||0),debitCount:Number(s.debitCount||0),pendingCount:Number(s.pendingCount||0)};}
 function walletActivityItems(){const ledger=(state.walletLedger||[]).map(e=>({id:'ledger:'+e.id,source:'ledger',type:e.type==='credit'?'credit':'debit',title:e.description||'Wallet transaction',amountPaise:Number(e.amountPaise||0),createdAt:Number(e.createdAt||0),referenceType:e.referenceType||'',referenceId:e.referenceId||''}));const recharges=(state.recharges||[]).map(e=>({id:'recharge:'+e.id,source:'recharge',type:'recharge',title:'Wallet recharge',amountPaise:Number(e.amountPaise||0),createdAt:Number(e.submittedAt||0),status:String(e.status||'Pending'),utr:e.utr||'',reviewedAt:e.reviewedAt||null,rejectionReason:e.rejectionReason||''}));return[...ledger,...recharges].sort((a,b)=>b.createdAt-a.createdAt);}
 function filteredWalletActivity(){const items=walletActivityItems();if(state.walletFilter==='credits')return items.filter(i=>i.type==='credit');if(state.walletFilter==='debits')return items.filter(i=>i.type==='debit');if(state.walletFilter==='recharges')return items.filter(i=>i.source==='recharge');return items;}
@@ -1982,7 +2012,16 @@ function bindEvents() {
   document.querySelectorAll('[data-action="open-menu"]').forEach((node) => node.addEventListener('click', openMenu));
   document.querySelectorAll('[data-action="close-menu"]').forEach((node) => node.addEventListener('click', closeMenu));
   document.querySelectorAll('[data-action="reset"]').forEach((node) => node.addEventListener('click', resetDemo));
-  document.querySelectorAll('[data-action="refresh-customer"]').forEach((node) => node.addEventListener('click', () => void loadCustomerData({ renderAfter: true })));
+  document.querySelectorAll('[data-action="refresh-customer"]').forEach((node) => node.addEventListener('click', () => {
+    if (state.customerDataRefreshing) return;
+    state.customerDataRefreshing = true;
+    setRefreshUi(true);
+    void refreshCurrentCustomerPage().finally(() => {
+      state.customerDataRefreshing = false;
+      setRefreshUi(false);
+      render();
+    });
+  }));
   document.getElementById('recharge-form')?.addEventListener('submit', submitRecharge);
   document.querySelectorAll('[data-admin-tab]').forEach((node) => node.addEventListener('click', () => loadAdminTab(node.dataset.adminTab)));
   document.getElementById('admin-payment-settings-form')?.addEventListener('submit', (event) => { event.preventDefault(); void adminUpdatePaymentSettings(event.currentTarget); });
