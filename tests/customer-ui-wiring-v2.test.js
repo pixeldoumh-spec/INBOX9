@@ -253,3 +253,14 @@ test('notification monitoring refreshes wallet state periodically using the auth
   assert.match(app, /processNotificationSnapshot\(\{ announce: true \}\)/);
   assert.doesNotMatch(app, /state\.balancePaise \+=/);
 });
+
+
+test('synthetic activation waiting states hide countdown timers from customers', async () => {
+  const app = await read('app.js');
+  assert.match(app, /label: 'Waiting for number'/);
+  assert.match(app, /label: 'Waiting for OTP'/);
+  assert.match(app, /Waiting for number/);
+  assert.match(app, /Waiting for OTP/);
+  assert.doesNotMatch(app, /numberFetchClock/);
+  assert.doesNotMatch(app, /otpClock/);
+});
