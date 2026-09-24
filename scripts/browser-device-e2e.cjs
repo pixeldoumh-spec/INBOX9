@@ -201,7 +201,11 @@ async function runFullChromium() {
     await visible(page, '#profile-form input[name="displayName"]');
     await visible(page, '[data-generate-recovery]');
 
-    await page.locator('[data-action="security"]').click();
+    await page.evaluate(() => {
+      const securityButton = document.querySelector('[data-action="security"]');
+      if (!securityButton) throw new Error('Account security control not found');
+      securityButton.click();
+    });
     await visible(page, '[role="dialog"]');
     await page.getByRole('dialog').getByRole('button', { name: 'Close', exact: true }).click();
 
