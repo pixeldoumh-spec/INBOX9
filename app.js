@@ -868,9 +868,8 @@ async function buy(serviceId, serverId = null) {
     });
     delete state.pendingPurchaseKeys[purchaseKey];
     state.purchaseBusy.delete(purchaseKey);
-    const numberPopupDelay = Number(activation.syntheticNumberRevealAt || 0)
-      ? Math.max(0, Number(activation.syntheticNumberRevealAt) - Date.now())
-      : 0;
+    const numberRevealAt = Number(activation.syntheticNumberRevealAt || activation.metadata?.numberRevealAt || 0);
+    const numberPopupDelay = numberRevealAt ? Math.max(0, numberRevealAt - Date.now()) : 0;
     queueNotificationPopup({
       title: 'Number fetched successfully',
       body: 'Your ' + activation.service + ' number ' + activation.number + ' is ready to use.',
