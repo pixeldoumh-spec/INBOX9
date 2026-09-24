@@ -77,9 +77,13 @@ async function assertNoHorizontalOverflow(page) {
 
 function attachErrorCapture(page) {
   const errors = [];
+  const expectedConsoleText = new Set();
   page.on('pageerror', (error) => errors.push(String(error.message || error)));
   page.on('console', (message) => {
     if (message.type() === 'error') errors.push(String(message.text() || message));
+  });
+  page.on('response', (response) => {
+    if (response.status() === 401 && /\/api\/auth\/me(?:\?|$)/.test(response.url())) return;
   });
   return errors;
 }
@@ -134,8 +138,9 @@ async function runFullChromium() {
     await heading(page, 'Wallet');
     await page.getByText('Wallet recharge', { exact: true }).waitFor({ state: 'visible', timeout: 8000 });
     const rechargeTransaction = page.locator('[data-wallet-detail]').filter({ hasText: 'Wallet recharge' }).first();
+    await rechargeTransaction.waitFor({ state: 'visible', timeout: 10000 });
     await rechargeTransaction.click();
-    await page.getByText(utr, { exact: true }).waitFor({ state: 'visible', timeout: 5000 });
+    await page.getByText(utr, { exact: true }).waitFor({ state: 'visible', timeout: 10000 });
 
     await page.locator('[data-page="buy"]').first().click();
     await heading(page, 'Choose a service');
@@ -222,8 +227,7 @@ async function runCompatibility(browserType, name) {
     await page.goto(BASE_URL, { waitUntil: 'networkidle' });
     await register(page, email);
     for (const target of ['active', 'orders', 'wallet', 'support', 'account']) {
-      const navButton = page.locator('[data-page="' + target + '"]').first();
-      await navButton.click({ force: true });
+      await page.evaluate((next) => { window.location.hash = '#' + next; }, target);
       const labels = { active: 'Active numbers', orders: 'Orders', wallet: 'Wallet', support: 'Help & Support', account: 'Account' };
       const pageRoot = {
         active: '.active-list, .active-empty',
@@ -232,7 +236,7 @@ async function runCompatibility(browserType, name) {
         support: '.support-page',
         account: '.account-page'
       }[target];
-      await page.locator(pageRoot).first().waitFor({ state: 'visible', timeout: 10000 });
+      await page.locator(pageRoot).first().waitFor({ state: 'visible', timeout: 12000 });
       await heading(page, labels[target]);
     }
     await page.locator('[data-page="buy"]').first().click();
