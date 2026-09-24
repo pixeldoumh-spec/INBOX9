@@ -120,7 +120,7 @@ async function runFullChromium() {
       await route.continue();
     });
     const reloadPromise = page.reload({ waitUntil: 'domcontentloaded' });
-    await visible(page, '.auth-card-loading', 3000);
+    await visible(page, '.app-shell', 3000);
     assert.equal(await page.locator('#auth-form:visible').count(), 0, 'login form must remain hidden while session restoration is pending');
     await reloadPromise;
     await heading(page, 'Choose a service', 12000);
