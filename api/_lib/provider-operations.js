@@ -28,7 +28,8 @@ export async function beginCancellation(activationId, userId) {
     const locked = await client.query(
       `SELECT a.*, p.adapter_key FROM activations a
        LEFT JOIN providers p ON p.id=a.provider_id
-       WHERE a.id=$1 AND a.user_id=$2 FOR UPDATE`, [activationId, userId]
+       WHERE a.id=$1 AND a.user_id=$2
+       FOR UPDATE OF a`, [activationId, userId]
     );
     if (!locked.rowCount) return null;
     const row = locked.rows[0];
@@ -136,7 +137,7 @@ async function claimExpiringActivations({ limit = 25 } = {}) {
          )
        ORDER BY a.expires_at ASC, a.created_at ASC
        LIMIT $1
-       FOR UPDATE SKIP LOCKED`, [safeLimit]
+       FOR UPDATE OF a SKIP LOCKED`, [safeLimit]
     );
 
     const claimed = [];
