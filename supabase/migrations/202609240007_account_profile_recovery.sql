@@ -14,15 +14,5 @@ CREATE TABLE IF NOT EXISTS public.recovery_codes (
 CREATE INDEX IF NOT EXISTS idx_recovery_codes_user_created ON public.recovery_codes(user_id,created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_recovery_codes_unused ON public.recovery_codes(user_id,used_at) WHERE used_at IS NULL;
 ALTER TABLE public.sessions ENABLE ROW LEVEL SECURITY;
-DO $inbox9$
-BEGIN
-  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname='anon') THEN EXECUTE 'REVOKE ALL ON TABLE public.sessions FROM anon'; END IF;
-  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname='authenticated') THEN EXECUTE 'REVOKE ALL ON TABLE public.sessions FROM authenticated'; END IF;
-END $inbox9$;
 ALTER TABLE public.recovery_codes ENABLE ROW LEVEL SECURITY;
-DO $
-BEGIN
-  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname='anon') THEN EXECUTE 'REVOKE ALL ON TABLE public.recovery_codes FROM anon'; END IF;
-  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname='authenticated') THEN EXECUTE 'REVOKE ALL ON TABLE public.recovery_codes FROM authenticated'; END IF;
-END $;
 COMMIT;
