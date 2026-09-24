@@ -22,7 +22,6 @@ CREATE INDEX IF NOT EXISTS idx_support_activation ON public.support_requests(act
 CREATE INDEX IF NOT EXISTS idx_support_recharge ON public.support_requests(recharge_id) WHERE recharge_id IS NOT NULL;
 
 ALTER TABLE public.support_requests ENABLE ROW LEVEL SECURITY;
-REVOKE ALL ON TABLE public.support_requests FROM anon, authenticated;
 
 INSERT INTO public.schema_migrations(version) VALUES ('202609240003_support_requests') ON CONFLICT DO NOTHING;
 COMMIT;
