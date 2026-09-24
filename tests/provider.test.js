@@ -11,6 +11,8 @@ test('synthetic engine reserves a normalized India-format activation', async () 
   assert.equal(activation.status, 'Active');
   assert.ok(activation.expiresAt > activation.createdAt);
   assert.ok(activation.mockOtpAt > activation.createdAt);
+  assert.equal(activation.metadata.numberRevealAt - activation.createdAt, 5_000);
+  assert.equal(activation.mockOtpAt - activation.metadata.numberRevealAt, 15_000);
   assert.equal(activation.metadata.capacityPerService, 5000);
 });
 
