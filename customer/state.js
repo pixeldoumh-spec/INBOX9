@@ -44,6 +44,7 @@ export function createCustomerState() {
     catalogCategories: ['All'],
     serviceSearchIndex: [],
     marketSearchTimer: null,
+    marketUrlSyncTimer: null,
     marketServerStats: {},
     marketServerLoading: {},
     marketServerErrors: {},

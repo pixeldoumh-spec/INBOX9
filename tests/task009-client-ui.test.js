@@ -52,3 +52,26 @@ test('customer marketplace exposes resilient catalog loading and freshness state
   assert.match(css, /catalog-skeleton-card/);
   assert.match(css, /skeleton-shimmer/);
 });
+
+
+test('marketplace search and category filters persist in the URL and recover on navigation', async () => {
+  const [app, state, css] = await Promise.all([
+    read('app.js'),
+    read('customer/state.js'),
+    read('styles.css'),
+  ]);
+  assert.match(app, /readMarketplaceUrlState\(\)/);
+  assert.match(app, /syncMarketplaceUrlState\(\{ replace: true \}\)/);
+  assert.match(app, /syncMarketplaceUrlState\(\{ replace: false \}\)/);
+  assert.match(app, /handleMarketplaceUrlNavigation\(\)/);
+  assert.match(app, /data-clear-market/);
+  assert.match(state, /marketUrlSyncTimer: null/);
+  assert.match(css, /market-filter-state/);
+  assert.match(css, /scroll-snap-type:x proximity/);
+});
+
+test('marketplace URL state does not pollute the page hash or unrelated query parameters', async () => {
+  const app = await read('app.js');
+  assert.match(app, /const next = url\.pathname \+ \(url\.searchParams\.toString\(\) \? `\?\${url\.searchParams\.toString\(\)\}` : ''\) \+ url\.hash/);
+  assert.match(app, /window\.location\.hash/);
+});

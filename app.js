@@ -49,14 +49,70 @@ function marketResultText(total, visible) {
   return `Showing 1–${Math.min(total, visible)} of ${total} services`;
 }
 
+function readMarketplaceUrlState() {
+  const params = new URLSearchParams(window.location.search);
+  const search = String(params.get('search') || '').trim();
+  const category = String(params.get('category') || '').trim();
+  return { search, category: category || 'All' };
+}
+
+function syncMarketplaceUrlState({ replace = true } = {}) {
+  const url = new URL(window.location.href);
+  const search = String(state.search || '').trim();
+  const category = state.category && state.category !== 'All' ? state.category : '';
+  if (search) url.searchParams.set('search', search);
+  else url.searchParams.delete('search');
+  if (category) url.searchParams.set('category', category);
+  else url.searchParams.delete('category');
+  const next = url.pathname + (url.searchParams.toString() ? `?${url.searchParams.toString()}` : '') + url.hash;
+  const current = window.location.pathname + window.location.search + window.location.hash;
+  if (next === current) return;
+  if (replace) window.history.replaceState({ ...window.history.state, market: true }, '', next);
+  else window.history.pushState({ ...window.history.state, market: true }, '', next);
+}
+
+function restoreMarketplaceUrlState() {
+  const urlState = readMarketplaceUrlState();
+  state.search = urlState.search;
+  state.category = urlState.category;
+  state.marketVisibleCount = state.search ? MARKET_MAX_SEARCH_RESULTS : MARKET_PAGE_SIZE;
+  state.expandedServiceId = null;
+}
+
+function handleMarketplaceUrlNavigation() {
+  const before = `${state.search}|${state.category}`;
+  const urlState = readMarketplaceUrlState();
+  const after = `${urlState.search}|${urlState.category}`;
+  if (before === after) return;
+  restoreMarketplaceUrlState();
+  if (state.page === 'buy') render();
+}
+
+function hasActiveMarketplaceFilters() {
+  return Boolean(String(state.search || '').trim() || (state.category && state.category !== 'All'));
+}
+
 function scheduleMarketSearch(value) {
   state.search = value;
   window.clearTimeout(state.marketSearchTimer);
+  window.clearTimeout(state.marketUrlSyncTimer);
+  state.marketUrlSyncTimer = window.setTimeout(() => syncMarketplaceUrlState({ replace: true }), 120);
   state.marketSearchTimer = window.setTimeout(() => {
     state.marketVisibleCount = state.search ? MARKET_MAX_SEARCH_RESULTS : MARKET_PAGE_SIZE;
     state.expandedServiceId = null;
     renderBuyCatalog();
   }, 60);
+}
+
+function clearMarketplaceFilters() {
+  window.clearTimeout(state.marketSearchTimer);
+  window.clearTimeout(state.marketUrlSyncTimer);
+  state.search = '';
+  state.category = 'All';
+  state.marketVisibleCount = MARKET_PAGE_SIZE;
+  state.expandedServiceId = null;
+  syncMarketplaceUrlState({ replace: true });
+  renderBuyCatalog();
 }
 
 
@@ -272,11 +328,13 @@ async function retryBootstrap() {
 
 async function boot() {
   state.page = pageFromHash();
+  restoreMarketplaceUrlState();
   await bootstrapSession();
   if (!state.user) return;
   if (!state.tickTimer) state.tickTimer = window.setInterval(tick, 1000);
   window.addEventListener('hashchange', handleHashNavigation);
   window.addEventListener('popstate', handleHashNavigation);
+  window.addEventListener('popstate', handleMarketplaceUrlNavigation);
 }
 
 function resetPurchaseFlow() {
@@ -960,7 +1018,7 @@ function buyPage() {
         <div class="category-scroll-wrap"><div class="category-scroll" role="group" aria-label="Service categories">${state.catalogCategories.map((category) => `<button class="filter-btn ${state.category === category ? "selected" : ""}" type="button" data-category="${esc(category)}" aria-pressed="${state.category === category}"><span>${esc(category)}</span><span class="filter-count">${(state.categoryCounts[category] || 0).toLocaleString()}</span></button>`).join("")}</div></div>
       </div>
     </div>
-    <div class="market-results-bar"><span class="result-note market-result-count" aria-live="polite">${esc(marketResultText(list.length, showing))}</span><span class="market-freshness ${catalogUnavailable ? 'stale' : ''}">${esc(freshness)}</span><span class="market-hint">Prices and availability update from the INBOX9 backend</span></div>
+    <div class="market-results-bar"><span class="result-note market-result-count" aria-live="polite">${esc(marketResultText(list.length, showing))}</span><span class="market-freshness ${catalogUnavailable ? 'stale' : ''}">${esc(freshness)}</span><span class="market-filter-state ${hasActiveMarketplaceFilters() ? 'active' : ''}">${hasActiveMarketplaceFilters() ? 'Filters active' : 'All services'}</span><button class="market-clear-btn" type="button" data-clear-market${hasActiveMarketplaceFilters() ? '' : ' hidden'}>Clear</button><span class="market-hint">Prices and availability update from the INBOX9 backend</span></div>
     <div class="service-grid customer-service-grid">${catalogUnavailable ? catalogEmptyMarkup() : marketListMarkup(list)}</div>
     <div class="purchase-flow-root">${purchaseReviewModal()}</div>
   </div>`;
@@ -1072,6 +1130,11 @@ function bindMarketplaceEvents() {
     if (event.target?.id === "service-search") scheduleMarketSearch(event.target.value);
   });
   root.addEventListener("click", (event) => {
+    const clearMarketButton = event.target.closest("[data-clear-market]");
+    if (clearMarketButton && root.contains(clearMarketButton)) {
+      clearMarketplaceFilters();
+      return;
+    }
     const refreshCatalogButton = event.target.closest("[data-refresh-catalog]");
     if (refreshCatalogButton && root.contains(refreshCatalogButton)) {
       void refreshCatalog({ silent: false });
