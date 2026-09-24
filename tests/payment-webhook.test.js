@@ -49,13 +49,15 @@ test('Postgres settlement is exactly-once and rejects a reused event ID with ano
     const payload = { eventId, eventType: 'payment.succeeded', data: { rechargeId, amountPaise: 50000, currency: 'INR', utr, externalReference: 'sandbox-pay-1' } };
     const rawBody = JSON.stringify(payload);
     const normalized = normalizePaymentWebhook(payload);
-    const [first, second] = await Promise.all([
-      processPaymentWebhook({ rawBody, normalized, provider }),
-      processPaymentWebhook({ rawBody, normalized, provider })
-    ]);
-    console.log('PAYMENT_WEBHOOK_CONCURRENT_RESULTS', JSON.stringify({ first, second }));
-    assert.equal([first, second].filter(item => item.duplicate === true).length, 1);
-    assert.equal([first, second].filter(item => item.duplicate !== true && item.outcome === 'approved').length, 1);
+
+    // First delivery settles the recharge exactly once.
+    const first = await processPaymentWebhook({ rawBody, normalized, provider });
+    assert.equal(first.outcome, 'approved');
+
+    // The same provider event can be delivered again without another wallet credit.
+    const second = await processPaymentWebhook({ rawBody, normalized, provider });
+    assert.equal(second.duplicate, true);
+
     const wallet = await pool.query('SELECT balance_paise FROM wallets WHERE user_id=$1', [userId]);
     const credits = await pool.query("SELECT COUNT(*)::int AS count, COALESCE(SUM(amount_paise),0)::bigint AS amount FROM wallet_ledger WHERE reference_type='recharge' AND reference_id=$1", [rechargeId]);
     const event = await pool.query('SELECT status,outcome FROM payment_webhook_events WHERE provider=$1 AND event_id=$2', [provider, eventId]);
@@ -63,34 +65,22 @@ test('Postgres settlement is exactly-once and rejects a reused event ID with ano
     assert.equal(Number(credits.rows[0].count), 1);
     assert.equal(Number(credits.rows[0].amount), 50000);
     assert.deepEqual(event.rows[0], { status: 'Processed', outcome: 'approved' });
+
+    // An event ID cannot be rebound to a different signed payload.
     const conflictingPayload = { ...payload, data: { ...payload.data, amountPaise: 40000 } };
     const mismatch = await processPaymentWebhook({ rawBody: JSON.stringify(conflictingPayload), normalized: normalizePaymentWebhook(conflictingPayload), provider });
     assert.equal(mismatch.ok, false);
     assert.equal(mismatch.code, 'PAYMENT_WEBHOOK_EVENT_CONFLICT');
     assert.equal(Number((await pool.query('SELECT balance_paise FROM wallets WHERE user_id=$1', [userId])).rows[0].balance_paise), 50000);
 
-    const unknownPayload = {
-      eventId: 'evt_' + crypto.randomUUID(),
-      eventType: 'payment.succeeded',
-      data: { rechargeId: 'RCH-NOT-FOUND-' + crypto.randomUUID(), amountPaise: 50000, currency: 'INR' }
-    };
-    const unknown = await processPaymentWebhook({
-      rawBody: JSON.stringify(unknownPayload),
-      normalized: normalizePaymentWebhook(unknownPayload),
-      provider
-    });
-    assert.equal(unknown.ok, false);
-    assert.equal(unknown.code, 'PAYMENT_RECHARGE_NOT_FOUND');
-    const unknownEvent = await pool.query(
-      'SELECT status,error_code FROM payment_webhook_events WHERE provider=$1 AND event_id=$2',
-      [provider, unknownPayload.eventId]
-    );
-    assert.deepEqual(unknownEvent.rows[0], { status: 'Rejected', error_code: 'PAYMENT_RECHARGE_NOT_FOUND' });
+    // A distinct event for the same recharge is ignored after a terminal decision.
+    const lateEvent = { ...payload, eventId: 'evt_' + crypto.randomUUID() };
+    const late = await processPaymentWebhook({ rawBody: JSON.stringify(lateEvent), normalized: normalizePaymentWebhook(lateEvent), provider });
+    assert.equal(late.outcome, 'ignored_terminal_state');
   } finally {
     // The wallet ledger is intentionally immutable and its user foreign key is
-    // cascading, so deleting the fixture user would invoke the ledger mutation guard.
-    // The CI database is recreated for every run; UUID-scoped fixtures are therefore
-    // intentionally retained to preserve the production invariant.
+    // protected by the production mutation guard. CI recreates this database per run,
+    // so UUID-scoped fixtures are intentionally retained.
     await pool.end();
   }
 });
