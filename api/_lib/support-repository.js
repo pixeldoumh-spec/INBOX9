@@ -28,20 +28,26 @@ function validateInput(input = {}) {
   };
 }
 
+function mapMessage(row) {
+  return { id:row.id, authorRole:row.author_role, authorUserId:row.author_user_id, body:row.body, createdAt:new Date(row.created_at).getTime() };
+}
 function mapRow(row) {
   return {
-    id: row.id,
-    category: row.category,
-    subject: row.subject,
-    message: row.message,
-    status: row.status,
-    activationId: row.activation_id || null,
-    rechargeId: row.recharge_id || null,
-    createdAt: new Date(row.created_at).getTime(),
-    updatedAt: new Date(row.updated_at).getTime(),
+    id: row.id, category: row.category, subject: row.subject, message: row.message, status: row.status,
+    activationId: row.activation_id || null, rechargeId: row.recharge_id || null,
+    activation: row.activation_id ? {id:row.activation_id,status:row.activation_status||null,number:row.activation_number||null,service:row.activation_service||null} : null,
+    recharge: row.recharge_id ? {id:row.recharge_id,status:row.recharge_status||null,amountPaise:row.recharge_amount_paise==null?null:Number(row.recharge_amount_paise)} : null,
+    createdAt: new Date(row.created_at).getTime(), updatedAt: new Date(row.updated_at).getTime(),
     resolvedAt: row.resolved_at ? new Date(row.resolved_at).getTime() : null,
-    adminNote: row.admin_note || null
+    adminNote: row.admin_note || null, messages:[]
   };
+}
+async function attachMessages(poolLike,tickets){
+  if(!tickets.length) return tickets;
+  const result=await poolLike.query(`SELECT id,ticket_id,author_user_id,author_role,body,created_at FROM support_messages WHERE ticket_id=ANY($1::text[]) ORDER BY created_at ASC,id ASC`,[tickets.map((t)=>t.id)]);
+  const grouped=new Map(tickets.map((t)=>[t.id,[]]));
+  for(const row of result.rows) grouped.get(row.ticket_id)?.push(mapMessage(row));
+  return tickets.map((t)=>({...t,messages:grouped.get(t.id)||[]}));
 }
 
 function mapMock(ticket) {
@@ -81,7 +87,11 @@ export async function createSupportTicket(user, input) {
        RETURNING *`,
       [id, user.id, clean.category, clean.subject, clean.message, clean.activationId, clean.rechargeId]
     );
-    return mapRow(result.rows[0]);
+    await client.query(`INSERT INTO support_messages (id,ticket_id,author_user_id,author_role,body) VALUES ($1,$2,$3,'customer',$4)`,
+      ['SUPMSG-' + crypto.randomUUID(),id,user.id,clean.message]);
+    const ticket=mapRow(result.rows[0]);
+    ticket.messages=[{id:'initial-'+id,authorRole:'customer',authorUserId:user.id,body:clean.message,createdAt:Date.now()}];
+    return ticket;
   });
 }
 
@@ -95,10 +105,16 @@ export async function listSupportTickets(user) {
   }
   const pool = await getPool();
   const result = await pool.query(
-    `SELECT * FROM support_requests WHERE user_id=$1 ORDER BY created_at DESC LIMIT 50`,
+    `SELECT s.*,a.status AS activation_status,a.phone_number AS activation_number,sv.name AS activation_service,
+            r.status AS recharge_status,r.amount_paise AS recharge_amount_paise
+     FROM support_requests s
+     LEFT JOIN activations a ON a.id=s.activation_id
+     LEFT JOIN services sv ON sv.id=a.service_id
+     LEFT JOIN recharge_requests r ON r.id=s.recharge_id
+     WHERE s.user_id=$1 ORDER BY s.created_at DESC LIMIT 50`,
     [user.id]
   );
-  return result.rows.map(mapRow);
+  return attachMessages(pool,result.rows.map(mapRow));
 }
 
 
@@ -158,7 +174,7 @@ export async function listAdminSupportTickets(limit = 250) {
      LIMIT $1`,
     [safeLimit]
   );
-  return result.rows.map(mapAdminRow);
+  return attachMessages(pool,result.rows.map(mapAdminRow));
 }
 
 export async function updateAdminSupportTicket(adminUserId, ticketId, patch = {}) {
@@ -167,6 +183,8 @@ export async function updateAdminSupportTicket(adminUserId, ticketId, patch = {}
     throw new Error('Choose a valid support status');
   }
   const nextNote = patch.adminNote === undefined ? undefined : cleanAdminNote(patch.adminNote);
+  const reply = String(patch.reply || '').trim();
+  if (reply && (reply.length < 2 || reply.length > 4000)) throw new Error('Support reply must be between 2 and 4000 characters');
   const hasAssignmentPatch = Object.prototype.hasOwnProperty.call(patch, 'assignedAdminId');
   const nextAssignedAdminId = hasAssignmentPatch
     ? (patch.assignedAdminId == null || String(patch.assignedAdminId).trim() === '' ? null : String(patch.assignedAdminId).trim())
@@ -196,7 +214,8 @@ export async function updateAdminSupportTicket(adminUserId, ticketId, patch = {}
 
     const changed = row.status !== nextStatus
       || (row.admin_note || null) !== adminNote
-      || (row.assigned_admin_id || null) !== assignedAdminId;
+      || (row.assigned_admin_id || null) !== assignedAdminId
+      || Boolean(reply);
     if (!changed) return mapAdminRow(row);
 
     const updated = await client.query(
@@ -206,6 +225,10 @@ export async function updateAdminSupportTicket(adminUserId, ticketId, patch = {}
        RETURNING *`,
       [ticketId, nextStatus, adminNote, assignedAdminId, resolvedAt]
     );
+    if (reply) {
+      await client.query(`INSERT INTO support_messages (id,ticket_id,author_user_id,author_role,body) VALUES ($1,$2,$3,'admin',$4)`,
+        ['SUPMSG-' + crypto.randomUUID(),ticketId,adminUserId,reply]);
+    }
     await recordAuditTx(client, adminUserId, 'support.ticket_updated', 'support_ticket', ticketId, {
       before: { status: row.status, notePresent: Boolean(row.admin_note), assignedAdminId: row.assigned_admin_id || null },
       after: { status: nextStatus, notePresent: Boolean(adminNote), assignedAdminId },
@@ -232,5 +255,23 @@ export async function updateAdminSupportTicket(adminUserId, ticketId, patch = {}
       [ticketId]
     );
     return mapAdminRow(related.rows[0] || updated.rows[0]);
+  });
+}
+
+export async function replySupportTicket(user,ticketId,body){
+  const text=String(body||'').trim();
+  if(text.length<2||text.length>4000) throw Object.assign(new Error('Reply must be between 2 and 4000 characters'),{statusCode:400});
+  return withTransaction(async(client)=>{
+    const current=await client.query(`SELECT * FROM support_requests WHERE id=$1 AND user_id=$2 FOR UPDATE`,[ticketId,user.id]);
+    if(!current.rowCount) throw Object.assign(new Error('Support ticket not found'),{statusCode:404});
+    const row=current.rows[0];
+    if(row.status==='Closed') throw Object.assign(new Error('Closed tickets cannot receive new replies'),{statusCode:409});
+    await client.query(`INSERT INTO support_messages (id,ticket_id,author_user_id,author_role,body) VALUES ($1,$2,$3,'customer',$4)`,['SUPMSG-'+crypto.randomUUID(),ticketId,user.id,text]);
+    const nextStatus=row.status==='Resolved'?'Open':row.status;
+    await client.query(`UPDATE support_requests SET status=$2,resolved_at=NULL,updated_at=NOW() WHERE id=$1`,[ticketId,nextStatus]);
+    const messages=await client.query(`SELECT id,author_user_id,author_role,body,created_at FROM support_messages WHERE ticket_id=$1 ORDER BY created_at ASC,id ASC`,[ticketId]);
+    const related=await client.query(`SELECT s.*,a.status AS activation_status,a.phone_number AS activation_number,sv.name AS activation_service,r.status AS recharge_status,r.amount_paise AS recharge_amount_paise
+      FROM support_requests s LEFT JOIN activations a ON a.id=s.activation_id LEFT JOIN services sv ON sv.id=a.service_id LEFT JOIN recharge_requests r ON r.id=s.recharge_id WHERE s.id=$1`,[ticketId]);
+    const ticket=mapRow(related.rows[0]); ticket.messages=messages.rows.map(mapMessage); return ticket;
   });
 }
