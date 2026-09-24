@@ -223,7 +223,7 @@ test('wallet summary is authoritative and not limited to the visible ledger slic
 test('recharge history explains pending, approved and rejected outcomes', async () => {
   const app = await read('app.js');
   const css = await read('styles.css');
-  assert.match(app, /Submitted → Verified → Wallet outcome/);
+  assert.match(app, /Pay → Submit UTR → Admin verifies → Wallet credited/);
   assert.match(app, /Payment verified · wallet credited/);
   assert.match(app, /Payment rejected · wallet not credited/);
   assert.match(app, /recharge-reason/);
