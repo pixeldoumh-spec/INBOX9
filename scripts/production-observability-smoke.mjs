@@ -30,7 +30,7 @@ results.push(await check('/'));
 results.push(await check('/app.js'));
 results.push(await check('/styles.css'));
 
-const health = results.push ? await check('/api/health') : null;
+const health = await check('/api/health');
 const healthBody = assertJson(health.body, '/api/health');
 if (healthBody.ok !== true || healthBody.ready !== true || healthBody.mode !== 'postgres') {
   throw new Error('/api/health is not production-ready: ' + JSON.stringify({
