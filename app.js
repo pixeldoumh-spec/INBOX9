@@ -126,6 +126,11 @@ function notificationSnapshot() {
     activations: new Map((state.orders || []).map((item) => [item.id, {
       status: String(item.status || ''),
       otp: String(item.otp || '')
+    }])),
+    support: new Map((state.supportTickets || []).map((item) => [item.id, {
+      status: String(item.status || 'Open'),
+      adminNote: String(item.adminNote || ''),
+      subject: String(item.subject || '')
     }]))
   };
 }
@@ -190,6 +195,25 @@ function processNotificationSnapshot({ announce = true } = {}) {
           title: 'Activation closed',
           body: 'Order ' + id + ' is now ' + next.status.toLowerCase() + '.',
           page: 'orders'
+        });
+      }
+    }
+    for (const [id, next] of current.support) {
+      const previous = notificationBaseline.support.get(id);
+      if (!previous) continue;
+      if (previous.status !== next.status) {
+        addNotification({
+          title: 'Support ticket updated',
+          body: next.subject + ' • Status: ' + next.status + '.',
+          page: 'support',
+          tone: next.status === 'Resolved' ? 'success' : 'info'
+        });
+      } else if (previous.adminNote !== next.adminNote && next.adminNote) {
+        addNotification({
+          title: 'Support note added',
+          body: next.subject + ' has a new response from support.',
+          page: 'support',
+          tone: 'success'
         });
       }
     }
@@ -483,19 +507,32 @@ const {
   toast
 });
 
-async function refreshSupport() {
-  state.supportLoading = true;
-  state.supportError = '';
+async function refreshSupport({ announce = false, silent = false } = {}) {
+  if (supportSyncInFlight) return null;
+  supportSyncInFlight = true;
+  if (!silent) {
+    state.supportLoading = true;
+    state.supportError = '';
+  }
+  const before = notificationSnapshot();
   try {
     const payload = await api('/api/support');
     state.supportTickets = Array.isArray(payload.tickets) ? payload.tickets : [];
+    if (announce && notificationBaseline) {
+      notificationBaseline = before;
+      processNotificationSnapshot({ announce: true });
+    } else {
+      notificationBaseline = notificationSnapshot();
+    }
     return payload;
   } catch (error) {
     if (Number(error.status) === 401) { handleSessionExpired(); return null; }
     state.supportError = error.message || 'Support service unavailable';
     return null;
   } finally {
-    state.supportLoading = false;
+    state.lastSupportSyncAt = Date.now();
+    if (!silent) state.supportLoading = false;
+    supportSyncInFlight = false;
   }
 }
 
@@ -806,6 +843,10 @@ async function tick() {
     return;
   }
   const now = Date.now();
+  if (now - state.lastSupportSyncAt > 20_000 && !state.customerDataRefreshing && !supportSyncInFlight) {
+    state.lastSupportSyncAt = now;
+    void refreshSupport({ announce: true, silent: true });
+  }
   if (now - state.lastCatalogRefreshAt > 60_000 && !state.customerDataRefreshing) {
     void refreshCatalog({ silent: true });
   }
@@ -852,7 +893,8 @@ async function loadAdminTab(tab = state.adminTab) {
     activations: ['/api/admin/activations', 'activations'],
     ledger: ['/api/admin/ledger', 'ledger'],
     audit: ['/api/admin/audit', 'audit'],
-    providers: ['/api/admin/providers', 'providers']
+    providers: ['/api/admin/providers', 'providers'],
+    support: ['/api/admin/support', 'support']
   };
   try {
     const [url, key] = routes[tab] || routes.overview;
@@ -902,10 +944,27 @@ async function adminUpdateService(id, form) {
   }
 }
 
+async function adminUpdateSupport(id, form) {
+  const data = new FormData(form);
+  const status = String(data.get('status') || 'Open');
+  const adminNote = String(data.get('adminNote') || '').trim();
+  try {
+    await api(`/api/admin/support/${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ status, adminNote })
+    });
+    toast('Support ticket updated');
+    await loadAdminTab('support');
+  } catch (error) {
+    toast(error.message);
+  }
+}
+
 function adminPage() {
   if (state.user?.role !== 'admin') return `<div class="panel empty"><div class="empty-icon">!</div><h3>Admin access required</h3><p>Your account does not have permission to open the operations center.</p></div>`;
   const tabs = [
-    ['overview', 'Overview'], ['recharges', 'UTR Queue'], ['services', 'Services'],
+    ['overview', 'Overview'], ['recharges', 'UTR Queue'], ['support', 'Support'], ['services', 'Services'],
     ['users', 'Users'], ['activations', 'Activations'], ['ledger', 'Ledger'],
     ['providers', 'Providers'], ['audit', 'Audit Log']
   ];
@@ -922,6 +981,7 @@ function adminPage() {
 function renderAdminTab(tab) {
   if (tab === 'overview') return adminOverviewPage();
   if (tab === 'recharges') return adminRechargesPage();
+  if (tab === 'support') return adminSupportPage();
   if (tab === 'services') return adminServicesPage();
   if (tab === 'users') return adminUsersPage();
   if (tab === 'activations') return adminActivationsPage();
@@ -948,6 +1008,41 @@ function adminRechargesPage() {
   return `<div class="panel table-panel"><div class="panel-head"><div><h3>Pending UTR verification</h3><span>Verify the payment independently before approving.</span></div></div><table><thead><tr><th>Request</th><th>User</th><th>Amount</th><th>UTR</th><th>Submitted</th><th>Action</th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 
+function adminSupportPage() {
+  const tickets = Array.isArray(state.admin.support) ? state.admin.support : [];
+  const filter = state.adminSupportFilter || 'all';
+  const counts = tickets.reduce((acc, ticket) => {
+    const status = String(ticket.status || 'Open');
+    acc[status] = (acc[status] || 0) + 1;
+    return acc;
+  }, {});
+  const visible = filter === 'all' ? tickets : tickets.filter((ticket) => String(ticket.status || 'Open') === filter);
+  const filters = [
+    ['all', 'All', tickets.length],
+    ['Open', 'Open', counts.Open || 0],
+    ['In Progress', 'In Progress', counts['In Progress'] || 0],
+    ['Resolved', 'Resolved', counts.Resolved || 0],
+    ['Closed', 'Closed', counts.Closed || 0]
+  ];
+  const cards = visible.length ? visible.map(ticket => {
+    const status = String(ticket.status || 'Open');
+    const activation = ticket.activation ? '<span class="admin-support-ref">Activation · ' + esc(ticket.activation.id) + (ticket.activation.service ? ' · ' + esc(ticket.activation.service) : '') + (ticket.activation.status ? ' · ' + esc(ticket.activation.status) : '') + '</span>' : '';
+    const recharge = ticket.recharge ? '<span class="admin-support-ref">Recharge · ' + esc(ticket.recharge.id) + (ticket.recharge.status ? ' · ' + esc(ticket.recharge.status) : '') + '</span>' : '';
+    return '<article class="panel admin-support-card">' +
+      '<div class="admin-support-head"><div><span class="kicker">' + esc(ticket.category || 'other') + '</span><h3>' + esc(ticket.subject) + '</h3><small class="mono">' + esc(ticket.id) + ' · ' + esc(new Date(ticket.createdAt).toLocaleString()) + '</small></div><span class="table-status ' + supportStatusClass(status) + '">' + esc(status) + '</span></div>' +
+      '<div class="admin-support-customer"><strong>' + esc(ticket.email || 'Unknown customer') + '</strong><span>Last updated ' + esc(new Date(ticket.updatedAt || ticket.createdAt).toLocaleString()) + '</span></div>' +
+      '<p class="admin-support-message">' + esc(ticket.message) + '</p>' +
+      '<div class="admin-support-refs">' + activation + recharge + '</div>' +
+      '<form class="admin-support-form" data-admin-support-form="' + esc(ticket.id) + '">' +
+        '<label>Status<select name="status">' + ['Open','In Progress','Resolved','Closed'].map(s => '<option value="' + esc(s) + '" ' + (status === s ? 'selected' : '') + '>' + esc(s) + '</option>').join('') + '</select></label>' +
+        '<label>Customer response / note<textarea name="adminNote" maxlength="1000" rows="3" placeholder="Write a concise response or resolution note.">' + esc(ticket.adminNote || '') + '</textarea></label>' +
+        '<div class="admin-support-actions"><span>Changes are audited.</span><button class="buy-btn" type="submit">Save update</button></div>' +
+      '</form>' +
+    '</article>';
+  }).join('') : '<div class="panel support-empty"><div class="empty-icon">✓</div><h3>No tickets in this view</h3><p>New customer support requests will appear here.</p></div>';
+  return '<div class="admin-support-toolbar"><div class="admin-support-filters">' + filters.map(([id,label,count]) => '<button class="filter-btn ' + (filter === id ? 'selected' : '') + '" type="button" data-admin-support-filter="' + esc(id) + '">' + esc(label) + ' <b>' + count + '</b></button>').join('') + '</div><button class="refresh-btn" type="button" data-admin-support-refresh>Refresh</button></div>' +
+    '<div class="admin-support-list">' + cards + '</div>';
+}
 function adminServicesPage() {
   const rows = state.admin.services.length ? state.admin.services.map(s => `<tr><td><strong>${esc(s.name)}</strong><small class="table-sub">${esc(s.category)} · ${esc(s.id)}</small></td><td><form class="admin-service-form" data-admin-service-form="${esc(s.id)}"><input name="price" type="number" min="0" max="1000000" step="0.01" value="${(s.pricePaise/100).toFixed(2)}" aria-label="Price for ${esc(s.name)}"><input name="stock" type="number" min="0" max="1000000" step="1" value="${s.stock}" aria-label="Stock for ${esc(s.name)}"><select name="availability" aria-label="Availability for ${esc(s.name)}"><option value="high" ${s.availability==='high'?'selected':''}>High</option><option value="medium" ${s.availability==='medium'?'selected':''}>Medium</option><option value="low" ${s.availability==='low'?'selected':''}>Low</option></select><label class="check-inline"><input name="active" type="checkbox" ${s.active?'checked':''}> Active</label><button class="buy-btn" type="submit">Save</button></form></td></tr>`).join('') : `<tr><td colspan="2"><div class="empty-mini">No services found.</div></td></tr>`;
   return `<div class="panel table-panel"><div class="panel-head"><div><h3>Service catalog controls</h3><span>Price is entered in INR; stored as paise.</span></div><span>${state.admin.services.length} services</span></div><table class="admin-services-table"><thead><tr><th>Service</th><th>Configuration</th></tr></thead><tbody>${rows}</tbody></table></div>`;
@@ -1131,6 +1226,7 @@ function supportTicketCard(ticket) {
     '<p>' + esc(ticket.message) + '</p>' +
     (ticket.activationId ? '<span class="support-reference">Activation: ' + esc(ticket.activationId) + '</span>' : '') +
     (ticket.rechargeId ? '<span class="support-reference">Recharge: ' + esc(ticket.rechargeId) + '</span>' : '') +
+    (ticket.adminNote ? '<div class="support-admin-note"><span>Support response</span><p>' + esc(ticket.adminNote) + '</p></div>' : '') +
     '<div class="support-ticket-foot"><span>We’ll update this ticket when action is taken.</span><span class="support-live-dot">● ' + esc(status) + '</span></div>' +
   '</article>';
 }
@@ -1487,6 +1583,9 @@ function bindEvents() {
   }));
   document.querySelectorAll('[data-admin-reject]').forEach((node) => node.addEventListener('click', () => { const reason = window.prompt('Reason for rejecting this recharge?', 'Payment could not be verified'); if (reason !== null) adminAction(`/api/admin/recharges/${encodeURIComponent(node.dataset.adminReject)}`, { decision: 'reject', reason }); }));
   document.querySelectorAll('[data-admin-service-form]').forEach((node) => node.addEventListener('submit', (event) => { event.preventDefault(); adminUpdateService(node.dataset.adminServiceForm, node); }));
+  document.querySelectorAll('[data-admin-support-filter]').forEach((node) => node.addEventListener('click', () => { state.adminSupportFilter = node.dataset.adminSupportFilter || 'all'; render(); }));
+  document.querySelectorAll('[data-admin-support-refresh]').forEach((node) => node.addEventListener('click', () => void loadAdminTab('support')));
+  document.querySelectorAll('[data-admin-support-form]').forEach((node) => node.addEventListener('submit', (event) => { event.preventDefault(); adminUpdateSupport(node.dataset.adminSupportForm, node); }));
   document.querySelectorAll('[data-recharge-amount]').forEach((node) => node.addEventListener('click', () => setRechargeAmount(node.dataset.rechargeAmount)));
 }
 

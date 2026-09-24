@@ -29,6 +29,8 @@ import adminLedger from './api/admin/_ledger.js';
 import adminProviders from './api/admin/_providers.js';
 import adminProvidersHealth from './api/admin/_providers-health.js';
 import adminAudit from './api/admin/_audit.js';
+import adminSupport from './api/admin/support/_index.js';
+import adminSupportById from './api/admin/support/_id.js';
 import adminWalletReconciliation from './api/admin/_wallet-reconciliation.js';
 import adminPaymentReconciliation from './api/admin/_payment-reconciliation.js';
 import internalProviderReconcile from './api/_internal-provider-reconcile.js';
@@ -178,6 +180,7 @@ function routeFor(method, pathname) {
     ['GET /api/admin/providers', adminProviders],
     ['GET /api/admin/providers-health', adminProvidersHealth],
     ['GET /api/admin/audit', adminAudit],
+    ['GET /api/admin/support', adminSupport],
     ['GET /api/admin/wallet-reconciliation', adminWalletReconciliation],
     ['GET /api/admin/payment-reconciliation', adminPaymentReconciliation],
     ['POST /api/internal-provider-reconcile', internalProviderReconcile],
@@ -197,6 +200,9 @@ function routeFor(method, pathname) {
 
   match = pathname.match(/^\/api\/admin\/recharges\/([^/]+)$/);
   if (match) return { handler: adminRechargeById, query: { id: decodeURIComponent(match[1]) } };
+
+  match = pathname.match(/^\/api\/admin\/support\/([^/]+)$/);
+  if (match) return { handler: adminSupportById, query: { id: decodeURIComponent(match[1]) } };
 
   match = pathname.match(/^\/api\/admin\/services\/([^/]+)$/);
   if (match) return { handler: adminServiceById, query: { id: decodeURIComponent(match[1]) } };

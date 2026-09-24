@@ -54,3 +54,24 @@ test('support submission is duplicate-click safe and references current account 
   assert.match(app, /activationId/);
   assert.match(app, /rechargeId/);
 });
+
+
+test('admin support queue is authenticated, auditable, and wired into the customer response loop', async () => {
+  const [index, byId, repo, server, app] = await Promise.all([
+    read('api/admin/support/_index.js'),
+    read('api/admin/support/_id.js'),
+    read('api/_lib/support-repository.js'),
+    read('server.js'),
+    read('app.js')
+  ]);
+  assert.match(index, /requireAdmin/);
+  assert.match(byId, /requireAdmin/);
+  assert.match(byId, /enforceSameOrigin/);
+  assert.match(byId, /validateBodySize/);
+  assert.match(repo, /recordAuditTx/);
+  assert.match(repo, /support\.ticket_updated/);
+  assert.match(server, /adminSupportById/);
+  assert.match(app, /\['support', 'Support'\]/);
+  assert.match(app, /data-admin-support-form/);
+  assert.match(app, /Support response/);
+});
