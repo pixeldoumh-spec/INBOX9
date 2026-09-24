@@ -28,6 +28,7 @@ export const syntheticProvider = createProviderAdapter({
     const assignedServer = server || getServerForSlot(index, CAPACITY);
     const providerActivationId = id();
     const serviceKey = service.id || service.name;
+    const numberRevealAt = createdAt + 5_000;
     const mockOtpAt = createdAt + syntheticOtpTiming(serviceKey, index, providerActivationId);
     return normalizeProviderActivation({
       providerActivationId,
@@ -39,6 +40,7 @@ export const syntheticProvider = createProviderAdapter({
       mockOtpAt,
       metadata: {
         engine: 'synthetic',
+        numberRevealAt,
         country: 'IN',
         serviceId: service.id,
         slot: index,
