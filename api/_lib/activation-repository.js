@@ -1,6 +1,6 @@
 import crypto from 'node:crypto';
 import { getPool, withTransaction } from './db.js';
-import { getProviderAdapter } from './provider-registry.js';
+import { invokeProvider } from './provider-gateway.js';
 import { beginCancellation, completeCancellation } from './provider-operations.js';
 import { debitForActivation, getBalanceForClient } from './wallet-repository.js';
 import { completeActivationKey, markActivationKeyStuckSafe } from './idempotency.js';
@@ -54,7 +54,7 @@ export async function createActivation(service, userId, idempotency = null, opti
     throw error;
   }
   provider = providerRoute.rows[0];
-  const adapter = getProviderAdapter(provider.adapter_key);
+
 
   for (let attempt = 1; attempt <= SYNTHETIC_SLOT_RESERVATION_ATTEMPTS; attempt += 1) {
     try {
@@ -69,13 +69,17 @@ export async function createActivation(service, userId, idempotency = null, opti
         throw error;
       }
 
-      reserved = await adapter.reserveNumber({
-        ...service,
-        ...latestService.rows[0],
-        pricePaise: Number(latestService.rows[0].price_paise),
-        stock: Number(latestService.rows[0].stock),
-        active: Boolean(latestService.rows[0].active),
-        serverId: options.serverId || null,
+      reserved = await invokeProvider({
+        provider,
+        operation: 'reserveNumber',
+        input: {
+          ...service,
+          ...latestService.rows[0],
+          pricePaise: Number(latestService.rows[0].price_paise),
+          stock: Number(latestService.rows[0].stock),
+          active: Boolean(latestService.rows[0].active),
+          serverId: options.serverId || null,
+        },
       });
 
       return await withTransaction(async (client) => {
@@ -153,7 +157,11 @@ export async function createActivation(service, userId, idempotency = null, opti
       if (reserved?.providerActivationId) {
         let compensated = false;
         try {
-          await adapter.cancelActivation({ providerActivationId: reserved.providerActivationId, activation: reserved });
+          await invokeProvider({
+            provider,
+            operation: 'cancelActivation',
+            input: { providerActivationId: reserved.providerActivationId, activation: reserved },
+          });
           compensated = true;
         } catch {}
 
@@ -224,11 +232,14 @@ export async function getActivation(id, userId) {
 
   let providerState;
   try {
-    const adapter = getProviderAdapter(snapshot.adapter_key);
     // Provider I/O intentionally occurs outside any open database transaction.
-    providerState = await adapter.getActivation({
-      providerActivationId: snapshot.provider_activation_id,
-      activation: providerActivationPayload(snapshot),
+    providerState = await invokeProvider({
+      provider: { id: snapshot.provider_id, adapter_key: snapshot.adapter_key },
+      operation: 'getActivation',
+      input: {
+        providerActivationId: snapshot.provider_activation_id,
+        activation: providerActivationPayload(snapshot),
+      },
     });
   } catch (error) {
     console.error('provider.status_failed', error);
@@ -297,8 +308,11 @@ export async function cancelActivation(id, userId) {
     return result.activation ? { activation: mapActivation(result.activation), balancePaise: result.balancePaise } : { activation: mapActivation(begun.activation), balancePaise: null };
   }
   try {
-    const adapter = getProviderAdapter(begun.adapterKey);
-    await adapter.cancelActivation(begun.providerPayload);
+    await invokeProvider({
+      provider: { id: begun.providerId, adapter_key: begun.adapterKey },
+      operation: 'cancelActivation',
+      input: begun.providerPayload,
+    });
     const result = await completeCancellation(begun.operation.id, true);
     return result.activation ? { activation: mapActivation(result.activation), balancePaise: result.balancePaise } : { activation: mapActivation(begun.activation), balancePaise: null };
   } catch (error) {

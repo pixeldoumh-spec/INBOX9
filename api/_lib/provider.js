@@ -3,12 +3,27 @@
  * INBOX9 uses this interface for its deterministic synthetic number/OTP engine.
  * No external provider or SMS network is called by these methods.
  */
-export function createProviderAdapter({ listServices, reserveNumber, getActivation, cancelActivation, health }) {
+export function createProviderAdapter({
+  listServices,
+  reserveNumber,
+  getActivation,
+  cancelActivation,
+  health,
+  capabilities = {},
+}) {
   const methods = { listServices, reserveNumber, getActivation, cancelActivation, health };
   for (const [name, fn] of Object.entries(methods)) {
     if (typeof fn !== 'function') throw new TypeError(`Fulfillment engine requires ${name}()`);
   }
-  return Object.freeze(methods);
+  const providerCapabilities = Object.freeze({
+    listServices: capabilities.listServices !== false,
+    reserveNumber: capabilities.reserveNumber !== false,
+    getActivation: capabilities.getActivation !== false,
+    cancelActivation: capabilities.cancelActivation === true,
+    health: capabilities.health !== false,
+    safeToRetryReserve: capabilities.safeToRetryReserve === true,
+  });
+  return Object.freeze({ ...methods, capabilities: providerCapabilities });
 }
 
 export function normalizeProviderActivation(value) {

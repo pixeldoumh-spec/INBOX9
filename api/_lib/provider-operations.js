@@ -1,6 +1,6 @@
 import crypto from 'node:crypto';
 import { getPool, withTransaction } from './db.js';
-import { getProviderAdapter } from './provider-registry.js';
+import { invokeProvider } from './provider-gateway.js';
 import { creditRefund, getBalanceForClient } from './wallet-repository.js';
 import { releaseSyntheticSlot, shouldRestoreSyntheticStock, shouldRequireSyntheticReservation } from './synthetic-inventory-repository.js';
 
@@ -44,7 +44,13 @@ export async function beginCancellation(activationId, userId) {
       [id(), activationId, row.provider_id, row.provider_activation_id]
     );
     await client.query(`UPDATE activations SET status='CancellationPending',updated_at=NOW() WHERE id=$1`, [activationId]);
-    return { activation: { ...row, status: 'CancellationPending' }, operation: operation.rows[0], adapterKey: row.adapter_key, providerPayload: activationPayload(row) };
+    return {
+      activation: { ...row, status: 'CancellationPending' },
+      operation: operation.rows[0],
+      providerId: row.provider_id,
+      adapterKey: row.adapter_key,
+      providerPayload: activationPayload(row),
+    };
   });
 }
 
@@ -84,8 +90,11 @@ export async function reconcilePendingCancellations({ limit = 25 } = {}) {
   const results = [];
   for (const row of result.rows) {
     try {
-      const adapter = getProviderAdapter(row.adapter_key);
-      await adapter.cancelActivation({ providerActivationId: row.provider_activation_id, activation: activationPayload(row, { providerStatus: 'Active' }) });
+      await invokeProvider({
+        provider: { id: row.provider_id, adapter_key: row.adapter_key },
+        operation: 'cancelActivation',
+        input: { providerActivationId: row.provider_activation_id, activation: activationPayload(row, { providerStatus: 'Active' }) },
+      });
       results.push(await completeCancellation(row.operation_id, true));
     } catch (error) {
       results.push(await completeCancellation(row.operation_id, false, error.message));
@@ -245,11 +254,14 @@ export async function reconcileExpiringActivations({ limit = 25 } = {}) {
       if (!row.adapter_key || !row.provider_activation_id) {
         throw new Error('Provider configuration is missing for expired activation');
       }
-      const adapter = getProviderAdapter(row.adapter_key);
       // Provider I/O happens outside every database transaction.
-      providerState = await adapter.getActivation({
-        providerActivationId: row.provider_activation_id,
-        activation: activationPayload(row, { providerStatus: 'Active' }),
+      providerState = await invokeProvider({
+        provider: { id: row.provider_id, adapter_key: row.adapter_key },
+        operation: 'getActivation',
+        input: {
+          providerActivationId: row.provider_activation_id,
+          activation: activationPayload(row, { providerStatus: 'Active' }),
+        },
       });
 
       const action = decideExpirationAction(row, providerState);
@@ -291,9 +303,13 @@ export async function reconcileExpiringActivations({ limit = 25 } = {}) {
           continue;
         }
         // Releasing an expired provider activation is intentionally not a wallet refund.
-        await adapter.cancelActivation({
-          providerActivationId: current.provider_activation_id,
-          activation: activationPayload(current, { providerStatus: 'Active' }),
+        await invokeProvider({
+          provider: { id: current.provider_id, adapter_key: current.adapter_key },
+          operation: 'cancelActivation',
+          input: {
+            providerActivationId: current.provider_activation_id,
+            activation: activationPayload(current, { providerStatus: 'Active' }),
+          },
         });
         results.push(await finalizeExpirationOperation(row.operation_id, { kind: 'expired' }));
         continue;

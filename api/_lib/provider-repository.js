@@ -1,5 +1,6 @@
 import { getPool } from './db.js';
 import { getProviderAdapter } from './provider-registry.js';
+import { getProviderGatewayMetrics, invokeProvider, providerCapabilities } from './provider-gateway.js';
 
 export async function selectProviderForService(client, serviceId) {
   const result = await client.query(

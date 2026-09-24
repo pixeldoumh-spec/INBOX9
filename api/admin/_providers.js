@@ -3,6 +3,7 @@ import { dbEnabled } from '../_lib/db.js';
 import { getSessionUser, requireAdmin } from '../_lib/auth.js';
 import { listProviders, providerHealth } from '../_lib/provider-repository.js';
 import { listProviderAdapters } from '../_lib/provider-registry.js';
+import { providerGatewayTimeouts } from '../_lib/provider-gateway.js';
 
 export default async function handler(req, res) {
   applySecurityHeaders(res);
@@ -13,7 +14,17 @@ export default async function handler(req, res) {
   const user = await getSessionUser(req);
   try { requireAdmin(user); } catch (e) { return res.status(e.statusCode || 401).json({ error: e.message }); }
   try {
-    return res.status(200).json({ providers: await listProviders(), health: await providerHealth(), installedAdapters: listProviderAdapters() });
+    return res.status(200).json({
+      providers: await listProviders(),
+      health: await providerHealth(),
+      installedAdapters: listProviderAdapters(),
+      gateway: {
+        version: 1,
+        timeoutsMs: providerGatewayTimeouts(),
+        metrics: 'process-local',
+        safeReserveRetry: 'disabled by default to prevent duplicate provider allocations',
+      },
+    });
   } catch (error) {
     console.error('admin.providers_failed', error);
     return res.status(503).json({ error: 'Provider registry unavailable' });

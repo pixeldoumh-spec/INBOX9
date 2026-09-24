@@ -13,6 +13,7 @@ function slot(server) {
 }
 
 export const syntheticProvider = createProviderAdapter({
+  capabilities: { cancelActivation: true },
   async listServices() { return { provider: 'synthetic', healthy: true, capacityPerService: CAPACITY }; },
   async reserveNumber(service) {
     const createdAt = Date.now();

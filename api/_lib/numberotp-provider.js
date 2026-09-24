@@ -6,6 +6,10 @@ import {
 } from './numberotp-public.js';
 
 export const numberOtpProvider = createProviderAdapter({
+  capabilities: {
+    cancelActivation: false,
+    safeToRetryReserve: false,
+  },
   async listServices() {
     const health = await numberOtpHealth();
     return { ...health, capacityPerService: null };
