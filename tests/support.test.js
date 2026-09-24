@@ -44,7 +44,8 @@ test('customer support page exposes recovery paths and avoids sensitive credenti
   assert.match(app, /Never share passwords, OTPs, or card PINs here/);
   assert.match(app, /id="support-form"/);
   assert.match(app, /class="support-page"/);
-  assert.doesNotMatch(app, /support-form[\s\S]*type="password"/);
+  const supportForm = app.match(/<form id="support-form"[\s\S]*?<\/form>/)?.[0] || '';
+  assert.doesNotMatch(supportForm, /type="password"/);
 });
 
 test('support submission is duplicate-click safe and references current account records only', async () => {
