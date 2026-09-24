@@ -80,7 +80,10 @@ function attachErrorCapture(page) {
   const expectedConsoleText = new Set();
   page.on('pageerror', (error) => errors.push(String(error.message || error)));
   page.on('console', (message) => {
-    if (message.type() === 'error') errors.push(String(message.text() || message));
+    if (message.type() !== 'error') return;
+    const text = String(message.text() || message);
+    if (/Failed to load resource: the server responded with a status of 401 \(Unauthorized\)/.test(text)) return;
+    errors.push(text);
   });
   page.on('response', (response) => {
     if (response.status() === 401 && /\/api\/auth\/me(?:\?|$)/.test(response.url())) return;
@@ -140,7 +143,11 @@ async function runFullChromium() {
     const rechargeTransaction = page.locator('[data-wallet-detail]').filter({ hasText: 'Wallet recharge' }).first();
     await rechargeTransaction.waitFor({ state: 'visible', timeout: 10000 });
     await rechargeTransaction.click();
-    await page.getByText(utr, { exact: true }).waitFor({ state: 'visible', timeout: 10000 });
+    await rechargeTransaction.waitFor({ state: 'attached', timeout: 5000 });
+    await page.locator('[data-wallet-detail][aria-expanded="true"]').first().waitFor({ state: 'visible', timeout: 5000 });
+    const transactionDetail = page.locator('.wallet-transaction-detail').filter({ hasText: 'UTR' }).first();
+    await transactionDetail.waitFor({ state: 'visible', timeout: 5000 });
+    await transactionDetail.getByText(utr, { exact: true }).waitFor({ state: 'visible', timeout: 5000 });
 
     await page.locator('[data-page="buy"]').first().click();
     await heading(page, 'Choose a service');
