@@ -220,6 +220,11 @@ export async function getSessionUser(req) {
   return context?.user || null;
 }
 
+export async function getSessionIdForRequest(req) {
+  const context = await getSessionRecord(req);
+  return context?.session?.session_id || null;
+}
+
 export async function logout(req, res) {
   if (!dbEnabled()) {
     clearSessionCookie(res);
