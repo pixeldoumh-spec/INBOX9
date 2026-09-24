@@ -32,6 +32,8 @@ export function createCustomerDataController({
   async function loadCustomerData({ renderAfter = false, silent = false } = {}) {
     if (!state.user) return false;
     state.customerDataRefreshing = !silent;
+    state.catalogLoading = true;
+    state.catalogError = '';
     const results = await Promise.allSettled([
       api('/api/services'),
       api('/api/activations'),
@@ -49,7 +51,8 @@ export function createCustomerDataController({
       state.liveProviders = servicesResult.value.liveProviders || {};
       prepareServiceCatalog();
     } else {
-      failures.push(servicesResult.reason?.message || 'Service catalog unavailable');
+      state.catalogError = servicesResult.reason?.message || 'Service catalog unavailable';
+      failures.push(state.catalogError);
     }
   
     if (activationsResult.status === 'fulfilled') {
@@ -72,18 +75,22 @@ export function createCustomerDataController({
   
     state.error = failures.join(' • ');
     state.customerDataRefreshing = false;
-    state.lastCatalogRefreshAt = Date.now();
+    state.catalogLoading = false;
+    if (servicesResult.status === 'fulfilled') state.lastCatalogRefreshAt = Date.now();
     if (renderAfter) render();
     return failures.length === 0;
   }
 
   async function refreshCatalog({ silent = false } = {}) {
     if (!state.user) return false;
+    state.catalogLoading = true;
+    state.catalogError = '';
     try {
       const payload = await api('/api/services');
       state.services = Array.isArray(payload.services) ? payload.services : [];
       state.liveProviders = payload.liveProviders || {};
       prepareServiceCatalog();
+      state.catalogError = '';
       state.lastCatalogRefreshAt = Date.now();
       if (!silent && state.page === 'buy') renderBuyCatalog();
       return true;
@@ -92,9 +99,12 @@ export function createCustomerDataController({
         handleSessionExpired();
         return false;
       }
-      state.error = error.message || 'Service catalog unavailable';
+      state.catalogError = error.message || 'Service catalog unavailable';
+      state.error = state.catalogError;
       if (!silent && state.page === 'buy') renderBuyCatalog();
       return false;
+    } finally {
+      state.catalogLoading = false;
     }
   }
 

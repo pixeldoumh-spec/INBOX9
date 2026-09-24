@@ -1202,3 +1202,100 @@ body::before{
   .customer-service-bottom{flex-wrap:wrap}
   .provider-live-fact{display:inline-flex}
 }
+
+
+/* Customer catalog resilience */
+.market-freshness{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  color:#718097;
+  font-size:9px;
+  white-space:nowrap;
+}
+.market-freshness::before{
+  content:"";
+  width:6px;
+  height:6px;
+  border-radius:50%;
+  background:#8df26b;
+  box-shadow:0 0 10px rgba(141,242,107,.24);
+}
+.market-freshness.stale{color:#b99479}
+.market-freshness.stale::before{
+  background:#d39b68;
+  box-shadow:0 0 10px rgba(211,155,104,.18);
+}
+.catalog-initial-loading{min-height:440px}
+.catalog-skeleton-card{
+  min-height:150px;
+  overflow:hidden;
+  border:1px solid #1d2b3a;
+  border-radius:16px;
+  background:linear-gradient(180deg,#0d151e,#0a1118);
+}
+.catalog-skeleton-main{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:17px;
+  min-height:88px;
+}
+.catalog-skeleton-bottom{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:11px 17px;
+  border-top:1px solid #182532;
+}
+.skeleton-block{
+  position:relative;
+  overflow:hidden;
+  display:block;
+  background:#172231;
+  border-radius:8px;
+}
+.skeleton-block::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  transform:translateX(-100%);
+  background:linear-gradient(100deg,transparent,rgba(255,255,255,.055),transparent);
+  animation:skeleton-shimmer 1.35s ease-in-out infinite;
+}
+.skeleton-icon{width:42px;height:42px;border-radius:12px;flex:none}
+.skeleton-copy{display:flex;flex-direction:column;gap:7px;flex:1;min-width:0}
+.skeleton-line{height:9px}
+.skeleton-line.wide{width:min(72%,190px)}
+.skeleton-line.medium{width:min(54%,135px)}
+.skeleton-line.short{width:min(40%,95px)}
+.skeleton-price{width:58px;height:30px;border-radius:8px;flex:none}
+.skeleton-fact{height:9px;width:74px}
+.skeleton-fact:nth-child(2){width:96px}
+.skeleton-button{height:34px;width:94px;border-radius:10px;margin-left:auto}
+.catalog-error-state{
+  grid-column:1 / -1;
+  min-height:300px;
+  display:grid;
+  place-items:center;
+  align-content:center;
+  text-align:center;
+  padding:34px 22px;
+}
+.catalog-error-state h3{margin:12px 0 6px;font:600 20px 'Space Grotesk';color:#eaf0f5}
+.catalog-error-state p{max-width:480px;margin:0;color:#7c899b;font-size:11px;line-height:1.55}
+.catalog-error-state .primary-btn{margin-top:16px;padding:0 16px}
+@keyframes skeleton-shimmer{
+  0%{transform:translateX(-100%)}
+  100%{transform:translateX(100%)}
+}
+@media(max-width:620px){
+  .market-freshness{font-size:8px}
+  .catalog-initial-loading{min-height:520px}
+  .catalog-skeleton-card{min-height:140px}
+  .catalog-skeleton-main{padding:13px;min-height:80px}
+  .catalog-skeleton-bottom{padding:10px 13px}
+}
+@media(prefers-reduced-motion:reduce){
+  .skeleton-block::after{animation:none}
+}

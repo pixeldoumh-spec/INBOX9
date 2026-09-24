@@ -48,6 +48,8 @@ export function createCustomerState() {
     marketServerLoading: {},
     marketServerErrors: {},
     lastCatalogRefreshAt: 0,
+    catalogLoading: false,
+    catalogError: '',
     customerDataRefreshing: false,
     liveProviders: {},
     tickTimer: null,

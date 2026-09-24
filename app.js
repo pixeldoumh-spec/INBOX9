@@ -849,8 +849,46 @@ function hero() {
   </section>`;
 }
 
+function catalogFreshnessText() {
+  if (state.catalogLoading) return 'Refreshing live catalog…';
+  if (!state.lastCatalogRefreshAt) return 'Waiting for first catalog sync';
+  const ageSeconds = Math.max(0, Math.floor((Date.now() - state.lastCatalogRefreshAt) / 1000));
+  if (ageSeconds < 10) return 'Catalog synced just now';
+  if (ageSeconds < 60) return 'Catalog synced ' + ageSeconds + 's ago';
+  const ageMinutes = Math.floor(ageSeconds / 60);
+  return 'Catalog synced ' + ageMinutes + 'm ago';
+}
+
+function catalogLoadingMarkup() {
+  return Array.from({ length: 6 }, (_, index) => `
+    <article class="catalog-skeleton-card" aria-hidden="true" style="--skeleton-index:${index}">
+      <div class="catalog-skeleton-main">
+        <span class="skeleton-block skeleton-icon"></span>
+        <span class="skeleton-copy"><span class="skeleton-block skeleton-line wide"></span><span class="skeleton-block skeleton-line medium"></span><span class="skeleton-block skeleton-line short"></span></span>
+        <span class="skeleton-block skeleton-price"></span>
+      </div>
+      <div class="catalog-skeleton-bottom"><span class="skeleton-block skeleton-fact"></span><span class="skeleton-block skeleton-fact"></span><span class="skeleton-block skeleton-button"></span></div>
+    </article>
+  `).join('');
+}
+
+function catalogEmptyMarkup() {
+  if (state.catalogLoading && !state.services.length) {
+    return catalogLoadingMarkup();
+  }
+  if (state.catalogError && !state.services.length) {
+    return `<div class="market-empty panel catalog-error-state" role="alert">
+      <div class="empty-icon">!</div>
+      <h3>We couldn't load the marketplace</h3>
+      <p>${esc(state.catalogError)}</p>
+      <button class="primary-btn" type="button" data-refresh-catalog>Retry catalog</button>
+    </div>`;
+  }
+  return marketListMarkup(filteredMarketServices());
+}
+
 function content() {
-  if (state.loading) return `<div class="panel" style="padding:30px;color:#8995a7">Loading service catalog…</div>`;
+  if (state.loading) return `<div class="service-grid customer-service-grid catalog-initial-loading">${catalogLoadingMarkup()}</div>`;
   if (state.page === 'active') return activePage();
   if (state.page === 'orders') return ordersPage();
   if (state.page === 'wallet') return walletPage();
@@ -908,6 +946,8 @@ function renderBuyCatalog() {
 function buyPage() {
   const list = filteredMarketServices();
   const showing = Math.min(state.marketVisibleCount, list.length);
+  const freshness = catalogFreshnessText();
+  const catalogUnavailable = Boolean(state.catalogError && !state.services.length && !state.catalogLoading);
   return `<div class="market-page">
     <div class="section-head market-section-head">
       <div><span class="kicker">MARKETPLACE / +91</span><h2>Choose a service</h2><p class="section-subcopy">Pick the service you need. INBOX9 automatically handles number allocation behind the scenes.</p></div>
@@ -920,8 +960,8 @@ function buyPage() {
         <div class="category-scroll-wrap"><div class="category-scroll" role="group" aria-label="Service categories">${state.catalogCategories.map((category) => `<button class="filter-btn ${state.category === category ? "selected" : ""}" type="button" data-category="${esc(category)}" aria-pressed="${state.category === category}"><span>${esc(category)}</span><span class="filter-count">${(state.categoryCounts[category] || 0).toLocaleString()}</span></button>`).join("")}</div></div>
       </div>
     </div>
-    <div class="market-results-bar"><span class="result-note market-result-count" aria-live="polite">${esc(marketResultText(list.length, showing))}</span><span class="market-hint">Prices and availability update from the INBOX9 backend</span></div>
-    <div class="service-grid customer-service-grid">${marketListMarkup(list)}</div>
+    <div class="market-results-bar"><span class="result-note market-result-count" aria-live="polite">${esc(marketResultText(list.length, showing))}</span><span class="market-freshness ${catalogUnavailable ? 'stale' : ''}">${esc(freshness)}</span><span class="market-hint">Prices and availability update from the INBOX9 backend</span></div>
+    <div class="service-grid customer-service-grid">${catalogUnavailable ? catalogEmptyMarkup() : marketListMarkup(list)}</div>
     <div class="purchase-flow-root">${purchaseReviewModal()}</div>
   </div>`;
 }
@@ -1032,6 +1072,11 @@ function bindMarketplaceEvents() {
     if (event.target?.id === "service-search") scheduleMarketSearch(event.target.value);
   });
   root.addEventListener("click", (event) => {
+    const refreshCatalogButton = event.target.closest("[data-refresh-catalog]");
+    if (refreshCatalogButton && root.contains(refreshCatalogButton)) {
+      void refreshCatalog({ silent: false });
+      return;
+    }
     const toggleService = event.target.closest("[data-toggle-service]");
     if (toggleService && root.contains(toggleService)) {
       void toggleServiceCapacity(toggleService.dataset.toggleService);

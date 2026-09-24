@@ -32,3 +32,23 @@ test('marketplace hero exposes live state instead of hard-coded totals', async (
   assert.match(app, /const serviceCount = state\.services\.length;/);
   assert.match(app, /state\.services\.length\.toLocaleString\(\)/);
 });
+
+
+test('customer marketplace exposes resilient catalog loading and freshness states', async () => {
+  const [app, state, customerData, css] = await Promise.all([
+    read('app.js'),
+    read('customer/state.js'),
+    read('customer/customer-data.js'),
+    read('styles.css'),
+  ]);
+  assert.match(state, /catalogLoading: false/);
+  assert.match(state, /catalogError: ''/);
+  assert.match(customerData, /state\\.catalogLoading = true/);
+  assert.match(customerData, /state\\.catalogError/);
+  assert.match(app, /catalogFreshnessText\\(\\)/);
+  assert.match(app, /catalogLoadingMarkup\\(\\)/);
+  assert.match(app, /data-refresh-catalog/);
+  assert.match(app, /Refreshing live catalog/);
+  assert.match(css, /catalog-skeleton-card/);
+  assert.match(css, /skeleton-shimmer/);
+});
