@@ -83,7 +83,13 @@ function clearSessionCookie(res) {
 }
 
 function publicUser(row) {
-  return { id: row.id, email: row.email, role: row.role, createdAt: new Date(row.created_at).getTime() };
+  return {
+    id: row.id,
+    email: row.email,
+    role: row.role,
+    displayName: row.display_name || '',
+    createdAt: new Date(row.created_at).getTime()
+  };
 }
 
 function sessionToken() {
@@ -99,11 +105,12 @@ function maxSessionsPerUser() {
 
 async function createSession(client, userId, sessionVersion) {
   const { token, tokenHash } = sessionToken();
+  const sessionId = 'SES-' + crypto.randomUUID();
   const expiresAt = new Date(Date.now() + SESSION_DAYS * 86400000);
   await client.query(
-    `INSERT INTO sessions (token_hash,user_id,session_version,expires_at,last_used_at,revoked_at)
-     VALUES ($1,$2,$3,$4,NOW(),NULL)`,
-    [tokenHash, userId, sessionVersion, expiresAt]
+    `INSERT INTO sessions (session_id,token_hash,user_id,session_version,expires_at,last_used_at,revoked_at)
+     VALUES ($1,$2,$3,$4,$5,NOW(),NULL)`,
+    [sessionId, tokenHash, userId, sessionVersion, expiresAt]
   );
 
   const keep = maxSessionsPerUser();
@@ -130,8 +137,8 @@ async function getSessionRecord(req) {
   const tokenHash = hash(token);
   const pool = await getPool();
   const result = await pool.query(
-    `SELECT s.token_hash,s.user_id,s.session_version,s.expires_at,s.created_at,s.last_used_at,
-            u.id,u.email,u.role,u.created_at,u.session_version AS user_session_version
+    `SELECT s.session_id,s.token_hash,s.user_id,s.session_version,s.expires_at,s.created_at,s.last_used_at,
+            u.id,u.email,u.role,u.display_name,u.created_at,u.session_version AS user_session_version
      FROM sessions s JOIN users u ON u.id=s.user_id
      WHERE s.token_hash=$1
        AND s.expires_at>NOW()
@@ -181,7 +188,7 @@ export async function login(emailInput, password) {
 
   return withTransaction(async (client) => {
     const result = await client.query(
-      `SELECT id,email,password_hash,role,created_at,active,session_version
+      `SELECT id,email,password_hash,role,display_name,created_at,active,session_version
        FROM users WHERE email=$1 FOR UPDATE`,
       [email]
     );
@@ -258,7 +265,7 @@ export async function changePassword(req, currentPassword, newPassword) {
 
   return withTransaction(async (client) => {
     const locked = await client.query(
-      `SELECT id,email,role,created_at,password_hash,active,session_version
+      `SELECT id,email,role,display_name,created_at,password_hash,active,session_version
        FROM users WHERE id=$1 FOR UPDATE`,
       [context.user.id]
     );
@@ -279,7 +286,7 @@ export async function changePassword(req, currentPassword, newPassword) {
       `UPDATE users
        SET password_hash=$2,password_changed_at=NOW(),session_version=session_version+1,updated_at=NOW()
        WHERE id=$1
-       RETURNING id,email,role,created_at,session_version`,
+       RETURNING id,email,role,display_name,created_at,session_version`,
       [row.id, nextDigest]
     );
     const freshUser = updated.rows[0];
@@ -379,4 +386,117 @@ export function getMockSession(req) {
 
 export function resetMockAuth() {
   mockAccounts.clear();
+}
+
+function recoveryCodeValue() {
+  return 'REC-' + crypto.randomBytes(10).toString('base64url').replace(/[^A-Za-z0-9]/g, '').slice(0, 16).toUpperCase();
+}
+
+export async function listUserSessions(userId, currentTokenHash = null) {
+  if (!dbEnabled()) return [];
+  const pool = await getPool();
+  const result = await pool.query(
+    `SELECT session_id,created_at,last_used_at,expires_at,token_hash
+     FROM sessions
+     WHERE user_id=$1 AND revoked_at IS NULL AND expires_at>NOW()
+     ORDER BY CASE WHEN token_hash=$2 THEN 0 ELSE 1 END, last_used_at DESC NULLS LAST, created_at DESC
+     LIMIT 20`,
+    [userId, currentTokenHash || '']
+  );
+  return result.rows.map((row) => ({
+    id: row.session_id,
+    current: currentTokenHash ? row.token_hash === currentTokenHash : false,
+    createdAt: new Date(row.created_at).getTime(),
+    lastUsedAt: row.last_used_at ? new Date(row.last_used_at).getTime() : null,
+    expiresAt: new Date(row.expires_at).getTime()
+  }));
+}
+
+export async function revokeUserSession(req, sessionId, res) {
+  if (!dbEnabled()) {
+    clearSessionCookie(res);
+    return { revoked: false, current: false };
+  }
+  const context = await getSessionRecord(req);
+  if (!context) {
+    clearSessionCookie(res);
+    return { revoked: false, current: false };
+  }
+  const target = String(sessionId || '').trim();
+  if (!target) throw Object.assign(new Error('Session id is required'), { statusCode: 400 });
+  const pool = await getPool();
+  const result = await pool.query(
+    `DELETE FROM sessions WHERE session_id=$1 AND user_id=$2 RETURNING token_hash`,
+    [target, context.user.id]
+  );
+  if (!result.rowCount) throw Object.assign(new Error('Session not found'), { statusCode: 404 });
+  const current = result.rows[0].token_hash === context.tokenHash;
+  if (current) clearSessionCookie(res);
+  return { revoked: true, current };
+}
+
+export async function updateProfile(req, displayName) {
+  if (!dbEnabled()) throw new Error('AUTH_DATABASE_REQUIRED');
+  const context = await getSessionRecord(req);
+  if (!context) throw Object.assign(new Error('Authentication required'), { statusCode: 401 });
+  const value = String(displayName || '').trim();
+  if (value.length > 64) throw Object.assign(new Error('Display name must be 64 characters or fewer'), { statusCode: 400 });
+  const pool = await getPool();
+  const result = await pool.query(
+    `UPDATE users SET display_name=$2,updated_at=NOW() WHERE id=$1 RETURNING id,email,role,display_name,created_at`,
+    [context.user.id, value]
+  );
+  return publicUser(result.rows[0]);
+}
+
+export async function issueRecoveryCode(req) {
+  if (!dbEnabled()) throw new Error('AUTH_DATABASE_REQUIRED');
+  const context = await getSessionRecord(req);
+  if (!context) throw Object.assign(new Error('Authentication required'), { statusCode: 401 });
+  return withTransaction(async (client) => {
+    await client.query('DELETE FROM recovery_codes WHERE user_id=$1 AND used_at IS NULL', [context.user.id]);
+    const code = recoveryCodeValue();
+    await client.query(
+      `INSERT INTO recovery_codes (id,user_id,code_hash) VALUES ($1,$2,$3)`,
+      ['REC-' + crypto.randomUUID(), context.user.id, hash(code)]
+    );
+    return { code, createdAt: Date.now() };
+  });
+}
+
+export async function recoverPassword(emailInput, recoveryCode, newPassword) {
+  if (!dbEnabled()) throw new Error('AUTH_DATABASE_REQUIRED');
+  const email = normalizeEmail(emailInput);
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw Object.assign(new Error('Enter a valid email address'), { statusCode: 400 });
+  if (String(newPassword || '').length < 8) throw Object.assign(new Error('New password must be at least 8 characters'), { statusCode: 400 });
+  if (String(newPassword).length > 128) throw Object.assign(new Error('New password is too long'), { statusCode: 400 });
+  const code = String(recoveryCode || '').trim().toUpperCase();
+  if (!/^REC-[A-Z0-9]{8,32}$/.test(code)) throw Object.assign(new Error('Recovery code is invalid or expired'), { statusCode: 400 });
+  return withTransaction(async (client) => {
+    const userResult = await client.query(
+      `SELECT id,email,role,display_name,created_at,active,session_version FROM users WHERE email=$1 FOR UPDATE`,
+      [email]
+    );
+    if (!userResult.rowCount || !userResult.rows[0].active) throw Object.assign(new Error('Recovery code is invalid or expired'), { statusCode: 400 });
+    const user = userResult.rows[0];
+    const codes = await client.query(
+      `SELECT id,code_hash FROM recovery_codes WHERE user_id=$1 AND used_at IS NULL AND created_at > NOW() - INTERVAL '90 days' ORDER BY created_at DESC LIMIT 5 FOR UPDATE`,
+      [user.id]
+    );
+    const codeHash = Buffer.from(hash(code));
+    const valid = codes.rows.find((row) => {
+      const stored = Buffer.from(row.code_hash);
+      return stored.length === codeHash.length && crypto.timingSafeEqual(stored, codeHash);
+    });
+    if (!valid) throw Object.assign(new Error('Recovery code is invalid or expired'), { statusCode: 400 });
+    const nextDigest = passwordHash(newPassword);
+    const updated = await client.query(
+      `UPDATE users SET password_hash=$2,password_changed_at=NOW(),session_version=session_version+1,updated_at=NOW() WHERE id=$1 RETURNING id,email,role,display_name,created_at,session_version`,
+      [user.id, nextDigest]
+    );
+    await client.query('UPDATE recovery_codes SET used_at=NOW() WHERE id=$1', [valid.id]);
+    await client.query('DELETE FROM sessions WHERE user_id=$1', [user.id]);
+    const { token } = await createSession(client, user.id, updated.rows[0].session_version);
+    return { user: publicUser(updated.rows[0]), token };
+  });
 }
