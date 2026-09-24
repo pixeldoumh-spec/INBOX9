@@ -52,6 +52,8 @@ export function createCustomerNavigation({
     state.user = null;
     state.active = [];
     state.orders = [];
+    state.recentActivations = [];
+    state.activeActionErrorById = {};
     state.supportTickets = [];
     state.supportLoading = false;
     state.supportSubmitting = false;
