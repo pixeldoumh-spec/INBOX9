@@ -1747,3 +1747,31 @@ body::before{
   .recharge-status-head{align-items:flex-start;flex-direction:column}
   .recharge-status-head code{max-width:100%}
 }
+
+/* Customer notification center */
+.notification-wrap{position:relative;z-index:20}
+.notification-btn{position:relative}
+.notification-bell{font-size:15px;line-height:1;color:#a8b5c4}
+.notification-badge{position:absolute;top:-5px;right:-4px;min-width:16px;height:16px;padding:0 4px;display:grid;place-items:center;border:2px solid #080b12;border-radius:999px;background:#d0ffbd;color:#0b1309;font:800 8px/1 system-ui,sans-serif}
+.notification-panel{position:absolute;top:44px;right:0;width:min(360px,calc(100vw - 28px));overflow:hidden;border:1px solid #243243;border-radius:14px;background:linear-gradient(180deg,#101822,#0b1118);box-shadow:0 24px 70px rgba(0,0,0,.45)}
+.notification-panel-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 13px;border-bottom:1px solid #1d2937}
+.notification-panel-head>div{display:flex;flex-direction:column;gap:3px}
+.notification-panel-head strong{font:600 14px 'Space Grotesk';color:#e7edf3}
+.notification-panel-head .ghost-btn{min-height:28px;padding:0 9px;font-size:8px}
+.notification-list{max-height:390px;overflow:auto}
+.notification-row{width:100%;display:flex;align-items:flex-start;gap:10px;padding:12px 13px;border:0;border-bottom:1px solid #17222e;background:transparent;color:inherit;text-align:left}
+.notification-row:hover{background:#111a24}
+.notification-row.unread{background:#0e1711}
+.notification-icon{width:25px;height:25px;flex:none;display:grid;place-items:center;border-radius:8px;background:#15202b;color:#73859a;border:1px solid #263545;font-weight:900}
+.notification-row.success .notification-icon{color:#9ee18f;border-color:#2e4934;background:#122018}
+.notification-row.danger .notification-icon{color:#e0a1a1;border-color:#4a2d32;background:#1a1114}
+.notification-copy{min-width:0;display:flex;flex-direction:column;align-items:flex-start}
+.notification-copy strong{color:#dfe8ef;font-size:9px}
+.notification-copy small{margin-top:3px;color:#708094;font-size:8px;line-height:1.45}
+.notification-copy em{margin-top:4px;color:#4f6074;font-size:7px;font-style:normal}
+.notification-row.read{opacity:.72}
+.notification-empty{display:flex;flex-direction:column;align-items:center;gap:6px;padding:28px 20px;text-align:center}
+.notification-empty>span{width:30px;height:30px;display:grid;place-items:center;border-radius:50%;background:#122018;border:1px solid #2e4934;color:#a5df98}
+.notification-empty strong{color:#d8e3eb;font-size:10px}
+.notification-empty small{max-width:230px;color:#68788c;font-size:8px;line-height:1.5}
+@media(max-width:620px){.notification-panel{position:fixed;top:64px;right:10px;width:calc(100vw - 20px)}}

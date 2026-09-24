@@ -116,6 +116,115 @@ function clearMarketplaceFilters() {
 }
 
 
+function notificationSnapshot() {
+  return {
+    recharges: new Map((state.recharges || []).map((item) => [item.id, {
+      status: String(item.status || 'Pending'),
+      amountPaise: Number(item.amountPaise || 0),
+      rejectionReason: item.rejectionReason || ''
+    }])),
+    activations: new Map((state.orders || []).map((item) => [item.id, {
+      status: String(item.status || ''),
+      otp: String(item.otp || '')
+    }]))
+  };
+}
+
+let notificationBaseline = null;
+
+function addNotification({ title, body, page = null, tone = 'info' }) {
+  state.notifications = [{
+    id: state.notificationsNextId++,
+    title, body, page, tone,
+    createdAt: Date.now(),
+    read: false
+  }, ...state.notifications].slice(0, 30);
+  if (!state.notificationsOpen) toast(title);
+}
+
+function processNotificationSnapshot({ announce = true } = {}) {
+  const current = notificationSnapshot();
+  if (!notificationBaseline) {
+    notificationBaseline = current;
+    return;
+  }
+  if (announce) {
+    for (const [id, next] of current.recharges) {
+      const previous = notificationBaseline.recharges.get(id);
+      if (!previous || previous.status === next.status) continue;
+      if (next.status === 'Approved') {
+        addNotification({
+          title: 'Recharge approved',
+          body: money(next.amountPaise) + ' has been credited to your wallet.',
+          page: 'wallet',
+          tone: 'success'
+        });
+      } else if (next.status === 'Rejected') {
+        addNotification({
+          title: 'Recharge rejected',
+          body: next.rejectionReason || 'Your payment could not be verified.',
+          page: 'wallet',
+          tone: 'danger'
+        });
+      }
+    }
+    for (const [id, next] of current.activations) {
+      const previous = notificationBaseline.activations.get(id);
+      if (!previous) continue;
+      const otpChanged = next.otp && !['Waiting…', '—'].includes(next.otp) && ['Waiting…', '—'].includes(previous.otp);
+      if (otpChanged) {
+        addNotification({
+          title: 'OTP received',
+          body: 'Verification code is ready for order ' + id + '.',
+          page: 'active',
+          tone: 'success'
+        });
+      } else if (previous.status !== next.status && next.status === 'Expired') {
+        addNotification({
+          title: 'Number expired',
+          body: 'Order ' + id + ' reached its validity limit.',
+          page: 'orders'
+        });
+      } else if (previous.status !== next.status && (next.status === 'Refunded' || next.status === 'Cancelled')) {
+        addNotification({
+          title: 'Activation closed',
+          body: 'Order ' + id + ' is now ' + next.status.toLowerCase() + '.',
+          page: 'orders'
+        });
+      }
+    }
+  }
+  notificationBaseline = current;
+}
+
+function markAllNotificationsRead() {
+  state.notifications = state.notifications.map((item) => ({ ...item, read: true }));
+  state.notificationsOpen = false;
+  render();
+}
+
+function openNotifications() {
+  processNotificationSnapshot({ announce: false });
+  state.notificationsOpen = !state.notificationsOpen;
+  render();
+}
+
+function notificationPanel() {
+  const unread = state.notifications.filter((item) => !item.read).length;
+  const rows = state.notifications.length
+    ? state.notifications.map((item) => {
+        const elapsed = Math.max(0, Math.floor((Date.now() - item.createdAt) / 1000));
+        const age = elapsed < 60 ? 'Just now' : elapsed < 3600 ? Math.floor(elapsed / 60) + 'm ago' : Math.floor(elapsed / 3600) + 'h ago';
+        return '<button class="notification-row ' + esc(item.tone) + ' ' + (item.read ? 'read' : 'unread') + '" type="button" data-notification-page="' + esc(item.page || '') + '">' +
+          '<span class="notification-icon">•</span><span class="notification-copy"><strong>' + esc(item.title) + '</strong><small>' + esc(item.body) + '</small><em>' + age + '</em></span></button>';
+      }).join('')
+    : '<div class="notification-empty"><span>✓</span><strong>All caught up</strong><small>Important wallet and activation updates will appear here.</small></div>';
+  return '<div class="notification-wrap"><button class="icon-btn notification-btn" type="button" aria-label="Notifications" aria-expanded="' + String(state.notificationsOpen) + '" data-action="notifications"><span class="notification-bell">◔</span>' +
+    (unread ? '<b class="notification-badge">' + unread + '</b>' : '') + '</button>' +
+    (state.notificationsOpen ? '<div class="notification-panel" role="dialog" aria-label="Notifications"><div class="notification-panel-head"><div><span class="kicker">UPDATES</span><strong>Notifications</strong></div><button class="ghost-btn" type="button" data-action="notifications-read" ' + (unread ? '' : 'disabled') + '>Mark read</button></div><div class="notification-list">' + rows + '</div></div>' : '') +
+    '</div>';
+}
+
 function toast(message) {
   const node = document.createElement('div');
   node.className = 'toast';
@@ -238,6 +347,9 @@ async function logout() {
 }
 
 function handleSessionSignedOut() {
+  notificationBaseline = null;
+  state.notifications = [];
+  state.notificationsOpen = false;
   state.user = null;
   state.active = [];
   state.recentActivations = [];
@@ -334,9 +446,20 @@ const {
   loadPersisted,
   persist,
   syncFromServerActivations,
-  loadCustomerData,
+  loadCustomerData: loadCustomerDataRaw,
   refreshCatalog
 } = customerData;
+
+async function loadCustomerData(options = {}) {
+  const before = notificationSnapshot();
+  const result = await loadCustomerDataRaw(options);
+  if (result) {
+    const hadBaseline = Boolean(notificationBaseline);
+    notificationBaseline = before;
+    processNotificationSnapshot({ announce: hadBaseline });
+  }
+  return result;
+}
 
 const {
   pageFromHash,
@@ -526,6 +649,7 @@ async function refreshWallet() {
     state.walletLedger = Array.isArray(wallet.ledger) ? wallet.ledger : [];
     state.recharges = Array.isArray(wallet.recharges) ? wallet.recharges : [];
     state.rechargeUpiId = wallet.rechargeEnabled ? (wallet.upiId || null) : null;
+    processNotificationSnapshot({ announce: true });
     return wallet;
   } catch (error) {
     if (Number(error.status) === 401) {
@@ -571,6 +695,7 @@ function setRechargeAmount(amount) {
 }
 
 let lastActivationSync = 0;
+let lastWalletSignalSync = 0;
 let activationSyncInFlight = false;
 
 async function syncActivationItem(item) {
@@ -610,6 +735,10 @@ async function tick() {
   if (!state.active.length) {
     if (state.page === 'active') renderActiveOnly();
     return;
+  }
+  if (now - lastWalletSignalSync > 15000 && !state.customerDataRefreshing) {
+    lastWalletSignalSync = now;
+    void refreshWallet();
   }
   if (activationSyncInFlight) return;
   if (now - lastActivationSync < 2500) {
@@ -827,7 +956,7 @@ function render() {
       <main class="main">
         <header class="topbar">
           <div class="breadcrumb"><button class="menu-btn icon-btn" type="button" aria-label="Open menu" data-action="open-menu">☰</button><span>Market</span><span>/</span><strong>${esc(current)}</strong></div>
-          <div class="top-actions"><button class="wallet-chip" type="button" data-page="wallet">▱ ${money(state.balancePaise)} <b>+</b></button><span class="topbar-live-status"><span class="live-dot"></span><span>Connected</span></span></div>
+          <div class="top-actions">${notificationPanel()}<button class="wallet-chip" type="button" data-page="wallet">▱ ${money(state.balancePaise)} <b>+</b></button><span class="topbar-live-status"><span class="live-dot"></span><span>Connected</span></span></div>
         </header>
         <section class="content-wrap">
           ${state.page === 'buy' ? hero() : ''}
@@ -1152,6 +1281,14 @@ function bindEvents() {
   document.querySelectorAll('[data-action="security"]').forEach((node) => node.addEventListener('click', openSecurity));
   document.querySelectorAll('[data-action="close-security"]').forEach((node) => node.addEventListener('click', closeSecurity));
   document.querySelectorAll('[data-action="logout-all"]').forEach((node) => node.addEventListener('click', logoutAll));
+  document.querySelectorAll('[data-action="notifications"]').forEach((node) => node.addEventListener('click', openNotifications));
+  document.querySelectorAll('[data-action="notifications-read"]').forEach((node) => node.addEventListener('click', markAllNotificationsRead));
+  document.querySelectorAll('[data-notification-page]').forEach((node) => node.addEventListener('click', () => {
+    state.notifications = state.notifications.map((item) => ({ ...item, read: true }));
+    const page = node.dataset.notificationPage;
+    state.notificationsOpen = false;
+    if (page) setPage(page); else render();
+  }));
   document.getElementById('change-password-form')?.addEventListener('submit', submitChangePassword);
   document.querySelectorAll('[data-page]').forEach((node) => node.addEventListener('click', () => {
     const page = node.dataset.page;

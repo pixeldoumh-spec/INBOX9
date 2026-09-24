@@ -210,3 +210,26 @@ test('recharge history explains pending, approved and rejected outcomes', async 
   assert.match(css, /recharge-status-card/);
   assert.match(css, /recharge-progress/);
 });
+
+test('customer notification center surfaces recharge and activation lifecycle events', async () => {
+  const [app, state, css] = await Promise.all([read('app.js'), read('customer/state.js'), read('styles.css')]);
+  assert.match(state, /notifications: \[\]/);
+  assert.match(state, /notificationsOpen: false/);
+  assert.match(app, /function notificationSnapshot\(\)/);
+  assert.match(app, /Recharge approved/);
+  assert.match(app, /Recharge rejected/);
+  assert.match(app, /OTP received/);
+  assert.match(app, /Number expired/);
+  assert.match(app, /notifications-read/);
+  assert.match(app, /data-action="notifications"/);
+  assert.match(css, /notification-panel/);
+  assert.match(css, /notification-badge/);
+});
+
+test('notification monitoring refreshes wallet state periodically using the authoritative API', async () => {
+  const app = await read('app.js');
+  assert.match(app, /lastWalletSignalSync > 15000/);
+  assert.match(app, /void refreshWallet\(\)/);
+  assert.match(app, /processNotificationSnapshot\(\{ announce: true \}\)/);
+  assert.doesNotMatch(app, /state\.balancePaise \+=/);
+});
