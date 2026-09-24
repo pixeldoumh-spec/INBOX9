@@ -18,10 +18,15 @@ test('customer service cards expose validity details without provider infrastruc
   const app = await read('app.js');
   assert.match(app, /function toggleServiceDetails\(/);
   assert.match(app, /serviceDetailsMarkup\(/);
-  assert.match(app, /25 min.*number validity/);
-  assert.match(app, /25 minutes.*Maximum number validity/);
+  assert.match(app, /25 min.*maximum validity/);
+  assert.match(app, /25 minutes.*Maximum validity/);
+  assert.match(app, /OTP delivery.*timing varies/);
   assert.doesNotMatch(app, /Live availability/);
   assert.doesNotMatch(app, /Automatic allocation/);
+  assert.doesNotMatch(app, /available inventory/);
+  assert.doesNotMatch(app, /numbers available/);
+  assert.doesNotMatch(app, /~20 sec.*OTP/);
+  assert.doesNotMatch(app, /~20s OTP/);
   assert.doesNotMatch(app, /\/servers/);
 });
 
@@ -143,6 +148,21 @@ test('built-in activation validity defaults to 25 minutes', async () => {
   for (const source of [mock, synthetic, repoSource]) assert.match(source, /25 \* 60 \* 1000/);
 });
 
+
+test('marketplace quick-start derives recently used services from customer orders', async () => {
+  const [app, customerData, css] = await Promise.all([
+    read('app.js'),
+    read('customer/customer-data.js'),
+    read('styles.css'),
+  ]);
+  assert.match(app, /function recentlyUsedServices\(\)/);
+  assert.match(app, /data-buy-recent-service/);
+  assert.match(app, /From your latest activations/);
+  assert.match(customerData, /serviceId: activation\.serviceId/);
+  assert.match(customerData, /createdAt: activation\.createdAt/);
+  assert.match(css, /\.market-recent/);
+  assert.match(css, /\.recent-service-chip/);
+});
 
 test('browse services scrolls to the marketplace when already on buy page', async () => {
   const app = await read('app.js');
