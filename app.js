@@ -961,6 +961,20 @@ async function adminUpdateSupport(id, form) {
   }
 }
 
+async function adminAssignSupport(id, assignedAdminId) {
+  try {
+    await api(`/api/admin/support/${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ assignedAdminId })
+    });
+    toast(assignedAdminId ? 'Ticket assigned to you' : 'Ticket unassigned');
+    await loadAdminTab('support');
+  } catch (error) {
+    toast(error.message);
+  }
+}
+
 function adminPage() {
   if (state.user?.role !== 'admin') return `<div class="panel empty"><div class="empty-icon">!</div><h3>Admin access required</h3><p>Your account does not have permission to open the operations center.</p></div>`;
   const tabs = [
@@ -1030,7 +1044,11 @@ function adminSupportPage() {
     const recharge = ticket.recharge ? '<span class="admin-support-ref">Recharge · ' + esc(ticket.recharge.id) + (ticket.recharge.status ? ' · ' + esc(ticket.recharge.status) : '') + '</span>' : '';
     return '<article class="panel admin-support-card">' +
       '<div class="admin-support-head"><div><span class="kicker">' + esc(ticket.category || 'other') + '</span><h3>' + esc(ticket.subject) + '</h3><small class="mono">' + esc(ticket.id) + ' · ' + esc(new Date(ticket.createdAt).toLocaleString()) + '</small></div><span class="table-status ' + supportStatusClass(status) + '">' + esc(status) + '</span></div>' +
-      '<div class="admin-support-customer"><strong>' + esc(ticket.email || 'Unknown customer') + '</strong><span>Last updated ' + esc(new Date(ticket.updatedAt || ticket.createdAt).toLocaleString()) + '</span></div>' +
+      '<div class="admin-support-customer"><div><strong>' + esc(ticket.email || 'Unknown customer') + '</strong><small>Created ' + esc(new Date(ticket.createdAt).toLocaleString()) + '</small></div><span>Last updated ' + esc(new Date(ticket.updatedAt || ticket.createdAt).toLocaleString()) + '</span></div>' +
+      '<div class="admin-support-assignment"><span>Assigned to <strong>' + esc(ticket.assignedAdminEmail || 'Unassigned') + '</strong></span><span class="admin-support-assign-actions">' +
+        (ticket.assignedAdminId === state.user?.id ? '<button class="filter-btn selected" type="button" disabled>Assigned to me</button>' : '<button class="filter-btn" type="button" data-admin-support-assign="' + esc(ticket.id) + '">Assign to me</button>') +
+        (ticket.assignedAdminId ? '<button class="filter-btn" type="button" data-admin-support-unassign="' + esc(ticket.id) + '">Unassign</button>' : '') +
+      '</span></div>';
       '<p class="admin-support-message">' + esc(ticket.message) + '</p>' +
       '<div class="admin-support-refs">' + activation + recharge + '</div>' +
       '<form class="admin-support-form" data-admin-support-form="' + esc(ticket.id) + '">' +
@@ -1586,6 +1604,8 @@ function bindEvents() {
   document.querySelectorAll('[data-admin-support-filter]').forEach((node) => node.addEventListener('click', () => { state.adminSupportFilter = node.dataset.adminSupportFilter || 'all'; render(); }));
   document.querySelectorAll('[data-admin-support-refresh]').forEach((node) => node.addEventListener('click', () => void loadAdminTab('support')));
   document.querySelectorAll('[data-admin-support-form]').forEach((node) => node.addEventListener('submit', (event) => { event.preventDefault(); adminUpdateSupport(node.dataset.adminSupportForm, node); }));
+  document.querySelectorAll('[data-admin-support-assign]').forEach((node) => node.addEventListener('click', () => void adminAssignSupport(node.dataset.adminSupportAssign, state.user?.id)));
+  document.querySelectorAll('[data-admin-support-unassign]').forEach((node) => node.addEventListener('click', () => void adminAssignSupport(node.dataset.adminSupportUnassign, null)));
   document.querySelectorAll('[data-recharge-amount]').forEach((node) => node.addEventListener('click', () => setRechargeAmount(node.dataset.rechargeAmount)));
 }
 

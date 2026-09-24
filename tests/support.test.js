@@ -71,6 +71,8 @@ test('admin support queue is authenticated, auditable, and wired into the custom
   assert.match(byId, /validateBodySize/);
   assert.match(repo, /recordAuditTx/);
   assert.match(repo, /support\.ticket_updated/);
+  assert.match(repo, /assigned_admin_id/);
+  assert.match(app, /Assign to me/);
   assert.match(server, /adminSupportById/);
   assert.match(app, /\['support', 'Support'\]/);
   assert.match(app, /data-admin-support-form/);

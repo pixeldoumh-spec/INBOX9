@@ -115,6 +115,8 @@ function mapAdminRow(row) {
   return {
     ...ticket,
     email: row.email || null,
+    assignedAdminId: row.assigned_admin_id || null,
+    assignedAdminEmail: row.assigned_admin_email || null,
     activation: row.activation_id ? {
       id: row.activation_id,
       status: row.activation_status || null,
@@ -139,9 +141,11 @@ export async function listAdminSupportTickets(limit = 250) {
             a.phone_number AS activation_number,
             sv.name AS activation_service,
             r.status AS recharge_status,
-            r.amount_paise AS recharge_amount_paise
+            r.amount_paise AS recharge_amount_paise,
+            au.email AS assigned_admin_email
      FROM support_requests s
      JOIN users u ON u.id=s.user_id
+     LEFT JOIN users au ON au.id=s.assigned_admin_id
      LEFT JOIN activations a ON a.id=s.activation_id
      LEFT JOIN services sv ON sv.id=a.service_id
      LEFT JOIN recharge_requests r ON r.id=s.recharge_id
@@ -163,6 +167,10 @@ export async function updateAdminSupportTicket(adminUserId, ticketId, patch = {}
     throw new Error('Choose a valid support status');
   }
   const nextNote = patch.adminNote === undefined ? undefined : cleanAdminNote(patch.adminNote);
+  const hasAssignmentPatch = Object.prototype.hasOwnProperty.call(patch, 'assignedAdminId');
+  const nextAssignedAdminId = hasAssignmentPatch
+    ? (patch.assignedAdminId == null || String(patch.assignedAdminId).trim() === '' ? null : String(patch.assignedAdminId).trim())
+    : undefined;
 
   return withTransaction(async (client) => {
     const current = await client.query(
@@ -177,24 +185,32 @@ export async function updateAdminSupportTicket(adminUserId, ticketId, patch = {}
     const row = current.rows[0];
     const nextStatus = requestedStatus || row.status;
     const adminNote = nextNote === undefined ? (row.admin_note || null) : nextNote;
+    let assignedAdminId = nextAssignedAdminId === undefined ? (row.assigned_admin_id || null) : nextAssignedAdminId;
+    if (assignedAdminId) {
+      const assigned = await client.query('SELECT id FROM users WHERE id=$1 AND role=$2 AND active=TRUE', [assignedAdminId, 'admin']);
+      if (!assigned.rowCount) throw new Error('Assigned admin was not found');
+    }
     let resolvedAt = row.resolved_at;
     if (nextStatus === 'Resolved' && row.status !== 'Resolved') resolvedAt = new Date();
     if (nextStatus === 'Open' || nextStatus === 'In Progress') resolvedAt = null;
 
-    const changed = row.status !== nextStatus || (row.admin_note || null) !== adminNote;
+    const changed = row.status !== nextStatus
+      || (row.admin_note || null) !== adminNote
+      || (row.assigned_admin_id || null) !== assignedAdminId;
     if (!changed) return mapAdminRow(row);
 
     const updated = await client.query(
       `UPDATE support_requests
-       SET status=$2, admin_note=$3, resolved_at=$4, updated_at=NOW()
+       SET status=$2, admin_note=$3, assigned_admin_id=$4, resolved_at=$5, updated_at=NOW()
        WHERE id=$1
        RETURNING *`,
-      [ticketId, nextStatus, adminNote, resolvedAt]
+      [ticketId, nextStatus, adminNote, assignedAdminId, resolvedAt]
     );
     await recordAuditTx(client, adminUserId, 'support.ticket_updated', 'support_ticket', ticketId, {
-      before: { status: row.status, notePresent: Boolean(row.admin_note) },
-      after: { status: nextStatus, notePresent: Boolean(adminNote) },
-      noteChanged: (row.admin_note || null) !== adminNote
+      before: { status: row.status, notePresent: Boolean(row.admin_note), assignedAdminId: row.assigned_admin_id || null },
+      after: { status: nextStatus, notePresent: Boolean(adminNote), assignedAdminId },
+      noteChanged: (row.admin_note || null) !== adminNote,
+      assignmentChanged: (row.assigned_admin_id || null) !== assignedAdminId
     });
 
     const related = await client.query(
@@ -204,9 +220,11 @@ export async function updateAdminSupportTicket(adminUserId, ticketId, patch = {}
               a.phone_number AS activation_number,
               sv.name AS activation_service,
               r.status AS recharge_status,
-              r.amount_paise AS recharge_amount_paise
+              r.amount_paise AS recharge_amount_paise,
+              au.email AS assigned_admin_email
        FROM support_requests s
        JOIN users u ON u.id=s.user_id
+       LEFT JOIN users au ON au.id=s.assigned_admin_id
        LEFT JOIN activations a ON a.id=s.activation_id
        LEFT JOIN services sv ON sv.id=a.service_id
        LEFT JOIN recharge_requests r ON r.id=s.recharge_id
