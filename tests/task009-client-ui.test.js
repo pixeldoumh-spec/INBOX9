@@ -12,7 +12,7 @@ test('premium marketplace UI hooks are present', async () => {
   for (const token of [
     'premium-hero', 'hero-dashboard', 'hero-stat-grid', 'hero-live',
     'premium-search', 'market-results-bar', 'service-group-meta',
-    'availability-pill', 'server-panel-head', 'service-price'
+    'wallet-ready-chip', 'market-recent', 'service-price'
   ]) {
     assert.equal((app + css).includes(token), true, token);
   }
@@ -26,11 +26,14 @@ test('advanced UI layer includes mobile and reduced-motion safeguards', async ()
   assert.match(css, /content-visibility:auto/);
 });
 
-test('marketplace hero exposes live state instead of hard-coded totals', async () => {
+test('marketplace hero exposes customer-safe state instead of provider connectivity claims', async () => {
   const app = await read('app.js');
   assert.match(app, /const activeCount = state\.active\.length;/);
   assert.match(app, /const serviceCount = state\.services\.length;/);
   assert.match(app, /state\.services\.length\.toLocaleString\(\)/);
+  assert.match(app, /Account ready/);
+  assert.doesNotMatch(app, /Backend connected/);
+  assert.doesNotMatch(app, /LIVE API/);
 });
 
 
