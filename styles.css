@@ -52,7 +52,7 @@ html.overlay-open,body.overlay-open{overflow:hidden}.security-overlay{position:f
 .filter-btn{display:inline-flex;align-items:center;gap:7px}
 .filter-count{font-size:9px;color:#59677a;background:#111a24;border:1px solid #1d2938;border-radius:99px;padding:2px 6px;font-variant-numeric:tabular-nums}
 .filter-btn.selected .filter-count{color:#b7eba6;background:#1b2a18;border-color:#2b4325}
-.market-service-group{contain:layout paint;}
+
 .service-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
 .market-service-group.expanded{grid-column:1 / -1}
 .load-more-btn{height:38px;border:1px solid #2a3748;background:#0d141d;color:#c5d0de;border-radius:10px;padding:0 14px;font-size:11px;font-weight:700;display:inline-flex;align-items:center;gap:8px}
@@ -1933,7 +1933,7 @@ button{transition:background-color .16s ease,border-color .16s ease,transform .1
   .account-grid{grid-template-columns:1fr}
 }
 @media(max-width:780px){
-  .sidebar{width:280px}
+  .sidebar{width:268px}
   .main{margin-left:0;width:100%}
   .topbar{height:66px;padding:0 12px}
   .content-wrap{padding:18px 14px 36px}
@@ -2012,3 +2012,7 @@ button{transition:background-color .16s ease,border-color .16s ease,transform .1
   .notification-panel{max-height:calc(100vh - 82px)}
   .notification-list{max-height:calc(100vh - 145px)}
 }
+
+
+/* Avoid browser-specific containment around interactive marketplace cards. */
+.market-service-group{contain:none}
