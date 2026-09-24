@@ -1617,9 +1617,9 @@ function activeCard(activation) {
     Active: otp
       ? { label: 'Code received', tone: 'received' }
       : syntheticNumberHidden
-        ? { label: 'Fetching number', tone: 'waiting' }
+        ? { label: 'Waiting for number', tone: 'waiting' }
         : syntheticOtpWaiting
-          ? { label: 'OTP generating', tone: 'waiting' }
+          ? { label: 'Waiting for OTP', tone: 'waiting' }
           : { label: 'Waiting for SMS', tone: 'waiting' },
     CancellationPending: { label: 'Cancellation in progress', tone: 'pending' },
     ExpirationPending: { label: 'Expiring', tone: 'pending' }
@@ -1628,7 +1628,6 @@ function activeCard(activation) {
   const cancelUi = cancelling
     ? '<div class="cancel-confirm"><span>Cancel this activation and request a refund.</span><div><button class="ghost-btn" type="button" data-cancel-dismiss>Keep number</button><button class="text-danger confirm-danger" type="button" data-cancel-confirm="' + esc(activation.id) + '">Confirm cancel</button></div></div>'
     : (canCancel ? '<button class="text-danger" type="button" data-cancel="' + esc(activation.id) + '">Cancel & refund</button>' : '<span class="cancel-disabled-note">' + (status === 'CancellationPending' ? 'Cancellation processing' : status === 'ExpirationPending' ? 'Expiration processing' : otp ? 'Code received' : 'Not cancellable') + '</span>');
-  const syntheticNumberWaiting = syntheticNumberHidden;
   const syntheticOtpWaitingLabel = syntheticOtpWaiting;
   const otpPanel = otp
     ? '<div class="otp-panel otp-received-panel"><div class="otp-panel-head"><span class="otp-label">VERIFICATION CODE</span><span class="code-state success">READY</span></div><div class="otp-code">' + esc(otp) + '</div><div class="otp-actions"><button class="primary-btn otp-copy-primary" type="button" data-copy="' + esc(otp.replace(/\s/g, '')) + '" data-copy-message="OTP copied">Copy code</button><span class="otp-help">Use the code shown here to complete verification.</span></div></div>'
