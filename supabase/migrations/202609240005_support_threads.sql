@@ -13,5 +13,9 @@ SELECT 'SUPMSG-' || s.id,s.id,s.user_id,'customer',s.message
 FROM public.support_requests s
 WHERE NOT EXISTS (SELECT 1 FROM public.support_messages m WHERE m.ticket_id=s.id);
 ALTER TABLE public.support_messages ENABLE ROW LEVEL SECURITY;
-REVOKE ALL ON TABLE public.support_messages FROM anon, authenticated;
+DO $
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname='anon') THEN EXECUTE 'REVOKE ALL ON TABLE public.support_messages FROM anon'; END IF;
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname='authenticated') THEN EXECUTE 'REVOKE ALL ON TABLE public.support_messages FROM authenticated'; END IF;
+END $;
 COMMIT;
