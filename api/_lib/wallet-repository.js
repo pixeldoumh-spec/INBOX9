@@ -119,8 +119,9 @@ export async function getWalletSummary(userId) {
   };
 }
 
-export async function createRecharge(userId, amountPaise, utr, submissionSessionId = null) {
-  if (!UPI_ID) { const error = new Error('UPI recharge is not configured'); error.code = 'UPI_DESTINATION_NOT_CONFIGURED'; throw error; }
+export async function createRecharge(userId, amountPaise, utr, submissionSessionId = null, upiIdOverride = null) {
+  const upiId = String(upiIdOverride || UPI_ID || '').trim();
+  if (!upiId) { const error = new Error('UPI recharge is not configured'); error.code = 'UPI_DESTINATION_NOT_CONFIGURED'; throw error; }
   if (!Number.isInteger(amountPaise) || amountPaise < MIN_RECHARGE_PAISE || amountPaise > MAX_RECHARGE_PAISE) {
     throw new Error('Recharge amount must be between ₹100 and ₹5,000');
   }
@@ -134,7 +135,7 @@ export async function createRecharge(userId, amountPaise, utr, submissionSession
       result = await client.query(
         `INSERT INTO recharge_requests (id,user_id,amount_paise,utr,payment_method,upi_id,submission_session_id)
          VALUES ($1,$2,$3,$4,'UPI',$5,$6) RETURNING *`,
-        [id('RCH'), userId, amountPaise, normalizedUtr, UPI_ID, submissionSessionId || null]
+        [id('RCH'), userId, amountPaise, normalizedUtr, upiId, submissionSessionId || null]
       );
     } catch (error) {
       if (error?.code === '23505' && error?.constraint === 'uq_recharge_utr') {

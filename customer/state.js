@@ -53,6 +53,7 @@ export function createCustomerState() {
     bootstrapError: '',
     persistentState: false,
     rechargeUpiId: null,
+    rechargePaymentSettings: { upiId: null, merchantName: 'INBOX9', instructions: '', qrImage: null },
     mobileMenu: false,
     toastTimer: null,
     user: null,

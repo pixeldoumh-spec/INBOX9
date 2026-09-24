@@ -41,6 +41,7 @@ import adminSupport from './api/admin/support/_index.js';
 import adminSupportById from './api/admin/support/_id.js';
 import adminWalletReconciliation from './api/admin/_wallet-reconciliation.js';
 import adminPaymentReconciliation from './api/admin/_payment-reconciliation.js';
+import adminPaymentSettings from './api/admin/_payment-settings.js';
 import adminProviderOperations from './api/admin/_provider-operations.js';
 import internalProviderReconcile from './api/_internal-provider-reconcile.js';
 import { assertProductionConfiguration } from './api/_lib/runtime-config.js';
@@ -206,6 +207,8 @@ function routeFor(method, pathname) {
     ['GET /api/admin/support', adminSupport],
     ['GET /api/admin/wallet-reconciliation', adminWalletReconciliation],
     ['GET /api/admin/payment-reconciliation', adminPaymentReconciliation],
+    ['GET /api/admin/payment-settings', adminPaymentSettings],
+    ['PATCH /api/admin/payment-settings', adminPaymentSettings],
     ['GET /api/admin/provider-operations', adminProviderOperations],
     ['POST /api/internal-provider-reconcile', internalProviderReconcile],
     ['POST /api/client-errors', clientErrors],

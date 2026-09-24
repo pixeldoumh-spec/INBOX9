@@ -901,6 +901,7 @@ async function refreshWallet() {
     state.walletLedger = Array.isArray(wallet.ledger) ? wallet.ledger : [];
     state.recharges = Array.isArray(wallet.recharges) ? wallet.recharges : [];
     state.rechargeUpiId = wallet.rechargeEnabled ? (wallet.upiId || null) : null;
+    state.rechargePaymentSettings = wallet.rechargeEnabled ? (wallet.paymentSettings || { upiId: wallet.upiId || null, merchantName: 'INBOX9', instructions: '' }) : { upiId: null, merchantName: 'INBOX9', instructions: '', qrImage: null };
     processNotificationSnapshot({ announce: true });
     return wallet;
   } catch (error) {
@@ -911,6 +912,27 @@ async function refreshWallet() {
     toast(error.message);
     return null;
   }
+}
+
+function upiIntentUrl(amount, settings = state.rechargePaymentSettings || {}) {
+  const upiId = String(settings.upiId || state.rechargeUpiId || '').trim();
+  if (!upiId) return '';
+  const safeAmount = Number(amount);
+  const params = new URLSearchParams({
+    pa: upiId,
+    pn: String(settings.merchantName || 'INBOX9').trim() || 'INBOX9',
+    am: Number.isFinite(safeAmount) ? safeAmount.toFixed(2) : '0.00',
+    cu: 'INR',
+    tn: 'INBOX9 wallet recharge'
+  });
+  return 'upi://pay?' + params.toString();
+}
+
+function updateRechargePaymentLink() {
+  const node = document.querySelector('[data-upi-intent]');
+  if (!node) return;
+  const amount = Number(document.getElementById('recharge-amount')?.value || state.rechargeAmount || 100);
+  node.href = upiIntentUrl(amount);
 }
 
 async function submitRecharge(event) {
@@ -1067,6 +1089,37 @@ async function adminAction(url, body) {
   }
 }
 
+async function readQrFileAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('QR image could not be read'));
+    reader.onload = () => resolve(String(reader.result || ''));
+    reader.readAsDataURL(file);
+  });
+}
+
+async function adminUpdatePaymentSettings(form) {
+  const data=new FormData(form);
+  const upiId=String(data.get('upiId')||'').trim();
+  const merchantName=String(data.get('merchantName')||'INBOX9').trim();
+  const instructions=String(data.get('instructions')||'').trim();
+  const qrUrl=String(data.get('qrUrl')||'').trim();
+  const file=data.get('qrFile');
+  let qrImage=qrUrl||null;
+  if (file && typeof file === 'object' && file.size) {
+    if (file.size > 250*1024) return toast('QR image must be 250 KB or smaller');
+    try { qrImage=await readQrFileAsDataUrl(file); } catch (error) { return toast(error.message); }
+  }
+  if (data.get('removeQr')==='on') qrImage=null;
+  try {
+    await api('/api/admin/payment-settings',{method:'PATCH',headers:{'content-type':'application/json'},body:JSON.stringify({upiId,merchantName,instructions,qrImage})});
+    toast('Payment settings updated');
+    await loadAdminTab('payments');
+  } catch (error) {
+    toast(error.message);
+  }
+}
+
 async function adminUpdateService(id, form) {
   const data = new FormData(form);
   const payload = {
@@ -1123,7 +1176,7 @@ async function adminAssignSupport(id, assignedAdminId) {
 function adminPage() {
   if (state.user?.role !== 'admin') return `<div class="panel empty"><div class="empty-icon">!</div><h3>Admin access required</h3><p>Your account does not have permission to open the operations center.</p></div>`;
   const tabs = [
-    ['overview', 'Overview'], ['recharges', 'UTR Queue'], ['support', 'Support'], ['services', 'Services'],
+    ['overview', 'Overview'], ['recharges', 'UTR Queue'], ['payments', 'Payments'], ['support', 'Support'], ['services', 'Services'],
     ['users', 'Users'], ['activations', 'Activations'], ['ledger', 'Ledger'],
     ['providers', 'Providers'], ['provider-operations', 'Reconciliation'], ['audit', 'Audit Log']
   ];
@@ -1140,6 +1193,7 @@ function adminPage() {
 function renderAdminTab(tab) {
   if (tab === 'overview') return adminOverviewPage();
   if (tab === 'recharges') return adminRechargesPage();
+  if (tab === 'payments') return adminPaymentsPage();
   if (tab === 'support') return adminSupportPage();
   if (tab === 'services') return adminServicesPage();
   if (tab === 'users') return adminUsersPage();
@@ -1161,6 +1215,26 @@ function adminOverviewPage() {
   return `<div class="admin-kpi-grid">${cards.map(([label,value]) => `<div class="panel admin-kpi"><span>${label}</span><strong>${esc(value)}</strong></div>`).join('')}</div>
   <div class="admin-grid-two"><div class="panel admin-card"><div class="panel-head"><div><h3>Operations</h3><span>Use the tabs above to operate the platform.</span></div></div><div class="admin-checklist"><div>✓ User accounts and roles</div><div>✓ UTR verification queue</div><div>✓ Service pricing and inventory</div><div>✓ Activation monitoring</div><div>✓ Wallet ledger visibility</div><div>✓ Provider health</div><div>✓ Immutable audit trail</div></div></div>
   <div class="panel admin-card"><div class="panel-head"><div><h3>Safety rules</h3><span>Production financial controls</span></div></div><p class="admin-copy">UTR submission does not credit a wallet. Only an authorized admin approval creates the corresponding ledger credit. Service configuration changes are audited.</p></div></div>`;
+}
+
+function adminPaymentsPage() {
+  const payload=state.admin.paymentSignals||{};
+  const totals=payload.summary?.totals||{};
+  const byStatus=Array.isArray(payload.summary?.byStatus)?payload.summary.byStatus:[];
+  const settings=payload.paymentSettings||state.admin.paymentSettings||{};
+  const sessions=Array.isArray(payload.sessionSignals)?payload.sessionSignals:[];
+  const flagged=Array.isArray(payload.flagged)?payload.flagged:[];
+  const webhooks=Array.isArray(payload.webhookEvents)?payload.webhookEvents:[];
+  const statusClass=(status)=>({Approved:'approved',Rejected:'rejected',Pending:'active',Processed:'approved',Ignored:'expired',Received:'active'}[String(status)]||'expired');
+  const settingsQr=settings.qrImage?'<div class="admin-payment-qr-preview"><img src="'+esc(settings.qrImage)+'" alt="Configured payment QR code" loading="lazy"></div>':'<div class="admin-payment-qr-empty">No QR configured</div>';
+  const sessionRows=sessions.length?sessions.map(r=>'<tr><td><strong>'+esc(r.email||'Unknown')+'</strong><small class="table-sub">'+esc(r.id)+'</small></td><td>'+money(r.amountPaise||0)+'</td><td class="mono">'+esc(r.utr||'—')+'</td><td class="mono">'+esc(r.submissionSessionId||'Not captured')+'</td><td><span class="table-status '+(r.submissionSession?.active?'approved':'expired')+'">'+(r.submissionSession?.active?'Submission session active':'Expired / revoked')+'</span></td><td><span class="table-status '+(r.sessionContext?.currentMatchesSubmission?'approved':'expired')+'">'+(r.sessionContext?.currentMatchesSubmission?'Current session matches':'Current session differs')+'</span><small class="table-sub">'+esc(String(r.sessionContext?.activeCount||0))+' active session(s)</small></td></tr>').join(''):'<tr><td colspan="6"><div class="empty-mini">No pending session-linked payments.</div></td></tr>';
+  const flaggedRows=flagged.length?flagged.map(r=>'<tr><td class="mono">'+esc(r.id)+'</td><td>'+esc(r.email||'Unknown')+'</td><td>'+money(r.amountPaise||0)+'</td><td class="mono">'+esc(r.utr||'—')+'</td><td>'+esc(r.flagReason||'Flagged for review')+'</td></tr>').join(''):'<tr><td colspan="5"><div class="empty-mini">No flagged payments.</div></td></tr>';
+  const webhookRows=webhooks.length?webhooks.slice(0,20).map(e=>'<tr><td class="mono">'+esc(e.provider)+'<small class="table-sub">'+esc(e.eventId)+'</small></td><td>'+esc(e.eventType)+'</td><td class="mono">'+esc(e.rechargeId)+'</td><td>'+money(e.amountPaise||0)+'</td><td><span class="table-status '+statusClass(e.status)+'">'+esc(e.status)+'</span></td><td>'+esc(e.outcome||'—')+(e.errorCode?'<small class="table-sub">'+esc(e.errorCode)+'</small>':'')+'</td><td>'+esc(e.receivedAt?new Date(e.receivedAt).toLocaleString():'—')+'</td></tr>').join(''):'<tr><td colspan="7"><div class="empty-mini">No webhook events received.</div></td></tr>';
+  const statusCards=byStatus.map(x=>'<div class="panel admin-kpi"><span>'+esc(x.status)+'</span><strong>'+esc(String(x.count))+'</strong><small>'+money(x.amountPaise)+' value</small></div>').join('');
+  return '<div class="admin-payment-summary"><div class="admin-kpi-grid"><div class="panel admin-kpi"><span>Total payment requests</span><strong>'+esc(String(totals.count||0))+'</strong><small>'+money(totals.amountPaise||0)+' request value</small></div><div class="panel admin-kpi"><span>Flagged</span><strong>'+esc(String(totals.flaggedCount||0))+'</strong><small>Requires review</small></div>'+statusCards+'</div></div>'+
+  '<div class="panel admin-card admin-payment-settings"><div class="panel-head"><div><h3>Payment destination</h3><span>Admin-managed UPI ID + QR. Changes apply to new recharge submissions; existing requests retain their recorded destination.</span></div><span class="status-chip">'+(settings.upiId?'CONFIGURED':'SETUP REQUIRED')+'</span></div><form id="admin-payment-settings-form" class="admin-payment-settings-form"><div class="admin-payment-settings-grid"><label>UPI ID<input name="upiId" type="text" maxlength="128" value="'+esc(settings.upiId||'')+'" placeholder="merchant@upi" autocomplete="off" required></label><label>Merchant name<input name="merchantName" type="text" maxlength="80" value="'+esc(settings.merchantName||'INBOX9')+'" required></label><label class="full">Payment instructions<textarea name="instructions" rows="3" maxlength="500" placeholder="Instructions shown to customers">'+esc(settings.instructions||'Pay the exact amount and keep the UTR / transaction reference.')+'</textarea></label><label class="full">QR image URL <span>(optional HTTPS URL)</span><input name="qrUrl" type="url" maxlength="2048" value="'+esc(settings.qrImage&&/^https:\/\//i.test(settings.qrImage)?settings.qrImage:'')+'" placeholder="https://.../inbox9-qr.png"></label><label class="full">Upload QR image <span>(PNG/JPEG/WebP, max 250 KB)</span><input name="qrFile" type="file" accept="image/png,image/jpeg,image/webp"></label><label class="check-inline full"><input name="removeQr" type="checkbox"> Remove the currently configured QR</label></div><div class="admin-payment-qr-area">'+settingsQr+'</div><div class="admin-actions"><span class="form-note">Server validates the UPI ID and QR format/size, and every change is added to the audit trail.</span><button class="buy-btn" type="submit">Save payment settings</button></div></form></div>'+
+  '<div class="panel table-panel"><div class="panel-head"><div><h3>Payment signals / session context</h3><span>Pending payments linked to the customer account session used at submission.</span></div><span class="status-chip">'+sessions.length+' shown</span></div><table><thead><tr><th>Account</th><th>Amount</th><th>UTR</th><th>Submission session</th><th>Submission state</th><th>Current session signal</th></tr></thead><tbody>'+sessionRows+'</tbody></table></div>'+
+  '<div class="admin-grid-two"><div class="panel table-panel"><div class="panel-head"><div><h3>Flagged payments</h3><span>Manually flagged reconciliation cases.</span></div></div><table><thead><tr><th>Request</th><th>Account</th><th>Amount</th><th>UTR</th><th>Reason</th></tr></thead><tbody>'+flaggedRows+'</tbody></table></div><div class="panel table-panel"><div class="panel-head"><div><h3>Webhook signals</h3><span>Server-side payment events; wallet credit requires verified settlement.</span></div></div><table><thead><tr><th>Provider</th><th>Event</th><th>Recharge</th><th>Amount</th><th>Status</th><th>Outcome</th><th>Received</th></tr></thead><tbody>'+webhookRows+'</tbody></table></div></div>';
 }
 
 function adminProviderOperationsPage() {
@@ -1612,7 +1686,20 @@ function filteredWalletActivity(){const items=walletActivityItems();if(state.wal
 function walletStatusLabel(i){if(i.source==='ledger')return i.type==='credit'?'Credited':'Charged';if(i.status==='Approved')return'Verified & credited';if(i.status==='Rejected')return'Rejected · not credited';return'Awaiting verification';}
 function walletActivityCard(i){const expanded=state.expandedWalletTransactionId===i.id;const detail=expanded?'<div class="wallet-transaction-detail"><div><span>Status</span><strong>'+esc(walletStatusLabel(i))+'</strong></div><div><span>Created</span><strong>'+esc(i.createdAt?new Date(i.createdAt).toLocaleString():'—')+'</strong></div>'+(i.referenceId?'<div><span>Reference</span><strong>'+esc((i.referenceType?i.referenceType+' · ':'')+i.referenceId)+'</strong></div>':'')+(i.utr?'<div><span>UTR</span><strong>'+esc(i.utr)+'</strong></div>':'')+(i.reviewedAt?'<div><span>Reviewed</span><strong>'+esc(new Date(i.reviewedAt).toLocaleString())+'</strong></div>':'')+(i.rejectionReason?'<div><span>Reason</span><strong>'+esc(i.rejectionReason)+'</strong></div>':'')+'</div>':'';
 const tone=i.source==='recharge'?(i.status==='Rejected'?'rejected':i.status==='Approved'?'approved':'pending'):(i.type==='credit'?'approved':'debit');const amount=(i.source==='recharge'?'':(i.type==='credit'?'+ ':'− '))+money(i.amountPaise);return'<article class="wallet-transaction '+tone+'"><button class="wallet-transaction-main" type="button" data-wallet-detail="'+esc(i.id)+'" aria-expanded="'+String(expanded)+'"><span class="wallet-transaction-icon">'+(i.source==='recharge'?'↥':i.type==='credit'?'+':'−')+'</span><span class="wallet-transaction-copy"><strong>'+esc(i.title)+'</strong><small>'+esc(i.createdAt?new Date(i.createdAt).toLocaleString():'—')+'</small></span><span class="wallet-transaction-status">'+esc(walletStatusLabel(i))+'</span><strong class="wallet-transaction-amount">'+esc(amount)+'</strong><span aria-hidden="true">⌄</span></button>'+detail+'</article>';}
-function walletPage(){const summary=walletSummary(),activity=filteredWalletActivity();const filters=[['all','All'],['credits','Money in'],['debits','Money out'],['recharges','Recharges']].map(([v,l])=>'<button class="filter-btn '+(state.walletFilter===v?'selected':'')+'" type="button" data-wallet-filter="'+v+'">'+l+'</button>').join('');const rechargeReady=Boolean(state.persistentState&&state.rechargeUpiId);const funding=rechargeReady?'<div class="recharge-flow panel"><div class="recharge-flow-head"><div><span class="kicker">WALLET FUNDING</span><h3>Add funds by UPI</h3><p>Pay the exact amount, then submit the UTR. Wallet changes only after verification.</p></div><span class="status-chip">MANUAL VERIFY</span></div><p class="recharge-progress-copy">Submitted → Verified → Wallet outcome</p><div class="recharge-steps"><span class="done"><b>1</b> Pay</span><i></i><span class="current"><b>2</b> Submit</span><i></i><span><b>3</b> Verify</span></div><div class="recharge-grid"><div class="panel payment-panel"><div class="panel-head"><div><h3>Pay by UPI</h3><span>Use the configured INBOX9 destination.</span></div></div><div class="upi-row"><span>UPI ID</span><code>'+esc(state.rechargeUpiId)+'</code><button class="copy-btn" type="button" data-copy="'+esc(state.rechargeUpiId)+'" data-copy-message="UPI ID copied">Copy</button></div><p class="form-note">Keep the transaction reference from your UPI app.</p></div><div class="panel payment-panel"><div class="panel-head"><div><h3>Submit payment</h3><span>Exact amount + UTR are required.</span></div></div><form id="recharge-form" class="recharge-form"><label>Amount (₹)<input id="recharge-amount" name="amount" type="number" min="100" max="5000" step="1" value="'+state.rechargeAmount+'" required></label><div class="amount-presets">'+[100,500,1000,2000,5000].map(a=>'<button type="button" class="filter-btn '+(state.rechargeAmount===a?'selected':'')+'" data-recharge-amount="'+a+'">₹'+a+'</button>').join('')+'</div><label>UTR / Transaction reference<input name="utr" type="text" minlength="4" maxlength="64" autocomplete="off" placeholder="Enter UTR after payment" required></label><button class="primary-btn" type="submit" '+(state.rechargeSubmitting?'disabled':'')+'>'+(state.rechargeSubmitting?'Submitting…':'Submit for verification')+'</button><p class="form-note">Pending = submitted and awaiting review. Payment verified · wallet credited. <span class="recharge-reason">Payment rejected · wallet not credited.</span></p></form></div></div></div>':'<div class="panel payment-panel"><div class="panel-head"><div><h3>Wallet funding unavailable</h3><span>'+(state.persistentState?'Recharge is not configured on this deployment yet.':'Payments are disabled in this environment.')+'</span></div><span class="status-chip">'+(state.persistentState?'SETUP REQUIRED':'PAYMENTS OFF')+'</span></div></div>';return'<div class="section-head with-action"><div><span class="kicker">WALLET / INR</span><h2>Wallet</h2><p class="section-subcopy">Recharge status, transaction filters, and transaction detail.</p></div><button class="refresh-btn" type="button" data-action="refresh-customer">'+(state.customerDataRefreshing?'Refreshing…':'Refresh')+'</button></div><div class="wallet-summary-grid"><div class="balance-card"><div class="wallet-card-top"><span>AVAILABLE BALANCE</span><span>INR</span></div><strong>'+money(state.balancePaise)+'</strong><small>Authoritative wallet balance</small></div><div class="wallet-stat-card"><span>LEDGER CREDITS</span><strong>'+money(summary.credits)+'</strong><small>'+summary.creditCount+' recorded credits</small></div><div class="wallet-stat-card"><span>LEDGER DEBITS</span><strong>'+money(summary.debits)+'</strong><small>'+summary.debitCount+' recorded debits</small></div><div class="wallet-stat-card pending"><span>PENDING TOP-UPS</span><strong>'+money(summary.pending)+'</strong><small>'+summary.pendingCount+' awaiting review</small></div></div>'+funding+'<section class="panel wallet-activity-panel"><div class="panel-head"><div><h3>Transactions</h3><span>Money movement and recharge requests in one timeline.</span></div><span class="status-chip">'+activity.length+' shown</span></div><div class="wallet-filter-row">'+filters+'</div><div class="wallet-transaction-list">'+(activity.length?activity.map(walletActivityCard).join(''):'<div class="empty-mini">No transactions match this filter.</div>')+'</div></section><section class="panel wallet-recharge-history"><div class="panel-head"><div><h3>Recharge history</h3><span>Semantic payment outcomes</span></div></div>'+(state.recharges.length?'<div class="recharge-history">'+state.recharges.slice(0,10).map(r=>'<div class="recharge-history-row"><div><strong>'+money(r.amountPaise)+'</strong><span>UTR '+esc(r.utr)+'</span></div><span class="table-status '+String(r.status||'Pending').toLowerCase()+'">'+esc(walletStatusLabel({source:'recharge',status:r.status}))+'</span></div>').join('')+'</div>':'<div class="empty-mini">No recharge requests yet.</div>')+'</section>';}
+function walletPage(){
+  const summary=walletSummary(),activity=filteredWalletActivity();
+  const filters=[['all','All'],['credits','Money in'],['debits','Money out'],['recharges','Recharges']].map(([v,l])=>'<button class="filter-btn '+(state.walletFilter===v?'selected':'')+'" type="button" data-wallet-filter="'+v+'">'+l+'</button>').join('');
+  const paymentSettings=state.rechargePaymentSettings||{};
+  const rechargeReady=Boolean(state.persistentState&&paymentSettings.upiId);
+  const qrImage=paymentSettings.qrImage
+    ? '<div class="recharge-qr-wrap"><img class="recharge-qr" src="'+esc(paymentSettings.qrImage)+'" alt="INBOX9 UPI payment QR code" loading="lazy"></div>'
+    : '<div class="recharge-qr-empty"><strong>QR not configured</strong><span>Use the UPI ID below or ask support for the current payment QR.</span></div>';
+  const upiLink=upiIntentUrl(state.rechargeAmount,paymentSettings);
+  const funding=rechargeReady
+    ? '<div class="recharge-flow panel"><div class="recharge-flow-head"><div><span class="kicker">WALLET FUNDING</span><h3>Add funds by UPI</h3><p>Pay the exact amount, then submit the UTR. Wallet changes only after verification.</p></div><span class="status-chip">MANUAL VERIFY</span></div><p class="recharge-progress-copy">Pay → Submit UTR → Admin verifies → Wallet credited</p><div class="recharge-steps"><span class="done"><b>1</b> Pay</span><i></i><span class="current"><b>2</b> Submit</span><i></i><span><b>3</b> Verify</span></div><div class="recharge-grid"><div class="panel payment-panel recharge-payment-visual"><div class="panel-head"><div><h3>Scan or open UPI</h3><span>Merchant: '+esc(paymentSettings.merchantName||'INBOX9')+'</span></div></div><div class="recharge-qr-card">'+qrImage+'</div><div class="upi-row"><span>UPI ID</span><code>'+esc(paymentSettings.upiId)+'</code><button class="copy-btn" type="button" data-copy="'+esc(paymentSettings.upiId)+'" data-copy-message="UPI ID copied">Copy</button></div><a class="primary-btn recharge-upi-intent" data-upi-intent href="'+esc(upiLink)+'">Open UPI app <span>↗</span></a><p class="form-note">'+esc(paymentSettings.instructions||'Pay the exact amount shown below. Keep the UTR / transaction reference after payment.')+'</p></div><div class="panel payment-panel"><div class="panel-head"><div><h3>Submit payment</h3><span>Exact amount + UTR are required.</span></div></div><form id="recharge-form" class="recharge-form"><label>Amount (₹)<input id="recharge-amount" name="amount" type="number" min="100" max="5000" step="1" value="'+state.rechargeAmount+'" required></label><div class="amount-presets">'+[100,500,1000,2000,5000].map(a=>'<button type="button" class="filter-btn '+(state.rechargeAmount===a?'selected':'')+'" data-recharge-amount="'+a+'">₹'+a+'</button>').join('')+'</div><label>UTR / Transaction reference<input name="utr" type="text" minlength="4" maxlength="64" autocomplete="off" placeholder="Enter UTR after payment" required></label><button class="primary-btn" type="submit" '+(state.rechargeSubmitting?'disabled':'')+'>'+(state.rechargeSubmitting?'Submitting…':'Submit for verification')+'</button><p class="form-note">Submitted requests stay Pending until an authorized admin verifies the actual received payment. No client-side callback can credit the wallet.</p></form></div></div></div>'
+    : '<div class="panel payment-panel"><div class="panel-head"><div><h3>Wallet funding unavailable</h3><span>'+(state.persistentState?'Recharge is not configured yet. An admin must set the merchant UPI destination.':'Payments are disabled in this environment.')+'</span></div><span class="status-chip">'+(state.persistentState?'SETUP REQUIRED':'PAYMENTS OFF')+'</span></div></div>';
+  return '<div class="section-head with-action"><div><span class="kicker">WALLET / INR</span><h2>Wallet</h2><p class="section-subcopy">Recharge status, transaction filters, and transaction detail.</p></div><button class="refresh-btn" type="button" data-action="refresh-customer">'+(state.customerDataRefreshing?'Refreshing…':'Refresh')+'</button></div><div class="wallet-summary-grid"><div class="balance-card"><div class="wallet-card-top"><span>AVAILABLE BALANCE</span><span>INR</span></div><strong>'+money(state.balancePaise)+'</strong><small>Authoritative wallet balance</small></div><div class="wallet-stat-card"><span>LEDGER CREDITS</span><strong>'+money(summary.credits)+'</strong><small>'+summary.creditCount+' recorded credits</small></div><div class="wallet-stat-card"><span>LEDGER DEBITS</span><strong>'+money(summary.debits)+'</strong><small>'+summary.debitCount+' recorded debits</small></div><div class="wallet-stat-card pending"><span>PENDING TOP-UPS</span><strong>'+money(summary.pending)+'</strong><small>'+summary.pendingCount+' awaiting review</small></div></div>'+funding+'<section class="panel wallet-activity-panel"><div class="panel-head"><div><h3>Transactions</h3><span>Money movement and recharge requests in one timeline.</span></div><span class="status-chip">'+activity.length+' shown</span></div><div class="wallet-filter-row">'+filters+'</div><div class="wallet-transaction-list">'+(activity.length?activity.map(walletActivityCard).join(''):'<div class="empty-mini">No transactions match this filter.</div>')+'</div></section><section class="panel wallet-recharge-history"><div class="panel-head"><div><h3>Recharge history</h3><span>Semantic payment outcomes</span></div></div>'+(state.recharges.length?'<div class="recharge-history">'+state.recharges.slice(0,10).map(r=>'<div class="recharge-history-row"><div><strong>'+money(r.amountPaise)+'</strong><span>UTR '+esc(r.utr)+'</span></div><span class="table-status '+String(r.status||'Pending').toLowerCase()+'">'+esc(walletStatusLabel({source:'recharge',status:r.status}))+'</span></div>').join('')+'</div>':'<div class="empty-mini">No recharge requests yet.</div>')+'</section>';
+}
 function refreshAccount(){if(!state.user)return false;state.accountLoading=true;state.accountError='';return Promise.all([api('/api/auth/sessions'),api('/api/auth/me')]).then(([sessions,me])=>{state.accountSessions=Array.isArray(sessions.sessions)?sessions.sessions:[];if(me.user)state.user=me.user;return true;}).catch(error=>{if(Number(error.status)===401){handleSessionExpired();return false;}state.accountError=error.message||'Account data unavailable';return false;}).finally(()=>{state.accountLoading=false;});}
 function saveProfile(event){event.preventDefault();const displayName=String(new FormData(event.currentTarget).get('displayName')||'').trim();api('/api/auth/profile',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({displayName})}).then(p=>{state.user=p.user;toast('Profile saved');render();}).catch(error=>toast(error.message));}
 function generateRecoveryCode(){if(state.accountRecoveryBusy)return;state.accountRecoveryBusy=true;state.accountRecoveryCode='';render();api('/api/auth/recovery-code',{method:'POST'}).then(p=>{state.accountRecoveryCode=p.code||'';toast('Recovery code generated');}).catch(error=>toast(error.message)).finally(()=>{state.accountRecoveryBusy=false;render();});}
@@ -1723,6 +1810,7 @@ function bindEvents() {
   document.querySelectorAll('[data-action="refresh-customer"]').forEach((node) => node.addEventListener('click', () => void loadCustomerData({ renderAfter: true })));
   document.getElementById('recharge-form')?.addEventListener('submit', submitRecharge);
   document.querySelectorAll('[data-admin-tab]').forEach((node) => node.addEventListener('click', () => loadAdminTab(node.dataset.adminTab)));
+  document.getElementById('admin-payment-settings-form')?.addEventListener('submit', (event) => { event.preventDefault(); void adminUpdatePaymentSettings(event.currentTarget); });
   document.querySelectorAll('[data-admin-approve]').forEach((node) => node.addEventListener('click', () => {
     const row = node.closest('tr');
     const verifiedAmount = row?.querySelector('[data-admin-verified-amount]')?.value;
