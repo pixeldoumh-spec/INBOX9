@@ -47,6 +47,7 @@ import { assertProductionConfiguration } from './api/_lib/runtime-config.js';
 import { applySecurityHeaders, requestId } from './api/_lib/security.js';
 import { captureException, finishRequestObservation, installProcessHandlers, markServerStarted, startRequestObservation } from './api/_lib/observability.js';
 import clientErrors from './api/observability/_client-errors.js';
+import paymentWebhook from './api/payments/_webhook.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DEFAULT_PORT = Number(process.env.PORT || 4173);
@@ -117,8 +118,8 @@ function sendNodeJson(res, statusCode, body) {
   res.end(JSON.stringify(body));
 }
 
-function readJsonBody(req) {
-  if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method || '')) return Promise.resolve({});
+function readRawBody(req) {
+  if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method || '')) return Promise.resolve('');
 
   return new Promise((resolve, reject) => {
     let raw = '';
@@ -148,18 +149,23 @@ function readJsonBody(req) {
     req.on('end', () => {
       if (settled) return;
       settled = true;
-      if (!raw.trim()) return resolve({});
-      try {
-        resolve(JSON.parse(raw));
-      } catch {
-        const error = new Error('Invalid JSON');
-        error.statusCode = 400;
-        reject(error);
-      }
+      resolve(raw);
     });
 
     req.on('error', fail);
   });
+}
+
+async function readJsonBody(req) {
+  const raw = await readRawBody(req);
+  if (!raw.trim()) return {};
+  try {
+    return JSON.parse(raw);
+  } catch {
+    const error = new Error('Invalid JSON');
+    error.statusCode = 400;
+    throw error;
+  }
 }
 
 function routeFor(method, pathname) {
@@ -203,6 +209,7 @@ function routeFor(method, pathname) {
     ['GET /api/admin/provider-operations', adminProviderOperations],
     ['POST /api/internal-provider-reconcile', internalProviderReconcile],
     ['POST /api/client-errors', clientErrors],
+    ['POST /api/payments/webhook', paymentWebhook],
   ]);
 
   const exactHandler = exact.get(`${method} ${pathname}`);
@@ -243,7 +250,12 @@ async function dispatchApi(req, nodeRes, url) {
   if (!route) return sendNodeJson(nodeRes, 404, { error: 'API route not found' });
 
   try {
-    req.body = await readJsonBody(req);
+    if (url.pathname === '/api/payments/webhook' && req.method === 'POST') {
+      req.rawBody = await readRawBody(req);
+      req.body = req.rawBody.trim() ? JSON.parse(req.rawBody) : {};
+    } else {
+      req.body = await readJsonBody(req);
+    }
   } catch (error) {
     return sendNodeJson(nodeRes, error.statusCode || 400, { error: error.message });
   }

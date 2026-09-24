@@ -21,6 +21,7 @@ export default async function handler(_req, res) {
   const appOriginConfigured = Boolean(process.env.APP_ORIGIN);
   const cronSecretConfigured = Boolean(process.env.CRON_SECRET);
   const cronSecretManualFallbackConfigured = Boolean(process.env.INTERNAL_CRON_SECRET);
+  const paymentWebhookConfigured = Boolean(String(process.env.INBOX9_PAYMENT_WEBHOOK_SECRET || '').trim());
   const ready = isSyntheticProduction()
     ? true
     : databaseConfigured && databaseReachable && (!production || (sharedRateLimitConfigured && appOriginConfigured && cronSecretConfigured));
@@ -28,7 +29,8 @@ export default async function handler(_req, res) {
     dependencies: { database: { configured: databaseConfigured, reachable: databaseReachable },
       sharedRateLimit: { configured: sharedRateLimitConfigured, provider: 'postgres' }, appOrigin: { configured: appOriginConfigured },
       cronAuth: { configured: cronSecretConfigured, manualFallbackConfigured: cronSecretManualFallbackConfigured },
-      syntheticRuntime: { enabled: isSyntheticProduction() } },
+      syntheticRuntime: { enabled: isSyntheticProduction() },
+      paymentWebhook: { configured: paymentWebhookConfigured } },
     timestamp: new Date().toISOString() };
   return res.status(ready || !production ? 200 : 503).json(body);
 }

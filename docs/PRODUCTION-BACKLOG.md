@@ -15,7 +15,8 @@ INBOX9 is currently synthetic-only. The checklist below distinguishes completed 
 - [x] Production CSRF/same-origin controls on state-changing browser routes
 - [x] Production database TLS verification defaults
 - [x] Client-facing marketplace terminology cleanup
-- [ ] Real payment webhook verification and settlement reconciliation
+- [x] Provider-neutral payment webhook verification, idempotency and settlement reconciliation foundation
+- [ ] Gateway-specific sandbox certification and production settlement enablement
 - [ ] Authorized external provider adapter with secret isolation
 - [ ] Real SMS/number-provider compliance and operational controls
 
