@@ -34,8 +34,9 @@ test('support schema constrains customer input and links lifecycle references', 
 });
 
 test('customer support page exposes recovery paths and avoids sensitive credential collection', async () => {
-  const [app, nav] = await Promise.all([read('app.js'), read('customer/navigation.js')]);
+  const [app, nav, stateSource] = await Promise.all([read('app.js'), read('customer/navigation.js'), read('customer/state.js')]);
   assert.match(nav, /support/);
+  assert.match(stateSource, /\['support', 'Help & Support', '\?'\]/);
   assert.match(app, /Activation recovery/);
   assert.match(app, /Wallet recovery/);
   assert.match(app, /Order recovery/);
