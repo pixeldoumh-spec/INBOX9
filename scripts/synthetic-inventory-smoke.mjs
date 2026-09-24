@@ -3,7 +3,7 @@ import { generateSyntheticIdentity, generateSyntheticOtp, normalizeCapacity } fr
 import { listSyntheticServers, SYNTHETIC_SERVER_COUNT } from '../api/_lib/synthetic-servers.js';
 
 const services = JSON.parse(await fs.readFile(new URL('../data/services.json', import.meta.url), 'utf8'));
-const capacity = normalizeCapacity(process.env.SYNTHETIC_CAPACITY || 5000);
+const capacity = normalizeCapacity(process.env.SYNTHETIC_CAPACITY || 100);
 const serviceNames = services.map((row) => row[0]);
 const servers = listSyntheticServers(capacity);
 
