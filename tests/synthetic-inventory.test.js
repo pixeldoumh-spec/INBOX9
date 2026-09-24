@@ -8,10 +8,10 @@ test('synthetic servers partition 5,000 slots into exactly 11 contiguous chunks'
   const servers = listSyntheticServers();
   assert.equal(servers.length, SYNTHETIC_SERVER_COUNT);
   assert.equal(servers.reduce((sum, server) => sum + server.capacity, 0), SYNTHETIC_CAPACITY);
-  assert.equal(servers[0].capacity, 455);
-  assert.equal(servers[5].capacity, 455);
-  assert.equal(servers[6].capacity, 454);
-  assert.equal(servers[10].capacity, 454);
+  assert.equal(servers[0].capacity, 10);
+  assert.equal(servers[5].capacity, 9);
+  assert.equal(servers[6].capacity, 9);
+  assert.equal(servers[10].capacity, 9);
   for (let i = 1; i < servers.length; i += 1) {
     assert.equal(servers[i].startSlot, servers[i - 1].endSlot + 1);
   }
@@ -81,7 +81,8 @@ test('synthetic slot claim surfaces durable uniqueness conflicts', async () => {
 
 test('synthetic terminal release requirement distinguishes modern and legacy activations', () => {
   assert.equal(shouldRequireSyntheticReservation({ engine: 'synthetic', slot: 1 }), true);
-  assert.equal(shouldRequireSyntheticReservation({ engine: 'synthetic', slot: 5000 }), true);
+  assert.equal(shouldRequireSyntheticReservation({ engine: 'synthetic', slot: 100 }), true);
+  assert.equal(shouldRequireSyntheticReservation({ engine: 'synthetic', slot: 101 }), false);
   assert.equal(shouldRequireSyntheticReservation({ engine: 'synthetic', slot: 0 }), false);
   assert.equal(shouldRequireSyntheticReservation({ engine: 'synthetic-local', slot: 1 }), false);
   assert.equal(shouldRequireSyntheticReservation({}), false);
