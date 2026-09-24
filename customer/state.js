@@ -2,7 +2,8 @@ export const NAV = [
   ['buy', 'Buy Number', '▣'],
   ['active', 'Active', '◌'],
   ['orders', 'Orders', '▤'],
-  ['wallet', 'Wallet', '▱']
+  ['wallet', 'Wallet', '▱'],
+  ['support', 'Help & Support', '?']
 ];
 
 export const DEFAULT_CATEGORIES = ['Social', 'Productivity', 'Rummy', 'Games', 'Other'];
