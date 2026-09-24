@@ -21,7 +21,6 @@ function claims(overrides = {}) {
 
 test('GitHub OIDC trust policy accepts only the approved INBOX9 scheduled workflows on main', () => {
   assert.equal(isTrustedGithubOidcClaims(claims()), true);
-  assert.equal(isTrustedGithubOidcClaims(claims({ workflow: 'INBOX9 Proxnum inventory sync' })), true);
 });
 
 test('GitHub OIDC trust policy rejects wrong repository, id, ref, workflow, audience and event', () => {
@@ -43,10 +42,9 @@ test('GitHub OIDC trust policy rejects expired and not-yet-valid credentials', (
   assert.equal(isTrustedGithubOidcClaims(claims({ nbf: Math.floor(Date.now() / 1000) + 60 })), false);
 });
 
-test('OIDC config exposes both scoped scheduled workflows', () => {
+test('OIDC config exposes only the scheduled reconciliation workflow', () => {
   assert.equal(githubOidcConfig.workflow, 'INBOX9 scheduled reconciliation');
-  assert.equal(githubOidcConfig.workflows.includes('INBOX9 scheduled reconciliation'), true);
-  assert.equal(githubOidcConfig.workflows.includes('INBOX9 Proxnum inventory sync'), true);
+  assert.deepEqual(githubOidcConfig.workflows, ['INBOX9 scheduled reconciliation']);
 });
 
 test('reconciliation implementation contains both shared-secret fallback and scoped OIDC authentication', async () => {
