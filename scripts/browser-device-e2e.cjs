@@ -114,6 +114,9 @@ async function runFullChromium() {
     assert.equal(await page.title(), 'INBOX9 — OTP Marketplace');
 
     await register(page, customerEmail);
+    // Session continuity must survive a real browser reload after authentication.
+    await page.reload({ waitUntil: 'networkidle' });
+    await heading(page, 'Choose a service', 12000);
     await assertAccessibleButtons(page);
     await assertNoHorizontalOverflow(page);
     assert.ok(await page.locator('[data-buy-service]:visible').count() > 0, 'marketplace should render service actions');
@@ -140,6 +143,9 @@ async function runFullChromium() {
     await logout(page);
 
     await login(page, customerEmail);
+    // Reproduce the reported failure path: authenticated customer reloads the app.
+    await page.reload({ waitUntil: 'networkidle' });
+    await heading(page, 'Choose a service', 12000);
     await page.locator('[data-page="wallet"]').first().click();
     await heading(page, 'Wallet');
     await page.getByText('Wallet recharge', { exact: true }).waitFor({ state: 'visible', timeout: 8000 });
