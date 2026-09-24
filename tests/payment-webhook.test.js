@@ -53,6 +53,7 @@ test('Postgres settlement is exactly-once and rejects a reused event ID with ano
       processPaymentWebhook({ rawBody, normalized, provider }),
       processPaymentWebhook({ rawBody, normalized, provider })
     ]);
+    console.log('PAYMENT_WEBHOOK_CONCURRENT_RESULTS', JSON.stringify({ first, second }));
     assert.equal([first, second].filter(item => item.duplicate === true).length, 1);
     assert.equal([first, second].filter(item => item.duplicate !== true && item.outcome === 'approved').length, 1);
     const wallet = await pool.query('SELECT balance_paise FROM wallets WHERE user_id=$1', [userId]);
