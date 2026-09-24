@@ -1,0 +1,183 @@
+name: INBOX9 disaster recovery rehearsal
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "30 2 * * 0"
+
+jobs:
+  rehearsal:
+    name: Logical backup and restore rehearsal
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    env:
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGHOST: 127.0.0.1
+      PGPORT: 5432
+      DB_SOURCE: inbox9_dr_source
+      DB_RESTORE: inbox9_dr_restore
+      DATABASE_URL_SOURCE: postgresql://postgres:postgres@127.0.0.1:5432/inbox9_dr_source
+      DATABASE_URL_RESTORE: postgresql://postgres:postgres@127.0.0.1:5432/inbox9_dr_restore
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+
+      - name: Start isolated PostgreSQL 17
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --detach --rm --name inbox9-dr-postgres -e POSTGRES_PASSWORD=postgres -p 5432:5432 postgres:17
+          for i in {1..60}; do
+            if docker exec inbox9-dr-postgres pg_isready -U postgres >/dev/null 2>&1; then exit 0; fi
+            sleep 1
+          done
+          echo "PostgreSQL did not become ready" >&2
+          exit 1
+
+      - name: Create rehearsal databases
+        run: |
+          set -euo pipefail
+          psql -v ON_ERROR_STOP=1 -c "CREATE DATABASE $DB_SOURCE;"
+          psql -v ON_ERROR_STOP=1 -c "CREATE DATABASE $DB_RESTORE;"
+
+      - name: Build source schema from production migration tree
+        env:
+          DATABASE_URL: ${{ env.DATABASE_URL_SOURCE }}
+        run: npm run db:migrate
+
+      - name: Seed deterministic production-shaped fixture
+        env:
+          DATABASE_URL: ${{ env.DATABASE_URL_SOURCE }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 <<'SQL'
+          INSERT INTO users (id,email,password_hash,role,active,display_name)
+          VALUES
+            ('DR-USER-1','dr.user@example.invalid','fixture-password-hash','user',TRUE,'DR User'),
+            ('DR-ADMIN-1','dr.admin@example.invalid','fixture-admin-hash','admin',TRUE,'DR Admin');
+
+          INSERT INTO wallets (user_id,balance_paise)
+          VALUES ('DR-USER-1',15000),('DR-ADMIN-1',0);
+
+          INSERT INTO wallet_ledger
+            (id,user_id,entry_type,amount_paise,reference_type,reference_id,description)
+          VALUES ('DR-LEDGER-1','DR-USER-1','credit',15000,'recharge','DR-RECHARGE-1','DR fixture wallet credit');
+
+          INSERT INTO recharge_requests
+            (id,user_id,amount_paise,utr,payment_method,upi_id,status)
+          VALUES
+            ('DR-RECHARGE-1','DR-USER-1',15000,'DR-UTR-0001','UPI','dr.fixture@upi','Approved');
+
+          INSERT INTO payment_reconciliation_events
+            (id,recharge_id,event_type,actor_user_id,observed_amount_paise,observed_utr,external_reference,notes)
+          VALUES
+            ('DR-PAY-1','DR-RECHARGE-1','approved','DR-ADMIN-1',15000,'DR-UTR-0001','DR-EXT-1','DR fixture approval');
+
+          INSERT INTO activations
+            (id,service_id,service_name,country,phone_number,price_paise,currency,status,otp,created_at,expires_at,user_id,provider_id,provider_activation_id,provider_metadata)
+          SELECT 'DR-ACT-1',s.id,s.name,'IN','+919999000001',950,'INR','Completed','123456',
+            NOW(),NOW()+INTERVAL '25 minutes','DR-USER-1','provider-mock','DR-PROVIDER-ACT-1','{}'::jsonb
+          FROM services s WHERE s.id='whatsapp-0';
+
+          INSERT INTO provider_operations
+            (id,activation_id,operation_type,status,provider_id,provider_activation_id,attempts,completed_at)
+          VALUES ('DR-PO-1','DR-ACT-1','status_sync','Succeeded','provider-mock','DR-PROVIDER-ACT-1',1,NOW());
+
+          INSERT INTO activation_idempotency
+            (user_id,idempotency_key,request_hash,status,activation_id,response_json,expires_at)
+          VALUES
+            ('DR-USER-1','DR-IDEMP-1',repeat('a',64),'Completed','DR-ACT-1','{"ok":true,"activationId":"DR-ACT-1"}'::jsonb,NOW()+INTERVAL '1 day');
+
+          INSERT INTO support_requests
+            (id,user_id,category,subject,message,status,activation_id,recharge_id,assigned_admin_id)
+          VALUES
+            ('DR-SUPPORT-1','DR-USER-1','activation','Activation test ticket','This is a deterministic disaster recovery fixture ticket.','Resolved','DR-ACT-1','DR-RECHARGE-1','DR-ADMIN-1');
+
+          INSERT INTO support_messages
+            (id,ticket_id,author_user_id,author_role,body)
+          VALUES
+            ('DR-SUPPORT-MSG-1','DR-SUPPORT-1','DR-USER-1','customer','DR fixture support message');
+
+          INSERT INTO notifications
+            (id,user_id,kind,source_type,source_id,event_key,title,body,page,tone)
+          VALUES
+            ('DR-NOTIFY-1','DR-USER-1','activation','activation','DR-ACT-1','completed','OTP received','Your verification code is ready.','active','success');
+
+          INSERT INTO recovery_codes (id,user_id,code_hash)
+          VALUES ('DR-RECOVERY-1','DR-USER-1','fixture-recovery-hash');
+
+          INSERT INTO sessions (token_hash,user_id,expires_at,session_version,last_used_at,revoked_at,session_id)
+          VALUES ('DR-SESSION-HASH-1','DR-USER-1',NOW()+INTERVAL '1 day',1,NOW(),NULL,'DR-SESSION-1');
+
+          INSERT INTO audit_logs (id,actor_user_id,action,target_type,target_id,metadata)
+          VALUES ('DR-AUDIT-1','DR-ADMIN-1','dr_fixture','activation','DR-ACT-1','{"rehearsal":true}'::jsonb);
+
+          INSERT INTO wallet_reconciliation_runs
+            (id,status,wallets_checked,mismatches_found,completed_at)
+          VALUES ('DR-RECON-1','Passed',2,0,NOW());
+          SQL
+
+      - name: Verify source database
+        env:
+          DATABASE_URL: ${{ env.DATABASE_URL_SOURCE }}
+        run: node scripts/dr-verify.mjs
+
+      - name: Create logical backup
+        shell: bash
+        run: |
+          set -euo pipefail
+          started=$(date +%s%3N)
+          pg_dump --format=custom --no-owner --dbname="$DATABASE_URL_SOURCE" --file="$RUNNER_TEMP/inbox9-dr.dump"
+          finished=$(date +%s%3N)
+          echo "DR_DUMP_DURATION_MS=$((finished-started))" >> "$GITHUB_ENV"
+          echo "DR_DUMP_BYTES=$(stat -c%s "$RUNNER_TEMP/inbox9-dr.dump")" >> "$GITHUB_ENV"
+
+      - name: Restore logical backup into clean database
+        shell: bash
+        run: |
+          set -euo pipefail
+          started=$(date +%s%3N)
+          pg_restore --clean --if-exists --no-owner --dbname="$DATABASE_URL_RESTORE" "$RUNNER_TEMP/inbox9-dr.dump"
+          finished=$(date +%s%3N)
+          echo "DR_RESTORE_DURATION_MS=$((finished-started))" >> "$GITHUB_ENV"
+
+      - name: Verify restored database
+        env:
+          DATABASE_URL: ${{ env.DATABASE_URL_RESTORE }}
+        run: node scripts/dr-verify.mjs
+
+      - name: Prove migration replay is idempotent after restore
+        env:
+          DATABASE_URL: ${{ env.DATABASE_URL_RESTORE }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          result="$(npm run db:migrate 2>&1)"
+          echo "$result"
+          echo "$result" | grep -q '"applied":[]'
+
+      - name: Verify restored database after migration replay
+        env:
+          DATABASE_URL: ${{ env.DATABASE_URL_RESTORE }}
+        run: node scripts/dr-verify.mjs
+
+      - name: Emit rehearsal evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "DR_DUMP_DURATION_MS=$DR_DUMP_DURATION_MS"
+          echo "DR_RESTORE_DURATION_MS=$DR_RESTORE_DURATION_MS"
+          echo "DR_DUMP_BYTES=$DR_DUMP_BYTES"
+          rm -f "$RUNNER_TEMP/inbox9-dr.dump"
+
+      - name: Stop isolated PostgreSQL
+        if: always()
+        run: docker stop inbox9-dr-postgres || true
