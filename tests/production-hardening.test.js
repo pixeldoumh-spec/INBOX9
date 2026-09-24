@@ -64,13 +64,11 @@ test('activation polling route has per-user/per-activation rate limiting', async
 
 test('durable order history is hydrated from server activations', async () => {
   const fs = await import('node:fs/promises');
-  const src = await fs.readFile(new URL('../app.js', import.meta.url), 'utf8');
+  const src = await fs.readFile(new URL('../customer/customer-data.js', import.meta.url), 'utf8');
   assert.match(src, /syncFromServerActivations/);
   assert.match(src, /activationPayload\.activations/);
   assert.match(src, /isLiveActivation/);
-});
-
-test('production health requires cron auth and canonical origin', async () => {
+});test('production health requires cron auth and canonical origin', async () => {
   const fs = await import('node:fs/promises');
   const src = await fs.readFile(new URL('../api/_health.js', import.meta.url), 'utf8');
   assert.match(src, /appOriginConfigured/);

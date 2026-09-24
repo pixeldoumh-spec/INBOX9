@@ -114,9 +114,11 @@ test('customer bundle uses extracted architecture modules', async () => {
   assert.match(ui, /export function normalizeSearchText/);
   assert.match(navigation, /createCustomerNavigation/);
   assert.match(customerData, /createCustomerDataController/);
-  assert.match(customerData, /async function loadCustomerData/);
-  assert.match(customerData, /async function refreshCatalog/);
-  assert.match(customerData, /function syncFromServerActivations/);
+  assert.match(customerData, /function loadPersisted\(/);
+  assert.match(customerData, /function persist\(/);
+  assert.match(customerData, /function syncFromServerActivations\(/);
+  assert.match(customerData, /async function loadCustomerData\(/);
+  assert.match(customerData, /async function refreshCatalog\(/);
   assert.doesNotMatch(app, /const state = \{/);
   assert.doesNotMatch(app, /function normalizeSearchText\(/);
   assert.doesNotMatch(app, /const esc = \(/);
