@@ -956,12 +956,14 @@ async function loadAdminTab(tab = state.adminTab) {
     ledger: ['/api/admin/ledger', 'ledger'],
     audit: ['/api/admin/audit', 'audit'],
     providers: ['/api/admin/providers', 'providers'],
+    'provider-operations': ['/api/admin/provider-operations', 'providerOperations'],
     support: ['/api/admin/support', 'support']
   };
   try {
     const [url, key] = routes[tab] || routes.overview;
     const payload = await api(url);
     if (key === 'overview') state.admin.overview = payload;
+    else if (key === 'providerOperations') state.admin.providerOperations = payload;
     else state.admin[key] = Array.isArray(payload[key]) ? payload[key] : [];
   } catch (error) {
     if (Number(error.status) === 401) {
@@ -1043,7 +1045,7 @@ function adminPage() {
   const tabs = [
     ['overview', 'Overview'], ['recharges', 'UTR Queue'], ['support', 'Support'], ['services', 'Services'],
     ['users', 'Users'], ['activations', 'Activations'], ['ledger', 'Ledger'],
-    ['providers', 'Providers'], ['audit', 'Audit Log']
+    ['providers', 'Providers'], ['provider-operations', 'Reconciliation'], ['audit', 'Audit Log']
   ];
   const body = state.adminLoading
     ? `<div class="panel admin-loading">Loading ${esc(state.adminTab)}…</div>`
@@ -1064,6 +1066,7 @@ function renderAdminTab(tab) {
   if (tab === 'activations') return adminActivationsPage();
   if (tab === 'ledger') return adminLedgerPage();
   if (tab === 'providers') return adminProvidersPage();
+  if (tab === 'provider-operations') return adminProviderOperationsPage();
   if (tab === 'audit') return adminAuditPage();
   return adminOverviewPage();
 }
@@ -1078,6 +1081,22 @@ function adminOverviewPage() {
   return `<div class="admin-kpi-grid">${cards.map(([label,value]) => `<div class="panel admin-kpi"><span>${label}</span><strong>${esc(value)}</strong></div>`).join('')}</div>
   <div class="admin-grid-two"><div class="panel admin-card"><div class="panel-head"><div><h3>Operations</h3><span>Use the tabs above to operate the platform.</span></div></div><div class="admin-checklist"><div>✓ User accounts and roles</div><div>✓ UTR verification queue</div><div>✓ Service pricing and inventory</div><div>✓ Activation monitoring</div><div>✓ Wallet ledger visibility</div><div>✓ Provider health</div><div>✓ Immutable audit trail</div></div></div>
   <div class="panel admin-card"><div class="panel-head"><div><h3>Safety rules</h3><span>Production financial controls</span></div></div><p class="admin-copy">UTR submission does not credit a wallet. Only an authorized admin approval creates the corresponding ledger credit. Service configuration changes are audited.</p></div></div>`;
+}
+
+function adminProviderOperationsPage() {
+  const monitor = state.admin.providerOperations || {};
+  const summary = monitor.summary || {};
+  const cards = [
+    ['Pending', summary.pending || 0],
+    ['Failed', summary.failed || 0],
+    ['Succeeded', summary.succeeded || 0],
+    ['Oldest pending', summary.oldestPendingAt ? new Date(summary.oldestPendingAt).toLocaleString() : 'None']
+  ];
+  const statusClass = (status) => ({ Pending: 'active', Failed: 'rejected', Succeeded: 'approved' }[String(status)] || 'expired');
+  const operations = Array.isArray(monitor.operations) ? monitor.operations : [];
+  const rows = operations.length ? operations.map(op => `<tr><td class="mono">${esc(op.operationType)}<small class="table-sub">${esc(op.id)}</small></td><td><strong>${esc(op.service || 'Unknown service')}</strong><small class="table-sub">${esc(op.activationId || '—')}</small></td><td>${esc(op.email || '—')}</td><td><span class="table-status ${statusClass(op.status)}">${esc(op.status)}</span><small class="table-sub">${Number(op.attempts || 0)} attempt(s)</small></td><td>${esc(op.adapterKey || op.providerId || '—')}</td><td>${esc(op.lastError || op.activationStatus || '—')}</td><td>${esc(new Date(op.updatedAt || op.createdAt).toLocaleString())}</td></tr>`).join('') : '<tr><td colspan="7"><div class="empty-mini">No provider operations recorded.</div></td></tr>';
+  return `<div class="admin-kpi-grid">${cards.map(([label,value]) => `<div class="panel admin-kpi"><span>${label}</span><strong>${esc(value)}</strong></div>`).join('')}</div>
+  <div class="panel table-panel"><div class="panel-head"><div><h3>Durable reconciliation queue</h3><span>Recent cancellation and expiration operations, including failed provider work.</span></div></div><table><thead><tr><th>Operation</th><th>Service / Activation</th><th>User</th><th>Status</th><th>Adapter</th><th>Detail</th><th>Updated</th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 
 function adminRechargesPage() {

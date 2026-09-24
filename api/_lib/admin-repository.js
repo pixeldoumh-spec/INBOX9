@@ -207,3 +207,55 @@ export async function recordAudit(adminUserId, action, targetType, targetId, met
     [id('AUD'), adminUserId, action, targetType, targetId, JSON.stringify(metadata)]
   );
 }
+
+export async function getProviderOperationsMonitor(limit = 50) {
+  const pool = await getPool();
+  const safeLimit = Math.min(Math.max(Number(limit) || 50, 1), 250);
+  const [summary, recent] = await Promise.all([
+    pool.query(`SELECT
+      COUNT(*) FILTER (WHERE status='Pending')::int AS pending_count,
+      COUNT(*) FILTER (WHERE status='Succeeded')::int AS succeeded_count,
+      COUNT(*) FILTER (WHERE status='Failed')::int AS failed_count,
+      MIN(created_at) FILTER (WHERE status='Pending') AS oldest_pending_at
+      FROM provider_operations`),
+    pool.query(`SELECT po.id, po.activation_id, po.operation_type, po.status, po.provider_id,
+             po.provider_activation_id, po.attempts, po.last_error, po.created_at, po.updated_at, po.completed_at,
+             p.adapter_key,
+             a.phone_number, a.status AS activation_status,
+             s.name AS service_name,
+             u.email
+      FROM provider_operations po
+      LEFT JOIN providers p ON p.id=po.provider_id
+      LEFT JOIN activations a ON a.id=po.activation_id
+      LEFT JOIN services s ON s.id=a.service_id
+      LEFT JOIN users u ON u.id=a.user_id
+      ORDER BY po.created_at DESC
+      LIMIT $1`, [safeLimit]),
+  ]);
+  return {
+    summary: {
+      pending: Number(summary.rows[0].pending_count || 0),
+      succeeded: Number(summary.rows[0].succeeded_count || 0),
+      failed: Number(summary.rows[0].failed_count || 0),
+      oldestPendingAt: summary.rows[0].oldest_pending_at ? new Date(summary.rows[0].oldest_pending_at).getTime() : null,
+    },
+    operations: recent.rows.map(row => ({
+      id: row.id,
+      activationId: row.activation_id,
+      operationType: row.operation_type,
+      status: row.status,
+      providerId: row.provider_id,
+      providerActivationId: row.provider_activation_id,
+      attempts: Number(row.attempts || 0),
+      lastError: row.last_error,
+      createdAt: new Date(row.created_at).getTime(),
+      updatedAt: new Date(row.updated_at).getTime(),
+      completedAt: row.completed_at ? new Date(row.completed_at).getTime() : null,
+      adapterKey: row.adapter_key,
+      activationStatus: row.activation_status,
+      service: row.service_name,
+      email: row.email,
+      number: row.phone_number,
+    })),
+  };
+}

@@ -60,7 +60,7 @@ export function createCustomerState() {
     adminTab: 'overview',
     adminLoading: false,
     adminError: '',
-    admin: { overview: null, recharges: [], users: [], services: [], activations: [], ledger: [], audit: [], providers: [], support: [] },
+    admin: { overview: null, recharges: [], users: [], services: [], activations: [], ledger: [], audit: [], providers: [], support: [], providerOperations: null },
     adminSupportFilter: 'all',
     pendingPurchaseKeys: {},
     purchaseBusy: new Set(),
