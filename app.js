@@ -1035,7 +1035,7 @@ function activeCard(activation) {
   const expiresAt = Number(activation.expiresAt || 0);
   const createdAt = Number(activation.createdAt || 0);
   const total = Math.max(1, expiresAt - createdAt || (25 * 60 * 1000));
-  const remaining = expiresAt ? Math.max(0, Math.floor((expiresAt - Date.now()) / 1000)) : 180;
+  const remaining = expiresAt ? Math.max(0, Math.floor((expiresAt - Date.now()) / 1000)) : (25 * 60);
   const minutes = String(Math.floor(remaining / 60)).padStart(2, '0');
   const seconds = String(remaining % 60).padStart(2, '0');
   const progress = Math.min(100, Math.max(0, ((remaining * 1000) / total) * 100));
