@@ -1577,6 +1577,10 @@ function bindEvents() {
     state.expandedOrderId = state.expandedOrderId === node.dataset.orderToggle ? null : node.dataset.orderToggle;
     render();
   }));
+  document.querySelectorAll('[data-wallet-detail]').forEach((node) => node.addEventListener('click', () => {
+    state.expandedWalletTransactionId = state.expandedWalletTransactionId === node.dataset.walletDetail ? null : node.dataset.walletDetail;
+    render();
+  }));
 
   bindMarketplaceEvents();
   document.querySelectorAll('[data-cancel]').forEach((node) => node.addEventListener('click', () => {
