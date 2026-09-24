@@ -85,7 +85,9 @@ export function createCustomerDataController({
       state.walletLedger = Array.isArray(wallet.ledger) ? wallet.ledger : [];
       state.walletSummary = wallet.summary || { creditPaise: 0, debitPaise: 0, pendingPaise: 0, creditCount: 0, debitCount: 0, pendingCount: 0 };
       state.recharges = Array.isArray(wallet.recharges) ? wallet.recharges : [];
+      state.rechargeEnabled = Boolean(wallet.rechargeEnabled);
       state.rechargeUpiId = wallet.rechargeEnabled ? (wallet.upiId || null) : null;
+      state.rechargePaymentSettings = wallet.paymentSettings || { upiId: wallet.upiId || null, merchantName: 'INBOX9', instructions: '', qrImage: null };
     } else {
       failures.push(walletResult.reason?.message || 'Wallet unavailable');
     }
