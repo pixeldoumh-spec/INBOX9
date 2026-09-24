@@ -53,8 +53,8 @@ test('Postgres settlement is exactly-once and rejects a reused event ID with ano
       processPaymentWebhook({ rawBody, normalized, provider }),
       processPaymentWebhook({ rawBody, normalized, provider })
     ]);
-    assert.equal([first, second].filter(item => item.outcome === 'approved').length, 1);
     assert.equal([first, second].filter(item => item.duplicate === true).length, 1);
+    assert.equal([first, second].filter(item => item.duplicate !== true && item.outcome === 'approved').length, 1);
     const wallet = await pool.query('SELECT balance_paise FROM wallets WHERE user_id=$1', [userId]);
     const credits = await pool.query("SELECT COUNT(*)::int AS count, COALESCE(SUM(amount_paise),0)::bigint AS amount FROM wallet_ledger WHERE reference_type='recharge' AND reference_id=$1", [rechargeId]);
     const event = await pool.query('SELECT status,outcome FROM payment_webhook_events WHERE provider=$1 AND event_id=$2', [provider, eventId]);
