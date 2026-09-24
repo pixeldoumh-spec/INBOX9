@@ -32,7 +32,7 @@ test('advanced UI layer includes mobile and reduced-motion safeguards', async ()
 test('marketplace hero exposes customer-safe state instead of provider connectivity claims', async () => {
   const app = await read('app.js');
   assert.match(app, /const activeCount = state\.active\.length;/);
-  assert.match(app, /const serviceCount = state\.services\.length;/);
+  assert.doesNotMatch(app, /const serviceCount = state\.services\.length;/);
   assert.match(app, /state\.services\.length\.toLocaleString\(\)/);
   assert.match(app, /Account ready/);
   assert.doesNotMatch(app, /Backend connected/);
