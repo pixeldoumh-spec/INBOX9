@@ -190,6 +190,9 @@ async function runFullChromium() {
     const subject = 'Browser E2E support ticket';
     await page.locator('#support-form input[name="subject"]').fill(subject);
     await page.locator('#support-form textarea[name="message"]').fill('Browser end-to-end support flow verification.');
+    await page.waitForTimeout(1200);
+    assert.equal(await page.locator('#support-form input[name="subject"]').inputValue(), subject, 'Support subject must survive background refresh');
+    assert.equal(await page.locator('#support-form textarea[name="message"]').inputValue(), 'Browser end-to-end support flow verification.', 'Support message must survive background refresh');
     await page.locator('#support-form button[type="submit"]').click();
     await page.getByRole('heading', { name: 'Support threads', exact: true }).waitFor({ state: 'visible', timeout: 8000 });
     const ticket = page.locator('.support-ticket-head').filter({ hasText: subject }).first();
