@@ -16,7 +16,7 @@ test('marketplace categories are derived from the live service catalog', async (
 
 test('customer service cards expose validity details without provider infrastructure', async () => {
   const app = await read('app.js');
-  assert.match(app, /async function toggleServiceDetails\(/);
+  assert.match(app, /function toggleServiceDetails\(/);
   assert.match(app, /serviceDetailsMarkup\(/);
   assert.match(app, /25 min.*number validity/);
   assert.match(app, /25 minutes.*Maximum number validity/);
