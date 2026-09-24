@@ -78,6 +78,8 @@ export function createCustomerNavigation({
     toast('Your session expired. Please sign in again.');
   }
 
+  window.addEventListener('inbox9:session-expired', handleSessionExpired);
+
   return {
     pageFromHash,
     syncPageHash,
