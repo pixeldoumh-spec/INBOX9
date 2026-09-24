@@ -17,5 +17,9 @@ CREATE TABLE IF NOT EXISTS public.notifications (
 CREATE INDEX IF NOT EXISTS idx_notifications_user_created ON public.notifications(user_id,created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_notifications_user_unread ON public.notifications(user_id,read_at,created_at DESC);
 ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
-REVOKE ALL ON TABLE public.notifications FROM anon, authenticated;
+DO $
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname='anon') THEN EXECUTE 'REVOKE ALL ON TABLE public.notifications FROM anon'; END IF;
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname='authenticated') THEN EXECUTE 'REVOKE ALL ON TABLE public.notifications FROM authenticated'; END IF;
+END $;
 COMMIT;
