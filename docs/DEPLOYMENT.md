@@ -89,8 +89,9 @@ The repository includes `.github/workflows/reconcile.yml`, which runs the authen
 Set these GitHub Actions repository secrets:
 
 ```text
-INBOX9_CRON_URL=https://your-public-host.example/api/internal-provider-reconcile
-INBOX9_CRON_SECRET=<same value as CRON_SECRET>
+The GitHub reconciliation workflow uses GitHub OIDC and therefore does not require repository secrets. The Render service keeps `CRON_SECRET` for platform/manual compatibility.
+
+No GitHub Actions secret needs to contain the Render `CRON_SECRET`.
 ```
 
 This repository is public, so standard GitHub-hosted runner usage for these workflows is free. The five-minute reconciliation job is intentionally kept lightweight and uses no repository write token.
