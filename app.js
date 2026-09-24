@@ -447,16 +447,31 @@ async function retryBootstrap() {
   await bootstrapSession();
 }
 
+function handleConnectivityChange(){
+  const online = navigator.onLine;
+  const wasOffline = state.online === false;
+  state.online = online;
+  if (online && wasOffline && state.user) {
+    state.reconnecting = true;
+    render();
+    void loadCustomerData({silent:true}).then(()=>refreshNotifications()).finally(()=>{
+      state.reconnecting = false;
+      render();
+      toast('Connection restored');
+    });
+  } else if (!online && state.user) {
+    state.reconnecting = false;
+    render();
+    toast('You are offline. Live updates are paused.');
+  }
+}
+
 async function boot() {
   state.page = pageFromHash();
   restoreMarketplaceUrlState();
   await bootstrapSession();
   if (!state.user) return;
   if (!state.tickTimer) state.tickTimer = window.setInterval(tick, 1000);
-  function handleConnectivityChange(){const online=navigator.onLine,wasOffline=state.online===false;state.online=online;if(online&&wasOffline&&state.user){state.reconnecting=true;render();void loadCustomerData({silent:true}).then(()=>refreshNotifications()).finally(()=>{state.reconnecting=false;render();toast('Connection restored');});}else if(!online&&state.user){state.reconnecting=false;render();toast('You are offline. Live updates are paused.');}}
-
-window.addEventListener('hashchange', handleHashNavigation);
-  window.addEventListener('popstate', handleHashNavigation);
   window.addEventListener('popstate', handleMarketplaceUrlNavigation);
 }
 
