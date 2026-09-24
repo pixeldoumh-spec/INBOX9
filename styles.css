@@ -1809,3 +1809,51 @@ body::before{
   .recent-service-chip{flex:0 0 min(250px,82vw);scroll-snap-align:start}
   .customer-service-main .service-price{font-size:12px}
 }
+
+
+/* Customer Active Workspace Upgrade 2 */
+.active-card.received{border-color:#315235;box-shadow:0 12px 34px rgba(0,0,0,.18)}
+.active-card.pending{border-color:#3d3828}
+.activation-status.received{color:#a8e99b;border-color:#2f4b32;background:#102016}
+.activation-status.pending{color:#e0c58a;border-color:#463925;background:#17130d}
+.otp-received-panel{background:linear-gradient(180deg,#0d1710,#09100c);border-color:#29412d}
+.otp-received-panel .otp-code{font-size:42px;color:#dff8d6;text-shadow:0 4px 28px rgba(141,242,107,.08)}
+.otp-panel-head .code-state.success{color:#b7eda9;border-color:#365737;background:#122016}
+.otp-actions{display:flex;align-items:center;justify-content:center;gap:11px;flex-wrap:wrap}
+.otp-copy-primary{min-width:118px}
+.otp-help{color:#708174;font-size:9px}
+.cancel-disabled-note{margin-left:auto;color:#667487;font-size:9px}
+.active-action-error{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 13px;border-top:1px solid #40272b;border-bottom:1px solid #40272b;background:#171012}
+.active-action-error span{min-width:0;color:#bf979b;font-size:9px;overflow-wrap:anywhere}
+.active-action-error .refresh-btn{flex:none}
+.active-received-section{margin-top:18px}
+.active-received-list{display:grid;gap:10px}
+.received-code-card{border:1px solid #29412d;border-radius:16px;background:linear-gradient(180deg,#0e1711,#0a100d);overflow:hidden;box-shadow:0 14px 40px rgba(0,0,0,.18)}
+.received-code-main{display:flex;align-items:center;gap:12px;padding:15px}
+.received-code-copy{min-width:0;display:flex;flex-direction:column}
+.received-code-copy>span{color:#6b7a6c;font-size:8px;text-transform:uppercase;letter-spacing:.1em}
+.received-code-copy>strong{margin-top:4px;color:#e0e9e1;font-size:13px}
+.received-code-copy>small{margin-top:4px;color:#718173;font-size:9px}
+.received-code-value{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:12px;padding:13px 15px;border-top:1px solid #203123;background:#0a120d}
+.received-code-value>span{color:#6f8271;font-size:8px;letter-spacing:.1em}
+.received-code-value>strong{color:#d4f0ce;font:700 28px 'Space Grotesk';letter-spacing:.12em}
+.received-code-value .primary-btn{min-width:106px}
+.received-code-footer{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 15px;border-top:1px solid #1a281d;color:#5e6d61;font-size:8px}
+.purchase-recovery-actions{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+@media(max-width:780px){
+  .received-code-value{grid-template-columns:1fr auto}
+  .received-code-value>span{grid-column:1/-1}
+}
+@media(max-width:620px){
+  .otp-received-panel .otp-code{font-size:34px;letter-spacing:.08em}
+  .otp-actions{align-items:stretch;flex-direction:column}
+  .otp-copy-primary{width:100%}
+  .otp-help{text-align:center}
+  .received-code-main{padding:13px}
+  .received-code-value{grid-template-columns:1fr}
+  .received-code-value>strong{font-size:25px}
+  .received-code-value .primary-btn{width:100%}
+  .received-code-footer{align-items:flex-start;flex-direction:column}
+  .purchase-recovery-actions{display:grid;grid-template-columns:1fr}
+  .purchase-recovery-actions>*{width:100%;justify-content:center}
+}
