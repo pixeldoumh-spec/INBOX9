@@ -28,6 +28,7 @@ export function reserveMock(service) {
     : crypto.randomInt(1, SYNTHETIC_CAPACITY + 1);
   const assignedServer = server || getServerForSlot(index, SYNTHETIC_CAPACITY);
   const providerActivationId = `SYN-LOCAL-${crypto.randomUUID()}`;
+  const numberRevealAt = now + 5_000;
   const mockOtpAt = now + syntheticOtpTiming(service.id || service.name, index, providerActivationId);
   const activation = {
     id: makeId(),
@@ -49,6 +50,7 @@ export function reserveMock(service) {
     syntheticOtp: generateSyntheticOtp(service.id || service.name, index, providerActivationId),
     metadata: {
       engine: 'synthetic-local',
+      numberRevealAt,
       slot: index,
       serverId: assignedServer?.id || null,
       serverName: assignedServer?.name || null,
