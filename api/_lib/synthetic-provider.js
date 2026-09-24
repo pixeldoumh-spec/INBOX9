@@ -3,7 +3,7 @@ import { createProviderAdapter, normalizeProviderActivation } from './provider.j
 import { generateSyntheticIdentity, generateSyntheticIndianNumber, generateSyntheticOtp, syntheticOtpTiming } from './synthetic-otp.js';
 import { SYNTHETIC_CAPACITY, getSyntheticServer, getServerForSlot } from './synthetic-servers.js';
 
-const TTL_MS = 3 * 60 * 1000;
+const TTL_MS = 25 * 60 * 1000;
 const CAPACITY = SYNTHETIC_CAPACITY;
 
 function id() { return `SYN-${crypto.randomUUID()}`; }
