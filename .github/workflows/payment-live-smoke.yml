@@ -1,0 +1,35 @@
+name: INBOX9 payment live smoke
+
+on:
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  payment-live-smoke:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Run read-only production payment safety smoke
+        env:
+          RENDER_SMOKE_URL: https://inbox9.onrender.com
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run render:smoke
+          node --input-type=module <<'NODE'
+          const base = process.env.RENDER_SMOKE_URL.replace(/\/$/, '');
+          const response = await fetch(base + '/api/payments/webhook', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: '{}'
+          });
+          const text = await response.text();
+          if (response.status !== 503) throw new Error('Expected unconfigured webhook endpoint to fail closed with 503; received ' + response.status + ': ' + text);
+          console.log(JSON.stringify({ ok: true, paymentWebhookStatus: response.status }));
+          NODE
