@@ -67,6 +67,27 @@ async function assertAccessibleButtons(page) {
   assert.deepEqual(unnamed, [], 'every visible button should have an accessible name');
 }
 
+
+
+async function assertMarketplaceVisualLayout(page) {
+  const metrics = await page.evaluate(() => {
+    const hero = document.querySelector('.hero-strip');
+    const cards = [...document.querySelectorAll('.customer-service-card')];
+    const rect = (node) => node ? node.getBoundingClientRect() : null;
+    const heroRect = rect(hero);
+    const cardRects = cards.slice(0, 3).map(rect);
+    return {
+      heroHeight: heroRect?.height || 0,
+      cardCount: cards.length,
+      cardHeights: cardRects.map(r => r?.height || 0),
+      gridHeight: document.querySelector('.customer-service-grid')?.getBoundingClientRect().height || 0
+    };
+  });
+  assert.ok(metrics.heroHeight > 100, 'marketplace hero should have a visible layout box');
+  assert.ok(metrics.cardCount > 0, 'marketplace should render customer service cards');
+  assert.ok(metrics.cardHeights.every((height) => height > 60), 'customer service cards must have visible height');
+  assert.ok(metrics.gridHeight > 60, 'marketplace service grid must have visible height');
+}
 async function assertNoHorizontalOverflow(page) {
   const metrics = await page.evaluate(() => ({
     viewport: window.innerWidth,
@@ -127,6 +148,7 @@ async function runFullChromium() {
     await page.unroute('**/api/auth/me');
     await assertAccessibleButtons(page);
     await assertNoHorizontalOverflow(page);
+    await assertMarketplaceVisualLayout(page);
     assert.ok(await page.locator('[data-buy-service]:visible').count() > 0, 'marketplace should render service actions');
 
     await page.locator('#service-search').fill('whatsapp');
@@ -280,6 +302,7 @@ async function runCompatibility(browserType, name) {
     await heading(page, 'Choose a service');
     await assertAccessibleButtons(page);
     await assertNoHorizontalOverflow(page);
+    await assertMarketplaceVisualLayout(page);
     assert.deepEqual(errors, [], name + ' should finish without page errors or console errors');
     return { name, ok: true };
   } finally {
