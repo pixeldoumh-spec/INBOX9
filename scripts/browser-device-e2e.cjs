@@ -227,7 +227,7 @@ async function runCompatibility(browserType, name) {
       const labels = { active: 'Active numbers', orders: 'Orders', wallet: 'Wallet', support: 'Help & Support', account: 'Account' };
       const pageRoot = {
         active: '.active-list, .active-empty',
-        orders: '.orders-page, .orders-empty',
+        orders: '.orders-table, .order-summary-strip',
         wallet: '.wallet-summary-grid',
         support: '.support-page',
         account: '.account-page'
@@ -262,9 +262,11 @@ async function runMobileChromium() {
     await visible(page, '.sidebar.open');
     await page.locator('.sidebar [data-page="wallet"]').click();
     await heading(page, 'Wallet');
+    await page.locator('button[aria-label="Open menu"]').click();
+    await visible(page, '.sidebar.open');
     const mobileSupportNav = page.locator('.sidebar [data-page="support"]').first();
     await mobileSupportNav.evaluate((el) => el.scrollIntoView({ block: 'center', inline: 'nearest' }));
-    await mobileSupportNav.click({ force: true });
+    await mobileSupportNav.click();
     await heading(page, 'Help & Support');
     await page.locator('button[aria-label="Open menu"]').click();
     await assertNoHorizontalOverflow(page);
