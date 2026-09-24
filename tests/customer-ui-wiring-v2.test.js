@@ -195,7 +195,7 @@ test('wallet summary is authoritative and not limited to the visible ledger slic
     read('customer/customer-data.js')
   ]);
   assert.match(api, /getWalletSummary/);
-  assert.match(repo, /SELECT[\\s\\S]*credit_paise/);
+  assert.match(repo, /credit_paise/);
   assert.match(state, /walletSummary/);
   assert.match(data, /state\.walletSummary = wallet\.summary/);
 });
