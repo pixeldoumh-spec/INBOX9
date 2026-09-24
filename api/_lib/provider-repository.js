@@ -7,7 +7,6 @@ export async function selectProviderForService(client, serviceId) {
      FROM service_provider_routes r
      JOIN providers p ON p.id=r.provider_id
      WHERE r.service_id=$1 AND r.active=TRUE AND p.active=TRUE
-       AND (p.adapter_key <> 'proxnum' OR r.inventory_expires_at IS NULL OR r.inventory_expires_at > NOW())
      ORDER BY r.priority ASC, p.priority ASC, p.id ASC
      LIMIT 1`,
     [serviceId]
