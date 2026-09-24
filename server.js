@@ -13,6 +13,7 @@ import authLogoutAll from './api/auth/_logout-all.js';
 import authChangePassword from './api/auth/_change-password.js';
 import wallet from './api/wallet/_index.js';
 import recharges from './api/recharges/_index.js';
+import support from './api/support/_index.js';
 import activations from './api/activations/_index.js';
 import activationById from './api/activations/_id.js';
 import activationCancel from './api/activations/_id/_cancel.js';
@@ -162,6 +163,8 @@ function routeFor(method, pathname) {
     ['GET /api/wallet', wallet],
     ['GET /api/recharges', recharges],
     ['POST /api/recharges', recharges],
+    ['GET /api/support', support],
+    ['POST /api/support', support],
     ['GET /api/activations', activations],
     ['POST /api/activations', activations],
     ['GET /api/admin/overview', adminOverview],
