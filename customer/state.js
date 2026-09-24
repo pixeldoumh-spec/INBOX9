@@ -37,6 +37,7 @@ export function createCustomerState() {
     recentActivations: [],
     activeCancelId: null,
     activeCancelBusy: new Set(),
+    activeActionErrorById: {},
     orders: [],
     loading: true,
     error: '',
@@ -76,6 +77,7 @@ export function createCustomerState() {
       serverId: null,
       submitting: false,
       error: '',
+      errorCode: '',
       returnAfterWallet: false
     }
   };
