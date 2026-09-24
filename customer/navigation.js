@@ -1,4 +1,4 @@
-export const CUSTOMER_PAGES = new Set(['buy', 'active', 'orders', 'wallet', 'support', 'admin', 'api']);
+export const CUSTOMER_PAGES = new Set(['buy', 'active', 'orders', 'wallet', 'support', 'account', 'admin', 'api']);
 
 export function createCustomerNavigation({
   state,
