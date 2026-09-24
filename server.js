@@ -45,6 +45,8 @@ import adminProviderOperations from './api/admin/_provider-operations.js';
 import internalProviderReconcile from './api/_internal-provider-reconcile.js';
 import { assertProductionConfiguration } from './api/_lib/runtime-config.js';
 import { applySecurityHeaders, requestId } from './api/_lib/security.js';
+import { captureException, finishRequestObservation, installProcessHandlers, markServerStarted, startRequestObservation } from './api/_lib/observability.js';
+import clientErrors from './api/observability/_client-errors.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DEFAULT_PORT = Number(process.env.PORT || 4173);
@@ -200,6 +202,7 @@ function routeFor(method, pathname) {
     ['GET /api/admin/payment-reconciliation', adminPaymentReconciliation],
     ['GET /api/admin/provider-operations', adminProviderOperations],
     ['POST /api/internal-provider-reconcile', internalProviderReconcile],
+    ['POST /api/client-errors', clientErrors],
   ]);
 
   const exactHandler = exact.get(`${method} ${pathname}`);
@@ -253,7 +256,7 @@ async function dispatchApi(req, nodeRes, url) {
     await route.handler(req, res);
     if (!nodeRes.writableEnded) res.end();
   } catch (error) {
-    console.error('runtime.unhandled_api_error', error);
+    captureException(error, { requestId: req.requestId, method: req.method, path: url.pathname, statusCode: 500 });
     if (!nodeRes.headersSent) {
       sendNodeJson(nodeRes, 500, { error: 'Internal server error' });
     }
@@ -269,7 +272,8 @@ function serveStatic(nodeRes, pathname) {
     if (statError || !stats.isFile()) return sendNodeJson(nodeRes, 404, { error: 'Not found' });
     nodeRes.statusCode = 200;
     nodeRes.setHeader('content-type', fileInfo[1]);
-    fs.createReadStream(file).on('error', () => {
+    fs.createReadStream(file).on('error', (error) => {
+      captureException(error, { requestId: nodeRes.getHeader?.('x-request-id'), method: 'GET', path: pathname, statusCode: 500 });
       if (!nodeRes.headersSent) sendNodeJson(nodeRes, 500, { error: 'Static asset unavailable' });
       else nodeRes.destroy();
     }).pipe(nodeRes);
@@ -279,7 +283,9 @@ function serveStatic(nodeRes, pathname) {
 export function createServer() {
   return http.createServer(async (req, res) => {
     applySecurityHeaders(res);
-    requestId(req, res);
+    req.requestId = requestId(req, res);
+    const observation = startRequestObservation(req, req.requestId);
+    res.once('finish', () => finishRequestObservation(observation, res.statusCode));
     const url = new URL(req.url || '/', 'http://localhost');
 
     if (url.pathname.startsWith('/api/')) {
@@ -306,11 +312,14 @@ export function createServer() {
 
 export function startServer({ port = DEFAULT_PORT, host = process.env.HOST || '0.0.0.0' } = {}) {
   assertProductionConfiguration();
+  installProcessHandlers();
   const server = createServer();
   server.listen(Number(port), host, () => {
     const address = server.address();
     const shownHost = host === '0.0.0.0' ? 'localhost' : host;
-    console.log(`INBOX9 runtime: http://${shownHost}:${typeof address === 'object' && address ? address.port : port}`);
+    const actualPort = typeof address === 'object' && address ? address.port : port;
+    console.log(`INBOX9 runtime: http://${shownHost}:${actualPort}`);
+    markServerStarted({ host, port: actualPort });
   });
   return server;
 }

@@ -26,9 +26,9 @@ INBOX9 is currently synthetic-only. The checklist below distinguishes completed 
 - [x] Background reconciliation jobs
 - [x] Structured request IDs and failure logging
 - [x] Automated unit/integration checks in CI
-- [ ] Full browser/device E2E coverage
-- [ ] Error monitoring/alerting integration
-- [ ] Production metrics/trace dashboards
+- [x] Full browser/device E2E coverage
+- [x] Error monitoring/alerting integration (structured server/client capture + scheduled production canary; Sentry optional)
+- [x] Production metrics/trace dashboards (Render metrics + request telemetry + scheduled canary)
 - [ ] Disaster-recovery rehearsal and restore verification
 
 ## P2 — scale
