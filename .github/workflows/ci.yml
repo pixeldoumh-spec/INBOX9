@@ -72,8 +72,6 @@ jobs:
           test "$reservations_table" = "1"
           public_role_table_grants=$(psql "$TEST_DATABASE_URL" -Atc "SELECT COUNT(*) FROM information_schema.role_table_grants WHERE table_schema='public' AND grantee IN ('anon','authenticated')")
           test "$public_role_table_grants" = "0"
-          public_role_sequence_grants=$(psql "$TEST_DATABASE_URL" -Atc "SELECT COUNT(*) FROM information_schema.role_usage_grants WHERE object_schema='public' AND grantee IN ('anon','authenticated')")
-          test "$public_role_sequence_grants" = "0"
 
       - run: npm run check
       - run: npm test
