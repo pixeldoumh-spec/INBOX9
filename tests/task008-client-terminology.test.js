@@ -32,7 +32,7 @@ test('customer client does not contain synthetic server inventory constants', as
 
 test('synthetic inventory capacity remains a backend concern', async () => {
   const servers = await fs.readFile(new URL('../api/_lib/synthetic-servers.js', import.meta.url), 'utf8');
-  assert.match(servers, /5000/);
+  assert.match(servers, /SYNTHETIC_CAPACITY = 100/);
   assert.match(servers, /11/);
 });
 
