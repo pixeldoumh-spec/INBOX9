@@ -18,6 +18,23 @@
     .boot-loader-text{letter-spacing:.04em}
     .boot-loader-bar{width:120px;height:2px;border-radius:99px;overflow:hidden;background:rgba(174,185,202,.1)}
     .boot-loader-bar::after{content:"";display:block;width:42%;height:100%;border-radius:99px;background:#8df26b;animation:boot-sweep 1.25s ease-in-out infinite}
+    .instant-app-shell{min-height:100vh;display:grid;grid-template-columns:240px 1fr;background:#080b12;color:#eef3f8;font:500 13px/1.5 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+    .instant-sidebar{padding:24px 16px;border-right:1px solid rgba(174,185,202,.10);background:linear-gradient(180deg,#0b111b,#090d15);display:flex;flex-direction:column;gap:24px}
+    .instant-brand{display:flex;align-items:center;gap:10px}
+    .instant-brand-mark{width:40px;height:40px;border-radius:12px;background:#8df26b;color:#071007;display:grid;place-items:center;font-weight:800;font-size:22px;box-shadow:0 0 28px rgba(141,242,107,.14)}
+    .instant-brand strong{display:block;font-size:16px;letter-spacing:.10em}.instant-brand small{display:block;margin-top:3px;color:#718096;font-size:9px;letter-spacing:.16em}
+    .instant-nav-block{display:flex;flex-direction:column;gap:10px}.instant-nav-block i{display:block;height:34px;border-radius:10px;background:rgba(174,185,202,.05);border:1px solid rgba(174,185,202,.06)}
+    .instant-nav-block i:first-child{background:rgba(141,242,107,.07);border-color:rgba(141,242,107,.12)}
+    .instant-nav-user{height:58px;margin-top:auto;border-radius:12px;border:1px solid rgba(174,185,202,.08);background:rgba(174,185,202,.03)}
+    .instant-main{min-width:0}.instant-topbar{height:78px;border-bottom:1px solid rgba(174,185,202,.10);display:flex;align-items:center;gap:12px;padding:0 24px;background:rgba(8,11,18,.90)}
+    .instant-menu{width:44px;height:44px;border-radius:12px;border:1px solid rgba(174,185,202,.10);background:rgba(174,185,202,.04)}
+    .instant-page-label{width:116px;height:44px;border-radius:12px;border:1px solid rgba(174,185,202,.10);background:rgba(174,185,202,.04);display:flex;align-items:center;padding:0 14px;color:#9ba8ba;font-weight:700}
+    .instant-actions{margin-left:auto;display:flex;gap:10px}.instant-actions span{width:48px;height:44px;border-radius:12px;border:1px solid rgba(174,185,202,.10);background:rgba(174,185,202,.04)}
+    .instant-content{padding:36px 24px}.instant-hero{max-width:920px;min-height:560px;padding:34px;border-radius:24px;border:1px solid rgba(174,185,202,.10);background:radial-gradient(circle at 85% 15%,rgba(96,165,250,.08),transparent 35%),linear-gradient(145deg,#0d151f,#0a1018)}
+    .instant-line{border-radius:99px;background:rgba(174,185,202,.10)}.instant-line-eyebrow{width:220px;height:12px}.instant-line-title{width:72%;height:44px;margin-top:28px}.instant-line-title.short{width:44%;margin-top:10px}.instant-line-copy{width:82%;height:18px;margin-top:22px}
+    .instant-button{width:70%;height:52px;margin-top:30px;border-radius:14px;background:rgba(141,242,107,.13);border:1px solid rgba(141,242,107,.18)}.instant-button.secondary{margin-top:12px;background:rgba(174,185,202,.03);border-color:rgba(174,185,202,.09)}
+    .instant-panel{margin-top:54px;padding:22px;border-radius:18px;border:1px solid rgba(174,185,202,.08);background:rgba(0,0,0,.12)}.instant-panel-line{height:16px;width:180px;border-radius:99px;background:rgba(174,185,202,.09)}.instant-stat-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:18px}.instant-stat-grid i{display:block;height:100px;border-radius:14px;border:1px solid rgba(174,185,202,.07);background:rgba(174,185,202,.03)}
+    @media (max-width:760px){.instant-app-shell{grid-template-columns:1fr}.instant-sidebar{display:none}.instant-topbar{height:68px;padding:0 12px}.instant-content{padding:20px 12px}.instant-hero{padding:22px;min-height:520px}.instant-line-title{width:92%}.instant-line-title.short{width:66%}.instant-line-copy{width:94%}.instant-button{width:100%}.instant-stat-grid{grid-template-columns:1fr 1fr}.instant-actions span{width:40px}}
     .boot-error{color:#ffb0b0;text-align:center}
     @keyframes boot-spin{to{transform:rotate(360deg)}}
     @keyframes boot-sweep{0%{transform:translateX(-130%)}100%{transform:translateX(320%)}}
@@ -27,13 +44,33 @@
 <body>
   <noscript>This app needs JavaScript enabled.</noscript>
   <div id="app" aria-live="polite" aria-busy="true">
-    <div class="boot-loader" role="status" aria-label="Loading">
-      <div class="boot-loader-inner">
-        <div class="boot-brand" aria-hidden="true"><span class="boot-brand-mark">ϟ</span><span class="boot-brand-name">INBOX9</span></div>
-        <div class="boot-spinner" aria-hidden="true"></div>
-        <div class="boot-loader-text">Loading your marketplace…</div>
-        <div class="boot-loader-bar" aria-hidden="true"></div>
-      </div>
+    <div class="instant-app-shell" aria-hidden="true">
+      <aside class="instant-sidebar">
+        <div class="instant-brand"><span class="instant-brand-mark">ϟ</span><span><strong>INBOX9</strong><small>OTP MARKETPLACE</small></span></div>
+        <div class="instant-nav-block"><i></i><i></i><i></i><i></i><i></i></div>
+        <div class="instant-nav-user"></div>
+      </aside>
+      <main class="instant-main">
+        <header class="instant-topbar">
+          <div class="instant-menu"></div>
+          <div class="instant-page-label">Buy Number</div>
+          <div class="instant-actions"><span></span><span></span><span></span></div>
+        </header>
+        <section class="instant-content">
+          <div class="instant-hero">
+            <div class="instant-line instant-line-eyebrow"></div>
+            <div class="instant-line instant-line-title"></div>
+            <div class="instant-line instant-line-title short"></div>
+            <div class="instant-line instant-line-copy"></div>
+            <div class="instant-button"></div>
+            <div class="instant-button secondary"></div>
+            <div class="instant-panel">
+              <div class="instant-panel-line"></div>
+              <div class="instant-stat-grid"><i></i><i></i><i></i></div>
+            </div>
+          </div>
+        </section>
+      </main>
     </div>
   </div>
   <script src="/boot.js" defer data-app-script="/app.js"></script>
