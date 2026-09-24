@@ -2,6 +2,7 @@ import { applySecurityHeaders, requestId, rateLimitAsync, enforceSameOrigin } fr
 import { dbEnabled } from '../_lib/db.js';
 import { getSessionUser, getMockSession, requireUser } from '../_lib/auth.js';
 import { getPaymentReconciliationSummary, listFlaggedRecharges } from '../_lib/wallet-repository.js';
+import { listPaymentWebhookEvents } from '../_lib/payment-webhook.js';
 
 export default async function handler(req, res) {
   applySecurityHeaders(res); requestId(req, res);
@@ -13,6 +14,7 @@ export default async function handler(req, res) {
   try {
     const summary = await getPaymentReconciliationSummary({ from: req.query?.from, to: req.query?.to });
     const flagged = await listFlaggedRecharges(Number(req.query?.limit || 100));
-    return res.status(200).json({ summary, flagged, generatedAt: Date.now() });
+    const webhookEvents = await listPaymentWebhookEvents(Number(req.query?.webhookLimit || 100));
+    return res.status(200).json({ summary, flagged, webhookEvents, generatedAt: Date.now() });
   } catch (error) { return res.status(503).json({ error: 'Payment reconciliation unavailable' }); }
 }
