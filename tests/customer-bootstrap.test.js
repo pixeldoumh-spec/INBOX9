@@ -55,3 +55,21 @@ test('customer render restores the authenticated shell while session bootstrap i
   assert.match(app, /if \(state\.sessionHint\?\.user\) state\.user = state\.sessionHint\.user/);
   assert.match(app, /state\.user = payload\.user;\s*state\.sessionHint = \{ user: payload\.user \};\s*writeSessionHint\(payload\.user\)/);
 });
+
+
+test('initial document provides an app-shaped shell instead of a full-screen loading screen', async () => {
+  const index = await fs.readFile(new URL('../index.html', import.meta.url), 'utf8');
+  assert.match(index, /class="instant-app-shell"/);
+  assert.match(index, /class="instant-topbar"/);
+  assert.doesNotMatch(index, /Loading your marketplace…/);
+});
+
+test('session bootstrap does not remount a loading screen when an authenticated shell is already available', async () => {
+  const app = await fs.readFile(new URL('../app.js', import.meta.url), 'utf8');
+  const bootstrapStart = app.indexOf('async function bootstrapSession()');
+  const bootstrapEnd = app.indexOf('\n\nasync function retryBootstrap', bootstrapStart);
+  assert.ok(bootstrapStart >= 0 && bootstrapEnd > bootstrapStart);
+  const bootstrap = app.slice(bootstrapStart, bootstrapEnd);
+  assert.match(bootstrap, /const hadAuthenticatedShell = Boolean\(state\.user\)/);
+  assert.match(bootstrap, /if \(!hadAuthenticatedShell\) render\(\)/);
+});
