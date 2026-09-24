@@ -24,6 +24,6 @@ test('customer topbar keeps notification control at far right', async () => {
   assert.match(app, /notification-status-light/);
   assert.match(app, /notification-badge/);
   assert.match(css, /\.top-actions>\.notification-wrap\{order:3\}/);
-  assert.match(css, /\.top-actions \.notification\{display:none\}/);
-  assert.match(css, /\.top-actions>\.notification-wrap\{order:3;display:flex\}/);
+  assert.match(css, /\.notification-wrap\{position:relative[^}]*display:flex/);
+  assert.match(css, /@media\(max-width:520px\)\{[\s\S]*?\.top-actions \.notification-wrap\{display:flex\}/);
 });
