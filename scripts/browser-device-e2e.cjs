@@ -220,12 +220,13 @@ async function runCompatibility(browserType, name) {
   const browser = await browserType.launch({ headless: true });
   const context = await browser.newContext({ viewport: { width: 1366, height: 900 } });
   const page = await context.newPage();
-  const errors = attachErrorCapture(page);
   const email = name.toLowerCase().replace(/[^a-z]+/g, '-') + '-' + Date.now() + '@example.test';
+  let errors;
 
   try {
     await page.goto(BASE_URL, { waitUntil: 'networkidle' });
     await register(page, email);
+    errors = attachErrorCapture(page);
     for (const target of ['active', 'orders', 'wallet', 'support', 'account']) {
       await page.evaluate((next) => { window.location.hash = '#' + next; }, target);
       const labels = { active: 'Active numbers', orders: 'Orders', wallet: 'Wallet', support: 'Help & Support', account: 'Account' };
@@ -256,12 +257,13 @@ async function runMobileChromium() {
   const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext({ ...devices['iPhone 15'] });
   const page = await context.newPage();
-  const errors = attachErrorCapture(page);
   const email = 'mobile-e2e-' + Date.now() + '@example.test';
+  let errors;
 
   try {
     await page.goto(BASE_URL, { waitUntil: 'networkidle' });
     await register(page, email);
+    errors = attachErrorCapture(page);
     await page.locator('button[aria-label="Open menu"]').click();
     await visible(page, '.sidebar.open');
     await page.locator('.sidebar [data-page="wallet"]').click();
