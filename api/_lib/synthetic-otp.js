@@ -1,6 +1,6 @@
 import crypto from 'node:crypto';
 
-const DEFAULT_CAPACITY = 5000;
+const DEFAULT_CAPACITY = 100;
 const OTP_LENGTH = 6;
 const SYNTHETIC_OTP_DELAY_MS = 20_000;
 const INDIAN_MOBILE_START_DIGITS = ['6', '7', '8', '9'];
