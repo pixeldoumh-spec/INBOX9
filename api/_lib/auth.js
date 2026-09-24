@@ -5,6 +5,8 @@ const SESSION_DAYS = 7;
 const SESSION_MAX_PER_USER = 5;
 const COOKIE = process.env.NODE_ENV === 'production' ? '__Host-inbox9_session' : 'inbox9_session';
 const mockAccounts = new Map();
+const mockProfiles = new Map();
+const mockRecoveryCodes = new Map();
 
 function hash(value) {
   return crypto.createHash('sha256').update(value).digest('hex');
@@ -369,7 +371,8 @@ export function mockUser(email = 'demo@inbox9.local') {
   const stableId = `USR-SYN-${hash(normalized).slice(0, 16).toUpperCase()}`;
   const adminEmail = String(process.env.INBOX9_LOCAL_ADMIN_EMAIL || '').trim().toLowerCase();
   const role = process.env.NODE_ENV !== 'production' && adminEmail && normalized === adminEmail ? 'admin' : 'user';
-  return { id: role === 'admin' ? 'USR-DEMO-ADMIN' : stableId, email: normalized, role, createdAt: Date.now() };
+  const profile = mockProfiles.get(normalized);
+  return { id: role === 'admin' ? 'USR-DEMO-ADMIN' : stableId, email: normalized, role, displayName: profile?.displayName || '', createdAt: profile?.createdAt || Date.now() };
 }
 
 export function setMockSession(res, email = 'demo@inbox9.local') {
@@ -386,6 +389,8 @@ export function getMockSession(req) {
 
 export function resetMockAuth() {
   mockAccounts.clear();
+  mockProfiles.clear();
+  mockRecoveryCodes.clear();
 }
 
 function recoveryCodeValue() {
@@ -436,7 +441,14 @@ export async function revokeUserSession(req, sessionId, res) {
 }
 
 export async function updateProfile(req, displayName) {
-  if (!dbEnabled()) throw new Error('AUTH_DATABASE_REQUIRED');
+  if (!dbEnabled()) {
+    const user = getMockSession(req);
+    if (!user) throw Object.assign(new Error('Authentication required'), { statusCode: 401 });
+    const value = String(displayName || '').trim();
+    if (value.length > 64) throw Object.assign(new Error('Display name must be 64 characters or fewer'), { statusCode: 400 });
+    mockProfiles.set(user.email, { displayName: value, createdAt: user.createdAt });
+    return mockUser(user.email);
+  }
   const context = await getSessionRecord(req);
   if (!context) throw Object.assign(new Error('Authentication required'), { statusCode: 401 });
   const value = String(displayName || '').trim();
@@ -450,7 +462,13 @@ export async function updateProfile(req, displayName) {
 }
 
 export async function issueRecoveryCode(req) {
-  if (!dbEnabled()) throw new Error('AUTH_DATABASE_REQUIRED');
+  if (!dbEnabled()) {
+    const user = getMockSession(req);
+    if (!user) throw Object.assign(new Error('Authentication required'), { statusCode: 401 });
+    const code = recoveryCodeValue();
+    mockRecoveryCodes.set(user.email, { code, createdAt: Date.now(), used: false });
+    return { code };
+  }
   const context = await getSessionRecord(req);
   if (!context) throw Object.assign(new Error('Authentication required'), { statusCode: 401 });
   return withTransaction(async (client) => {
