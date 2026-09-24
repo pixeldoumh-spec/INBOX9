@@ -44,14 +44,22 @@ test('customer-facing marketplace copy does not expose provider internals', asyn
   assert.doesNotMatch(app, /India \(\+91\)/);
 });
 
-test('customer navigation survives refresh and supports browser history', async () => {
-  const app = await read('app.js');
-  assert.match(app, /function pageFromHash\(/);
-  assert.match(app, /function syncPageHash\(/);
+test('customer navigation is extracted and remains wired to the application shell', async () => {
+  const [app, navigation] = await Promise.all([
+    read('app.js'),
+    read('customer/navigation.js'),
+  ]);
+  assert.match(app, /from '\.\/customer\/navigation\.js'/);
+  assert.match(app, /createCustomerNavigation\(/);
   assert.match(app, /window\.addEventListener\('hashchange', handleHashNavigation\)/);
   assert.match(app, /window\.addEventListener\('popstate', handleHashNavigation\)/);
+  assert.match(navigation, /export const CUSTOMER_PAGES/);
+  assert.match(navigation, /function pageFromHash\(/);
+  assert.match(navigation, /function syncPageHash\(/);
+  assert.match(navigation, /function setPage\(/);
+  assert.match(navigation, /function handleHashNavigation\(/);
+  assert.match(navigation, /function handleSessionExpired\(/);
 });
-
 test('authenticated customer screens have server refresh and session-expiry recovery', async () => {
   const app = await read('app.js');
   assert.match(app, /data-action="refresh-customer"/);
