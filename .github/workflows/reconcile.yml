@@ -1,0 +1,43 @@
+name: INBOX9 scheduled reconciliation
+
+on:
+  schedule:
+    - cron: "2/5 * * * *"
+  workflow_dispatch:
+
+jobs:
+  reconcile:
+    permissions:
+      id-token: write
+      contents: none
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    concurrency:
+      group: inbox9-reconciliation
+      cancel-in-progress: false
+    steps:
+      - name: Request GitHub OIDC identity
+        id: oidc
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${ACTIONS_ID_TOKEN_REQUEST_URL:-}"
+          test -n "${ACTIONS_ID_TOKEN_REQUEST_TOKEN:-}"
+          token_url="${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=inbox9"
+          response="$(curl --fail --silent --show-error --retry 3 --retry-delay 2             -H "Authorization: Bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}"             "$token_url")"
+          token="$(printf '%s' "$response" | python3 -c 'import json,sys; print(json.load(sys.stdin)["value"])')"
+          test -n "$token"
+          printf 'OIDC token acquired for the reconciliation job.\n'
+
+      - name: Run authenticated reconciliation
+        env:
+          INBOX9_CRON_URL: https://inbox9.onrender.com/api/internal-provider-reconcile
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$INBOX9_CRON_URL"
+          token_url="${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=inbox9"
+          response="$(curl --fail --silent --show-error --retry 3 --retry-delay 2             -H "Authorization: Bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}"             "$token_url")"
+          token="$(printf '%s' "$response" | python3 -c 'import json,sys; print(json.load(sys.stdin)["value"])')"
+          test -n "$token"
+          curl --fail --silent --show-error --retry 3 --retry-delay 5             -X POST "$INBOX9_CRON_URL"             -H "Authorization: Bearer $token"             -H "Content-Type: application/json"             --data '{}'

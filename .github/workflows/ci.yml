@@ -1,0 +1,90 @@
+name: INBOX9 CI
+
+on:
+  push:
+    branches: ["main"]
+    paths-ignore:
+      - "docs/**"
+      - "*.md"
+  pull_request:
+    branches: ["main"]
+    paths-ignore:
+      - "docs/**"
+      - "*.md"
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Test / Ubuntu 24.04
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    env:
+      INBOX9_TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/inbox9_test
+    steps:
+      - name: Runner diagnostics
+        run: |
+          set -eux
+          echo "Runner: $RUNNER_NAME"
+          echo "OS: $RUNNER_OS"
+          echo "Arch: $RUNNER_ARCH"
+          echo "Image: ${ImageVersion:-unknown}"
+          node --version
+          npm --version
+          psql --version
+          docker --version
+
+      - name: Start PostgreSQL
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo systemctl start postgresql.service
+          sudo -u postgres psql -c "ALTER USER postgres PASSWORD 'postgres';"
+          sudo -u postgres createdb inbox9_test 2>/dev/null || true
+          pg_isready -h 127.0.0.1 -p 5432 -U postgres
+
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci --ignore-scripts
+
+      - name: Apply Supabase migrations to test PostgreSQL
+        env:
+          TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/inbox9_test
+        shell: bash
+        run: |
+          set -euo pipefail
+          for migration in $(find supabase/migrations -maxdepth 1 -type f -name '*.sql' | sort); do
+            echo "Applying $migration"
+            psql "$TEST_DATABASE_URL" --set ON_ERROR_STOP=1 --file "$migration"
+          done
+          services=$(psql "$TEST_DATABASE_URL" -Atc "SELECT COUNT(*) FROM services")
+          routes=$(psql "$TEST_DATABASE_URL" -Atc "SELECT COUNT(*) FROM service_provider_routes r JOIN providers p ON p.id=r.provider_id WHERE r.active=TRUE AND p.active=TRUE AND p.adapter_key='synthetic'")
+          validated=$(psql "$TEST_DATABASE_URL" -Atc "SELECT COUNT(*) FROM pg_constraint WHERE conname='activations_user_required' AND conrelid='public.activations'::regclass AND convalidated")
+          reservations_table=$(psql "$TEST_DATABASE_URL" -Atc "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='public' AND table_name='synthetic_slot_reservations'")
+          test "$services" = "832"
+          test "$routes" = "832"
+          test "$validated" = "1"
+          test "$reservations_table" = "1"
+          public_role_table_grants=$(psql "$TEST_DATABASE_URL" -Atc "SELECT COUNT(*) FROM information_schema.role_table_grants WHERE table_schema='public' AND grantee IN ('anon','authenticated')")
+          test "$public_role_table_grants" = "0"
+
+      - run: npm run check
+      - run: npm test
+
+      - name: Dependency vulnerability audit
+        run: npm audit --audit-level=high
+
+      - run: npm run issue9:e2e
+
+      - name: Secret pattern scan
+        shell: bash
+        run: |
+          if grep -RInE "(sk_live|AKIA[0-9A-Z]{16}|-----BEGIN (RSA|EC|OPENSSH) PRIVATE KEY-----)" --exclude-dir=.git --exclude=ci.yml .; then
+            echo "Potential secret material found in repository" >&2
+            exit 1
+          fi
