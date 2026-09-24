@@ -36,3 +36,18 @@ test('customer marketplace no longer exposes server or slot controls', async () 
   assert.doesNotMatch(app, /<strong>Choose a server<\/strong>/);
   assert.doesNotMatch(app, /SERVER SELECTION/);
 });
+
+
+test('service cards explain affordability before purchase', async () => {
+  const app = await fs.readFile(new URL('../app.js', import.meta.url), 'utf8');
+  assert.match(app, /Wallet ready/);
+  assert.match(app, /balanceDelta/);
+  assert.match(app, /wallet-ready-chip/);
+});
+
+test('purchase review shows wallet balance and projected remaining balance', async () => {
+  const app = await fs.readFile(new URL('../app.js', import.meta.url), 'utf8');
+  assert.match(app, /Wallet balance/);
+  assert.match(app, /After purchase/);
+  assert.match(app, /data\.afterBalancePaise/);
+});

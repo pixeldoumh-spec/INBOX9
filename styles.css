@@ -1373,3 +1373,72 @@ body::before{
     min-width:0;
   }
 }
+
+
+/* Purchase decision clarity */
+.customer-service-facts{
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:8px 12px;
+  min-width:0;
+}
+.customer-service-action{
+  margin-left:auto;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex:none;
+}
+.wallet-ready-chip{
+  display:inline-flex;
+  align-items:center;
+  min-height:25px;
+  padding:0 8px;
+  border:1px solid #253141;
+  border-radius:999px;
+  background:#0b121a;
+  color:#7f8da0;
+  font-size:8px;
+  font-weight:700;
+  white-space:nowrap;
+}
+.wallet-ready-chip::before{
+  content:"";
+  width:5px;
+  height:5px;
+  margin-right:6px;
+  border-radius:50%;
+  background:#738095;
+}
+.wallet-ready-chip.ready{
+  color:#a8dd9a;
+  border-color:#29432f;
+  background:#0c1510;
+}
+.wallet-ready-chip.ready::before{
+  background:#8df26b;
+  box-shadow:0 0 9px rgba(141,242,107,.3);
+}
+.wallet-ready-chip.needs-funds{
+  color:#c5a37e;
+  border-color:#3b3025;
+  background:#15110d;
+}
+.wallet-ready-chip.needs-funds::before{
+  background:#d39b68;
+}
+.purchase-detail-grid{
+  grid-template-columns:repeat(3,minmax(0,1fr));
+}
+@media(max-width:820px){
+  .customer-service-facts{gap:7px 10px}
+  .customer-service-action{width:100%}
+  .wallet-ready-chip{flex:1;justify-content:center}
+}
+@media(max-width:620px){
+  .customer-service-facts{width:100%;gap:6px 9px}
+  .customer-service-action{gap:7px}
+  .wallet-ready-chip{min-height:30px}
+  .purchase-detail-grid{grid-template-columns:1fr 1fr}
+}
