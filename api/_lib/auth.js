@@ -500,3 +500,10 @@ export async function recoverPassword(emailInput, recoveryCode, newPassword) {
     return { user: publicUser(updated.rows[0]), token };
   });
 }
+
+
+export async function listUserSessionsForRequest(req) {
+  const context = await getSessionRecord(req);
+  if (!context) return [];
+  return listUserSessions(context.user.id, context.tokenHash);
+}
