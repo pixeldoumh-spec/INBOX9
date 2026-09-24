@@ -8,7 +8,6 @@ const TRUSTED_REPOSITORY_ID = '1379257300';
 const TRUSTED_REF = 'refs/heads/main';
 const TRUSTED_WORKFLOWS = new Set([
   'INBOX9 scheduled reconciliation',
-  'INBOX9 Proxnum inventory sync',
 ]);
 const JWKS_CACHE_TTL_MS = 10 * 60 * 1000;
 const REQUEST_TIMEOUT_MS = 5_000;
