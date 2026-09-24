@@ -7,6 +7,49 @@ import { createCustomerDataController } from './customer/customer-data.js';
 const CLIENT_ERROR_MAX_REPORTS = 20;
 const reportedClientErrors = new Map();
 
+const SESSION_HINT_KEY = 'inbox9.session-hint.v1';
+
+function readSessionHint() {
+  try {
+    const raw = window.sessionStorage.getItem(SESSION_HINT_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object' || !parsed.user || typeof parsed.user.email !== 'string') return null;
+    return {
+      user: {
+        id: String(parsed.user.id || ''),
+        email: String(parsed.user.email || '').trim().toLowerCase(),
+        role: parsed.user.role === 'admin' ? 'admin' : 'user',
+        displayName: String(parsed.user.displayName || ''),
+        createdAt: Number(parsed.user.createdAt || 0)
+      }
+    };
+  } catch {
+    return null;
+  }
+}
+
+function writeSessionHint(user) {
+  if (!user?.email) return;
+  try {
+    window.sessionStorage.setItem(SESSION_HINT_KEY, JSON.stringify({
+      user: {
+        id: String(user.id || ''),
+        email: String(user.email || '').trim().toLowerCase(),
+        role: user.role === 'admin' ? 'admin' : 'user',
+        displayName: String(user.displayName || ''),
+        createdAt: Number(user.createdAt || 0)
+      }
+    }));
+  } catch {
+    // Session UI hint is optional; authentication remains server-authoritative.
+  }
+}
+
+function clearSessionHint() {
+  try { window.sessionStorage.removeItem(SESSION_HINT_KEY); } catch {}
+}
+
 function clientErrorFingerprint(name, message, source) {
   return [name, message, source].map((value) => String(value || '').slice(0, 180)).join('|');
 }
@@ -448,13 +491,15 @@ async function submitAuth(event) {
   const password = String(data.get('password') || '');
   if (state.authMode === 'recover') {
     if(password!==String(data.get('confirm')||'')) return toast('Passwords do not match');
-    try{const payload=await api('/api/auth/recover',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({email,recoveryCode:String(data.get('recoveryCode')||''),password})});state.user=payload.user;state.authMode='login';state.page='buy';loadPersisted();await loadCustomerData();render();toast('Password reset. You are signed in.');return;}catch(error){toast(error.message);return;}
+    try{const payload=await api('/api/auth/recover',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({email,recoveryCode:String(data.get('recoveryCode')||''),password})});state.user=payload.user;state.sessionHint={user:payload.user};writeSessionHint(payload.user);state.authMode='login';state.page='buy';loadPersisted();await loadCustomerData();render();toast('Password reset. You are signed in.');return;}catch(error){toast(error.message);return;}
   }
   if (state.authMode === 'register' && password !== String(data.get('confirm') || '')) return toast('Passwords do not match');
   try {
     const endpoint = state.authMode === 'register' ? '/api/auth/register' : '/api/auth/login';
     const payload = await api(endpoint, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email, password }) });
     state.user = payload.user;
+    state.sessionHint = { user: payload.user };
+    writeSessionHint(payload.user);
     state.page = pageFromHash();
     loadPersisted();
     await loadCustomerData();
@@ -510,6 +555,8 @@ async function logout() {
 }
 
 function handleSessionSignedOut() {
+  clearSessionHint();
+  state.sessionHint = null;
   notificationBaseline = null;
   state.authMode = 'login';
   state.notifications = [];
@@ -567,6 +614,8 @@ async function bootstrapSession() {
     return true;
   } catch (error) {
     if (Number(error.status) === 401) {
+      clearSessionHint();
+      state.sessionHint = null;
       state.user = null;
       return false;
     }
@@ -605,6 +654,8 @@ function handleConnectivityChange(){
 async function boot() {
   state.page = pageFromHash();
   restoreMarketplaceUrlState();
+  state.sessionHint = readSessionHint();
+  if (state.sessionHint?.user) state.user = state.sessionHint.user;
   await bootstrapSession();
   if (!state.user) return;
   if (!state.tickTimer) state.tickTimer = window.setInterval(tick, 1000);
