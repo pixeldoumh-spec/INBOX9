@@ -45,9 +45,10 @@ export function createCustomerDataController({
     const results = await Promise.allSettled([
       api('/api/services'),
       api('/api/activations'),
-      api('/api/wallet')
+      api('/api/wallet'),
+      api('/api/notifications')
     ]);
-    const [servicesResult, activationsResult, walletResult] = results;
+    const [servicesResult, activationsResult, walletResult, notificationsResult] = results;
     const failures = [];
     if (results.some((result) => result.status === 'rejected' && Number(result.reason?.status) === 401)) {
       handleSessionExpired();
@@ -69,6 +70,14 @@ export function createCustomerDataController({
       failures.push(activationsResult.reason?.message || 'Activation history unavailable');
     }
   
+    if (notificationsResult.status === 'fulfilled') {
+      state.notifications = Array.isArray(notificationsResult.value.notifications) ? notificationsResult.value.notifications : [];
+      state.notificationError = '';
+    } else {
+      state.notificationError = notificationsResult.reason?.message || 'Notifications unavailable';
+      failures.push(state.notificationError);
+    }
+
     if (walletResult.status === 'fulfilled') {
       const wallet = walletResult.value;
       state.persistentState = Boolean(wallet.persistent);
