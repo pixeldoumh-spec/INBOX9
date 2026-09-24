@@ -1302,9 +1302,6 @@ function content() {
 
 
 function serviceCard(service) {
-  const availability = Math.max(0, Number(service.stock || 0));
-  const availabilityState = availability <= 0 ? 'sold-out' : availability < 100 ? 'limited' : 'ready';
-  const availabilityLabel = availability <= 0 ? 'Sold out' : availability < 100 ? 'Limited' : 'Ready';
   const insufficient = state.balancePaise < Number(service.pricePaise || 0);
   const actionLabel = insufficient ? 'Top up' : 'Buy number';
   const expanded = state.expandedServiceId === service.id;
