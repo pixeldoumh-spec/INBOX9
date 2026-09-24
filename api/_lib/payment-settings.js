@@ -1,4 +1,4 @@
-import { getPool, withTransaction } from './db.js';
+import { getPool, withTransaction, dbEnabled } from './db.js';
 import { recordAuditTx } from './admin-repository.js';
 
 const SETTINGS_ID = 'default';
@@ -60,6 +60,16 @@ function mapSettings(row) {
 }
 
 export async function getPaymentSettings() {
+  if (!dbEnabled()) {
+    return {
+      id: SETTINGS_ID,
+      upiId: String(process.env.INBOX9_UPI_ID || '').trim() || null,
+      merchantName: DEFAULT_MERCHANT,
+      instructions: DEFAULT_INSTRUCTIONS,
+      qrImage: null,
+      updatedAt: null
+    };
+  }
   const pool = await getPool();
   const result = await pool.query(
     'SELECT id,upi_id,merchant_name,instructions,qr_image,updated_at FROM payment_settings WHERE id=$1',
@@ -68,7 +78,9 @@ export async function getPaymentSettings() {
   if (!result.rowCount) {
     return { id: SETTINGS_ID, upiId: null, merchantName: DEFAULT_MERCHANT, instructions: DEFAULT_INSTRUCTIONS, qrImage: null, updatedAt: null };
   }
-  return mapSettings(result.rows[0]);
+  const settings = mapSettings(result.rows[0]);
+  if (!settings.upiId) settings.upiId = String(process.env.INBOX9_UPI_ID || '').trim() || null;
+  return settings;
 }
 
 export async function updatePaymentSettings(adminUserId, input = {}) {

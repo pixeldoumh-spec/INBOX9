@@ -53,6 +53,7 @@ import paymentWebhook from './api/payments/_webhook.js';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DEFAULT_PORT = Number(process.env.PORT || 4173);
 const MAX_BODY_BYTES = 32_000;
+const MAX_PAYMENT_SETTINGS_BODY_BYTES = 512_000;
 
 const staticFiles = new Map([
   ['/', ['index.html', 'text/html; charset=utf-8']],
@@ -119,7 +120,7 @@ function sendNodeJson(res, statusCode, body) {
   res.end(JSON.stringify(body));
 }
 
-function readRawBody(req) {
+function readRawBody(req, maxBytes = MAX_BODY_BYTES) {
   if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method || '')) return Promise.resolve('');
 
   return new Promise((resolve, reject) => {
@@ -136,7 +137,7 @@ function readRawBody(req) {
     req.on('data', (chunk) => {
       if (settled) return;
       total += chunk.length;
-      if (total > MAX_BODY_BYTES) {
+      if (total > maxBytes) {
         const error = new Error('Payload too large');
         error.statusCode = 413;
         settled = true;
@@ -157,8 +158,8 @@ function readRawBody(req) {
   });
 }
 
-async function readJsonBody(req) {
-  const raw = await readRawBody(req);
+async function readJsonBody(req, maxBytes = MAX_BODY_BYTES) {
+  const raw = await readRawBody(req, maxBytes);
   if (!raw.trim()) return {};
   try {
     return JSON.parse(raw);
@@ -257,7 +258,10 @@ async function dispatchApi(req, nodeRes, url) {
       req.rawBody = await readRawBody(req);
       req.body = req.rawBody.trim() ? JSON.parse(req.rawBody) : {};
     } else {
-      req.body = await readJsonBody(req);
+      const maxBodyBytes = url.pathname === '/api/admin/payment-settings'
+        ? MAX_PAYMENT_SETTINGS_BODY_BYTES
+        : MAX_BODY_BYTES;
+      req.body = await readJsonBody(req, maxBodyBytes);
     }
   } catch (error) {
     return sendNodeJson(nodeRes, error.statusCode || 400, { error: error.message });
