@@ -32,3 +32,20 @@ test('admin payment reconciliation exposes summary and flagged requests', () => 
   assert.match(reconciliationRoute, /listFlaggedRecharges/);
   assert.match(reconciliationRoute, /Admin access required/);
 });
+
+
+test('recharge requests capture the originating session and admin queue exposes payment history context', () => {
+  assert.match(migration, /submission_session_id/);
+  assert.match(walletRepo, /createRecharge\(userId, amountPaise, utr, submissionSessionId = null\)/);
+  assert.match(walletRepo, /submission_session_id\)/);
+  assert.match(walletRepo, /recent_payment_history/);
+  assert.match(walletRepo, /active_session_count/);
+});
+
+test('recharge endpoint binds a database-backed submission to the authenticated session', () => {
+  const route = fs.readFileSync(new URL('../api/recharges/_index.js', import.meta.url), 'utf8');
+  const auth = fs.readFileSync(new URL('../api/_lib/auth.js', import.meta.url), 'utf8');
+  assert.match(route, /getSessionIdForRequest/);
+  assert.match(route, /submissionSessionId/);
+  assert.match(auth, /export async function getSessionIdForRequest/);
+});
