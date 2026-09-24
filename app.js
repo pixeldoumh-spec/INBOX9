@@ -1604,12 +1604,7 @@ function activeCard(activation) {
   const syntheticOtpAt = Number(activation.syntheticOtpAvailableAt || activation.mockOtpAt || 0);
   const syntheticNumberHidden = status === 'Active' && !otp && syntheticRevealAt > Date.now();
   const syntheticOtpWaiting = status === 'Active' && !otp && !syntheticNumberHidden && syntheticOtpAt > Date.now();
-  const total = Math.max(1, expiresAt - createdAt || (25 * 60 * 1000));
-  const remaining = expiresAt ? Math.max(0, Math.floor((expiresAt - Date.now()) / 1000)) : (25 * 60);
-  const minutes = String(Math.floor(remaining / 60)).padStart(2, '0');
-  const seconds = String(remaining % 60).padStart(2, '0');
-  const progress = Math.min(100, Math.max(0, ((remaining * 1000) / total) * 100));
-  const cancelling = state.activeCancelId === activation.id;
+    const cancelling = state.activeCancelId === activation.id;
   const cancelBusy = state.activeCancelBusy.has(activation.id);
   const actionError = state.activeActionErrorById[activation.id] || '';
   const service = state.services.find((s) => s.id === activation.serviceId);
@@ -1635,7 +1630,7 @@ function activeCard(activation) {
       ? '<div class="otp-panel waiting-panel"><div class="otp-panel-head"><span class="otp-label">NUMBER</span><span class="code-state waiting">WAITING</span></div><div class="waiting-note">▣ Waiting for number</div></div>'
       : '<div class="otp-panel waiting-panel"><div class="otp-panel-head"><span class="otp-label">' + (syntheticOtpWaitingLabel ? 'OTP' : 'STATUS') + '</span><span class="code-state ' + esc(statusInfo.tone) + '">' + esc(statusInfo.label.toUpperCase()) + '</span></div><div class="waiting-note">' + (status === 'CancellationPending' ? '◷ Cancellation is being processed' : status === 'ExpirationPending' ? '◷ Finalizing this activation' : syntheticOtpWaitingLabel ? '▣ Waiting for OTP' : '▣ Waiting for the verification code') + '</div></div>';
   const errorBlock = actionError ? '<div class="active-action-error" role="alert"><span>' + esc(actionError) + '</span><button class="refresh-btn" type="button" data-action="refresh-activation" data-refresh-activation="' + esc(activation.id) + '">Check status</button></div>' : '';
-  const displayNumber = syntheticNumberHidden ? 'Fetching number…' : activation.number;
+  const displayNumber = syntheticNumberHidden ? 'Waiting for number' : activation.number;
   const copyNumber = syntheticNumberHidden
     ? '<span class="copy-btn disabled" aria-disabled="true">Preparing…</span>'
     : '<button class="copy-btn" type="button" data-copy="' + esc(activation.number.replace(/\s/g, '')) + '" data-copy-message="Number copied">Copy number</button>';
