@@ -341,7 +341,13 @@ async function submitAuth(event) {
 }
 
 
-function openSecurity(){setPage('account');}
+function openSecurity(){
+  state.page = 'account';
+  state.securityOpen = true;
+  syncPageHash('account');
+  render();
+  scheduleDialogFocus();
+}
 function closeSecurity() {
   state.securityOpen = false;
   render();
