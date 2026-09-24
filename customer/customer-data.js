@@ -13,6 +13,7 @@ export function createCustomerDataController({
     state.recentActivations = [];
     state.orders = [];
     state.pendingPurchaseKeys = {};
+    state.activeActionErrorById = {};
   }
 
   function persist() {
