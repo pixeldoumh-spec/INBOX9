@@ -13,7 +13,7 @@ test('synthetic engine reserves a normalized India-format activation', async () 
   assert.ok(activation.mockOtpAt > activation.createdAt);
   assert.equal(activation.metadata.numberRevealAt - activation.createdAt, 5_000);
   assert.equal(activation.mockOtpAt - activation.metadata.numberRevealAt, 15_000);
-  assert.equal(activation.metadata.capacityPerService, 5000);
+  assert.equal(activation.metadata.capacityPerService, 100);
 });
 
 test('synthetic lifecycle transitions and cancellation are normalized', async () => {
