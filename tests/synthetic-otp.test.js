@@ -59,9 +59,9 @@ test('inventory respects capacity and has unique identities', () => {
   assert.equal(new Set(inventory.map((x) => x.identity)).size, 25);
 });
 
-test('capacity is bounded at 5000', () => {
-  assert.equal(normalizeCapacity(5000), 5000);
-  assert.throws(() => normalizeCapacity(5001));
+test('capacity is bounded at 100', () => {
+  assert.equal(normalizeCapacity(100), 100);
+  assert.throws(() => normalizeCapacity(101));
   assert.throws(() => generateSyntheticIdentity('X', 0));
 });
 
