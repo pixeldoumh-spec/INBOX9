@@ -24,16 +24,10 @@ export function createCustomerNavigation({
     else window.history.pushState({ page }, '', url);
   }
 
-  function setPage(page, { syncUrl = true } = {}) {
-    const next = CUSTOMER_PAGES.has(page) ? page : 'buy';
-    if (next === 'admin' && state.user?.role !== 'admin') return;
-    state.page = next;
-    state.mobileMenu = false;
-    if (syncUrl) syncPageHash(next);
-    render();
+  function refreshPageData(next) {
     if (next === 'admin' && state.user?.role === 'admin') void loadAdminTab(state.adminTab);
-    if (next === 'wallet') void refreshWallet().then(() => render());
     if (next === 'buy') void refreshCatalog({ silent: true });
+    if (next === 'wallet') void refreshWallet().then(() => render());
     if (next === 'support') void refreshSupport().then(() => {
       if (document.activeElement?.closest?.('#support-form')) return;
       render();
@@ -41,15 +35,25 @@ export function createCustomerNavigation({
     if (next === 'account') void refreshAccount().then(() => render());
   }
 
+  function setPage(page, { syncUrl = true } = {}) {
+    const next = CUSTOMER_PAGES.has(page) ? page : 'buy';
+    if (next === 'admin' && state.user?.role !== 'admin') return;
+    state.page = next;
+    state.mobileMenu = false;
+    if (syncUrl) syncPageHash(next);
+    render();
+    refreshPageData(next);
+  }
+
   function handleHashNavigation() {
     if (!state.user) return;
     const next = pageFromHash();
     if (next === 'admin' && state.user?.role !== 'admin') return setPage('buy', { syncUrl: true });
-    if (state.page === next) return;
+    if (state.page === next) return refreshPageData(next);
     state.page = next;
     state.mobileMenu = false;
     render();
-    if (next === 'admin' && state.user?.role === 'admin') void loadAdminTab(state.adminTab);
+    refreshPageData(next);
   }
 
   function handleSessionExpired() {
