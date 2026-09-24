@@ -171,13 +171,6 @@ export async function processPaymentWebhook({ rawBody, normalized, provider = pa
       const row = existing.rows[0];
       if (!row) throw new Error('Webhook idempotency record unavailable');
       if (row.payload_hash !== bodyHash) {
-        await updateWebhookEvent(client, normalized.eventId, provider, {
-          status: 'Rejected',
-          outcome: 'rejected',
-          error_code: 'PAYMENT_WEBHOOK_EVENT_CONFLICT',
-          error_message: 'Event ID was reused with a different payload',
-          processed_at: new Date()
-        });
         return { ok: false, duplicate: true, statusCode: 409, code: 'PAYMENT_WEBHOOK_EVENT_CONFLICT', error: 'Event ID was reused with a different payload' };
       }
       return {
