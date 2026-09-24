@@ -1,0 +1,22 @@
+name: INBOX9 live smoke verification
+
+on:
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  live-smoke:
+    name: Live production smoke
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Run live Render smoke
+        env:
+          RENDER_SMOKE_BASE_URL: https://inbox9.onrender.com
+        run: npm run render:smoke
