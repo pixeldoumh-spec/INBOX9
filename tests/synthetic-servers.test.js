@@ -13,7 +13,7 @@ test('100 synthetic slots per service are partitioned into contiguous server chu
   }
 });
 
-test('server capacities distribute 5,000 slots as evenly as possible', () => {
+test('server capacities distribute 100 slots as evenly as possible', () => {
   const servers = listSyntheticServers();
   assert.equal(servers.reduce((sum, s) => sum + s.capacity, 0), 100);
   assert.equal(Math.max(...servers.map((s) => s.capacity)), 10);
