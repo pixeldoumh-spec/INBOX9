@@ -110,7 +110,7 @@ async function runFullChromium() {
 
     await page.locator('#service-search').fill('whatsapp');
     await sleep(500);
-    assert.match(page.url(), /q=whatsapp/i, 'marketplace search should sync to the URL');
+    assert.match(page.url(), /[?&]search=whatsapp(?:&|$)/i, 'marketplace search should sync to the URL');
     await page.locator('#service-search').fill('');
     await sleep(350);
 
@@ -224,7 +224,7 @@ async function runCompatibility(browserType, name) {
     await register(page, email);
     for (const target of ['active', 'orders', 'wallet', 'support', 'account']) {
       await page.locator('[data-page="' + target + '"]').first().click();
-      const labels = { active: 'Active', orders: 'Orders', wallet: 'Wallet', support: 'Help & Support', account: 'Account' };
+      const labels = { active: 'Active numbers', orders: 'Orders', wallet: 'Wallet', support: 'Help & Support', account: 'Account' };
       await heading(page, labels[target]);
     }
     await page.locator('[data-page="buy"]').first().click();
@@ -254,6 +254,7 @@ async function runMobileChromium() {
     await visible(page, '.sidebar.open');
     await page.locator('.sidebar [data-page="wallet"]').click();
     await heading(page, 'Wallet');
+    await page.locator('.sidebar [data-page="support"]').scrollIntoViewIfNeeded();
     await page.locator('.sidebar [data-page="support"]').click();
     await heading(page, 'Help & Support');
     await page.locator('button[aria-label="Open menu"]').click();
