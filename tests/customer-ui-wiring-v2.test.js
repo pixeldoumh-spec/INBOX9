@@ -142,3 +142,19 @@ test('built-in activation validity defaults to 25 minutes', async () => {
   ]);
   for (const source of [mock, synthetic, repoSource]) assert.match(source, /25 \* 60 \* 1000/);
 });
+
+
+test('browse services scrolls to the marketplace when already on buy page', async () => {
+  const app = await read('app.js');
+  assert.match(app, /id="marketplace-services"/);
+  assert.match(app, /page === 'buy' && state\.page === 'buy'/);
+  assert.match(app, /scrollIntoView\(\{ behavior: 'smooth', block: 'start' \}\)/);
+});
+
+test('hero dashboard uses number validity instead of allocation or code timing', async () => {
+  const app = await read('app.js');
+  assert.match(app, /<span>Number validity<\/span><strong>25 min<\/strong>/);
+  assert.doesNotMatch(app, /<span>Allocation<\/span>/);
+  assert.doesNotMatch(app, /<span>Code timing<\/span>/);
+  assert.doesNotMatch(app, /server selected at purchase/);
+});
