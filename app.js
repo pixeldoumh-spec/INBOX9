@@ -1,74 +1,13 @@
-const state = {
-  page: 'buy',
-  search: '',
-  category: 'All',
-  balancePaise: 0,
-  walletLedger: [],
-  recharges: [],
-  rechargeAmount: 100,
-  services: [],
-  active: [],
-  orders: [],
-  loading: true,
-  error: '',
-  bootstrapError: '',
-  persistentState: false,
-  rechargeUpiId: null,
-  mobileMenu: false,
-  toastTimer: null,
-  user: null,
-  authMode: 'login',
-  adminTab: 'overview',
-  adminLoading: false,
-  adminError: '',
-  admin: { overview: null, recharges: [], users: [], services: [], activations: [], ledger: [], audit: [], providers: [] },
-  pendingPurchaseKeys: {},
-  purchaseBusy: new Set(),
-  securityOpen: false,
-  dialogReturnFocus: null,
-  expandedServiceId: null,
-  marketVisibleCount: 48,
-  categoryCounts: {},
-  catalogCategories: ['All'],
-  serviceSearchIndex: [],
-  marketSearchTimer: null,
-  marketServerStats: {},
-  marketServerLoading: {},
-  marketServerErrors: {},
-  lastCatalogRefreshAt: 0,
-  customerDataRefreshing: false,
-  liveProviders: {},
-  tickTimer: null,
-  purchaseFlow: {
-    step: 'service',
-    serviceId: null,
-    serverId: null,
-    submitting: false,
-    error: '',
-    returnAfterWallet: false
-  }
-};
+import { createCustomerState, NAV, DEFAULT_CATEGORIES, MARKET_PAGE_SIZE, MARKET_MAX_SEARCH_RESULTS } from './customer/state.js';
+import { api } from './customer/api-client.js';
+import { esc, money, iconFor, isLiveActivation, normalizeSearchText } from './customer/ui.js';
 
-const nav = [
-  ['buy', 'Buy Number', '▣'],
-  ['active', 'Active', '◌'],
-  ['orders', 'Orders', '▤'],
-  ['wallet', 'Wallet', '▱']
-];
-const DEFAULT_CATEGORIES = ['Social', 'Productivity', 'Rummy', 'Games', 'Other'];
+const state = createCustomerState();
 
 function appNav() {
   return state.user?.role === 'admin'
-    ? [...nav, ['admin', 'Admin', '⚙'], ['api', 'API', 'ϟ']]
-    : nav;
-}
-
-const categoryIcon = { Social: '◉', Productivity: '✦', Rummy: '◆', Games: '♟' };
-const MARKET_PAGE_SIZE = 48;
-const MARKET_MAX_SEARCH_RESULTS = 96;
-
-function normalizeSearchText(value) {
-  return String(value ?? '').toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g, '').trim();
+    ? [...NAV, ['admin', 'Admin', '⚙'], ['api', 'API', 'ϟ']]
+    : NAV;
 }
 
 function prepareServiceCatalog() {
@@ -119,10 +58,6 @@ function scheduleMarketSearch(value) {
 }
 
 
-const esc = (value) => String(value ?? '').replace(/[&<>'"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[c]));
-const money = (paise) => `₹${(Number(paise || 0) / 100).toFixed(2)}`;
-const iconFor = (category) => categoryIcon[category] || '•';
-
 function loadPersisted() {
   // Financial and order state is server-authoritative. Browser storage is not used.
   state.active = [];
@@ -132,10 +67,6 @@ function loadPersisted() {
 
 function persist() {
   // Compatibility hook retained for the UI state machine; account state is not persisted client-side.
-}
-
-function isLiveActivation(item) {
-  return ['Active', 'CancellationPending', 'ExpirationPending'].includes(String(item?.status || ''));
 }
 
 function syncFromServerActivations(activations) {
