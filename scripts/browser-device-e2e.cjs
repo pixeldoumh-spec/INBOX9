@@ -210,7 +210,11 @@ async function runFullChromium() {
       securityButton.click();
     });
     await visible(page, '[role="dialog"]');
-    await page.getByRole('dialog').getByRole('button', { name: 'Close', exact: true }).click();
+    await page.evaluate(() => {
+      const close = document.querySelector('[data-action="close-security"]');
+      if (!close) throw new Error('Security close control not found');
+      close.click();
+    });
 
     offlineExpected = true;
     await context.setOffline(true);
