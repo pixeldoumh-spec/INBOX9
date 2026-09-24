@@ -96,19 +96,31 @@ test('marketplace search keeps a bounded visible result set', async () => {
 });
 
 test('customer bundle uses extracted architecture modules', async () => {
-  const [app, state, apiClient, ui] = await Promise.all([
+  const [app, state, apiClient, ui, navigation, customerData] = await Promise.all([
     read('app.js'),
     read('customer/state.js'),
     read('customer/api-client.js'),
     read('customer/ui.js'),
+    read('customer/navigation.js'),
+    read('customer/customer-data.js'),
   ]);
   assert.match(app, /from '\.\/customer\/state\.js'/);
   assert.match(app, /from '\.\/customer\/api-client\.js'/);
   assert.match(app, /from '\.\/customer\/ui\.js'/);
+  assert.match(app, /from '\.\/customer\/navigation\.js'/);
+  assert.match(app, /from '\.\/customer\/customer-data\.js'/);
   assert.match(state, /createCustomerState/);
   assert.match(apiClient, /export async function api/);
   assert.match(ui, /export function normalizeSearchText/);
+  assert.match(navigation, /createCustomerNavigation/);
+  assert.match(customerData, /createCustomerDataController/);
+  assert.match(customerData, /async function loadCustomerData/);
+  assert.match(customerData, /async function refreshCatalog/);
+  assert.match(customerData, /function syncFromServerActivations/);
   assert.doesNotMatch(app, /const state = \{/);
   assert.doesNotMatch(app, /function normalizeSearchText\(/);
   assert.doesNotMatch(app, /const esc = \(/);
+  assert.doesNotMatch(app, /function loadPersisted\(/);
+  assert.doesNotMatch(app, /async function loadCustomerData\(/);
+  assert.doesNotMatch(app, /async function refreshCatalog\(/);
 });

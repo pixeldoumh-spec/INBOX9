@@ -47,7 +47,8 @@ const staticFiles = new Map([
   ['/customer/state.js', ['customer/state.js', 'text/javascript; charset=utf-8']],
   ['/customer/api-client.js', ['customer/api-client.js', 'text/javascript; charset=utf-8']],
   ['/customer/ui.js', ['customer/ui.js', 'text/javascript; charset=utf-8']],
-  ['/customer/navigation.js', ['customer/navigation.js', 'text/javascript; charset=utf-8']]
+  ['/customer/navigation.js', ['customer/navigation.js', 'text/javascript; charset=utf-8']],
+  ['/customer/customer-data.js', ['customer/customer-data.js', 'text/javascript; charset=utf-8']]
 ]);
 
 class RuntimeResponse {
