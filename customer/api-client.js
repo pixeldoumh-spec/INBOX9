@@ -18,6 +18,10 @@ export async function api(url, options = {}) {
     try {
       response = await fetch(url, {
         ...options,
+        // Keep authenticated same-origin requests explicitly cookie-aware.
+        // The browser default is same-origin, but making it explicit protects
+        // session bootstrap/login continuity across reloads and environments.
+        credentials: options.credentials ?? 'same-origin',
         headers: {
           accept: 'application/json',
           ...(options.headers || {})
