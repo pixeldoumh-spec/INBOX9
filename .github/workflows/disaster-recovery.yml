@@ -167,7 +167,7 @@ jobs:
           set -euo pipefail
           result="$(npm run db:migrate 2>&1)"
           echo "$result"
-          echo "$result" | grep -q '"applied":[]'
+          echo "$result" | grep -Fq '"applied":[]'
 
       - name: Verify restored database after migration replay
         env:
