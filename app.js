@@ -1080,7 +1080,7 @@ function ordersPage() {
     '<button class="filter-btn ' + (state.orderFilter === value ? 'selected' : '') + '" type="button" data-order-filter="' + value + '">' + label + '<span class="filter-count">' + (value === 'all' ? state.orders.length : value === 'active' ? activeCount : completedCount) + '</span></button>'
   ).join('');
   const body = list.length
-    ? '<div class="orders-card-list">' + list.map(orderCard).join('') + '</div>'
+    ? '<div class="orders-card-list orders-table">' + list.map(orderCard).join('') + '</div>'
     : '<div class="panel empty"><div class="empty-icon">▤</div><h3>No matching orders</h3><p>Your activations and completed transactions will appear here automatically.</p><button class="refresh-btn empty-state-action" type="button" data-action="refresh-customer">Refresh orders</button></div>';
   return '<div class="section-head with-action"><div><span class="kicker">ACCOUNT ACTIVITY</span><h2>Orders</h2><p class="section-subcopy">A transaction timeline for your number activations.</p></div><div class="page-head-actions"><span class="status-chip">' + state.orders.length + ' total</span><button class="refresh-btn" type="button" data-action="refresh-customer">' + (state.customerDataRefreshing ? 'Refreshing…' : 'Refresh') + '</button></div></div>' +
     '<div class="order-summary-strip"><div><span>Active</span><strong>' + activeCount + '</strong></div><div><span>Finished</span><strong>' + completedCount + '</strong></div><div><span>Tracked</span><strong>' + state.orders.length + '</strong></div></div>' +
