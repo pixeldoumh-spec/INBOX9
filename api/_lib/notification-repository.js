@@ -9,8 +9,8 @@ export async function syncUserNotifications(userId) {
   await pool.query(
     `INSERT INTO notifications (id,user_id,kind,source_type,source_id,event_key,title,body,page,tone,created_at)
      SELECT $1 || substr(md5(r.id || r.status || r.user_id),1,18), r.user_id, 'recharge', 'recharge', r.id, 'status:'||r.status,
-       CASE r.status WHEN 'Approved' THEN 'Recharge verified' ELSE 'Recharge not credited' END,
-       CASE r.status WHEN 'Approved' THEN 'Your recharge of ₹' || to_char(r.amount_paise/100.0,'FM999999990.00') || ' was verified and credited.'
+       CASE r.status WHEN 'Approved' THEN 'Recharge successful' ELSE 'Recharge not credited' END,
+       CASE r.status WHEN 'Approved' THEN 'Your recharge of ₹' || to_char(r.amount_paise/100.0,'FM999999990.00') || ' was credited to your wallet successfully.'
                     ELSE 'Your recharge of ₹' || to_char(r.amount_paise/100.0,'FM999999990.00') || ' was not credited.' END,
        'wallet', CASE r.status WHEN 'Approved' THEN 'success' ELSE 'danger' END, COALESCE(r.reviewed_at,r.submitted_at)
      FROM recharge_requests r
@@ -21,15 +21,16 @@ export async function syncUserNotifications(userId) {
   await pool.query(
     `INSERT INTO notifications (id,user_id,kind,source_type,source_id,event_key,title,body,page,tone,created_at)
      SELECT $1 || substr(md5(a.id || a.status || a.user_id),1,18), a.user_id, 'activation', 'activation', a.id, 'status:'||a.status,
-       CASE a.status WHEN 'Completed' THEN 'OTP received' WHEN 'Expired' THEN 'Number expired' WHEN 'Refunded' THEN 'Activation refunded' ELSE 'Activation closed' END,
-       CASE a.status WHEN 'Completed' THEN 'Verification code is ready for order ' || a.id || '.'
+       CASE a.status WHEN 'Active' THEN 'Number fetched successfully' WHEN 'Completed' THEN 'OTP received successfully' WHEN 'Expired' THEN 'Number expired' WHEN 'Refunded' THEN 'Activation refunded' ELSE 'Activation closed' END,
+       CASE a.status WHEN 'Active' THEN 'Your ' || a.service_name || ' number ' || a.phone_number || ' is ready to use.'
+                    WHEN 'Completed' THEN 'Verification code is ready for order ' || a.id || '.'
                     WHEN 'Expired' THEN 'Order ' || a.id || ' reached its validity limit.'
                     WHEN 'Refunded' THEN 'Order ' || a.id || ' was cancelled and refunded.'
                     ELSE 'Order ' || a.id || ' is now closed.' END,
-       CASE a.status WHEN 'Completed' THEN 'active' ELSE 'orders' END,
-       CASE a.status WHEN 'Completed' THEN 'success' ELSE 'info' END, a.updated_at
+       CASE a.status WHEN 'Active' THEN 'active' WHEN 'Completed' THEN 'active' ELSE 'orders' END,
+       CASE a.status WHEN 'Active' THEN 'success' WHEN 'Completed' THEN 'success' ELSE 'info' END, a.updated_at
      FROM activations a
-     WHERE a.user_id=$2 AND a.status IN ('Completed','Expired','Refunded','Cancelled')
+     WHERE a.user_id=$2 AND a.status IN ('Active','Completed','Expired','Refunded','Cancelled')
      ON CONFLICT DO NOTHING`,
     [id(),userId]
   );
@@ -51,12 +52,12 @@ export async function listNotifications(userId, limit=50) {
   await syncUserNotifications(userId);
   const safeLimit=Math.min(Math.max(Number(limit)||50,1),100);
   const result=await pool.query(
-    `SELECT id,kind,source_type,source_id,title,body,page,tone,read_at,created_at
+    `SELECT id,kind,source_type,source_id,event_key,title,body,page,tone,read_at,created_at
      FROM notifications WHERE user_id=$1 ORDER BY created_at DESC LIMIT $2`,
     [userId,safeLimit]
   );
   return result.rows.map((row)=>({
-    id:row.id,kind:row.kind,sourceType:row.source_type,sourceId:row.source_id,
+    id:row.id,kind:row.kind,sourceType:row.source_type,sourceId:row.source_id,eventKey:row.event_key,
     title:row.title,body:row.body,page:row.page,tone:row.tone,
     read:Boolean(row.read_at),createdAt:new Date(row.created_at).getTime()
   }));
