@@ -17,6 +17,7 @@
 
   const script = document.createElement('script');
   script.src = `${appScript}?v=${Date.now()}`;
+  script.type = 'module';
   script.defer = false;
   script.onload = () => {
     started = true;
