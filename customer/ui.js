@@ -9,7 +9,7 @@ export function normalizeSearchText(value) {
   return String(value ?? '')
     .toLowerCase()
     .normalize('NFKD')
-    .replace(/[\\u0300-\\u036f]/g, '')
+    .replace(/[\u0300-\u036f]/g, '')
     .trim();
 }
 
