@@ -1600,6 +1600,10 @@ function activeCard(activation) {
   const otp = String(activation.otp || '').trim();
   const expiresAt = Number(activation.expiresAt || 0);
   const createdAt = Number(activation.createdAt || 0);
+  const syntheticRevealAt = Number(activation.syntheticNumberRevealAt || activation.metadata?.numberRevealAt || 0);
+  const syntheticOtpAt = Number(activation.syntheticOtpAvailableAt || activation.mockOtpAt || 0);
+  const syntheticNumberHidden = status === 'Active' && !otp && syntheticRevealAt > Date.now();
+  const syntheticOtpWaiting = status === 'Active' && !otp && !syntheticNumberHidden && syntheticOtpAt > Date.now();
   const total = Math.max(1, expiresAt - createdAt || (25 * 60 * 1000));
   const remaining = expiresAt ? Math.max(0, Math.floor((expiresAt - Date.now()) / 1000)) : (25 * 60);
   const minutes = String(Math.floor(remaining / 60)).padStart(2, '0');
@@ -1610,7 +1614,13 @@ function activeCard(activation) {
   const actionError = state.activeActionErrorById[activation.id] || '';
   const service = state.services.find((s) => s.id === activation.serviceId);
   const statusInfo = {
-    Active: otp ? { label: 'Code received', tone: 'received' } : { label: 'Waiting for SMS', tone: 'waiting' },
+    Active: otp
+      ? { label: 'Code received', tone: 'received' }
+      : syntheticNumberHidden
+        ? { label: 'Fetching number', tone: 'waiting' }
+        : syntheticOtpWaiting
+          ? { label: 'OTP generating', tone: 'waiting' }
+          : { label: 'Waiting for SMS', tone: 'waiting' },
     CancellationPending: { label: 'Cancellation in progress', tone: 'pending' },
     ExpirationPending: { label: 'Expiring', tone: 'pending' }
   }[status] || { label: status, tone: 'neutral' };
@@ -1618,13 +1628,23 @@ function activeCard(activation) {
   const cancelUi = cancelling
     ? '<div class="cancel-confirm"><span>Cancel this activation and request a refund.</span><div><button class="ghost-btn" type="button" data-cancel-dismiss>Keep number</button><button class="text-danger confirm-danger" type="button" data-cancel-confirm="' + esc(activation.id) + '">Confirm cancel</button></div></div>'
     : (canCancel ? '<button class="text-danger" type="button" data-cancel="' + esc(activation.id) + '">Cancel & refund</button>' : '<span class="cancel-disabled-note">' + (status === 'CancellationPending' ? 'Cancellation processing' : status === 'ExpirationPending' ? 'Expiration processing' : otp ? 'Code received' : 'Not cancellable') + '</span>');
+  const numberFetchRemaining = Math.max(0, Math.ceil((syntheticRevealAt - Date.now()) / 1000));
+  const otpRemaining = Math.max(0, Math.ceil((syntheticOtpAt - Date.now()) / 1000));
+  const numberFetchClock = '00:' + String(numberFetchRemaining).padStart(2, '0');
+  const otpClock = '00:' + String(otpRemaining).padStart(2, '0');
   const otpPanel = otp
     ? '<div class="otp-panel otp-received-panel"><div class="otp-panel-head"><span class="otp-label">VERIFICATION CODE</span><span class="code-state success">READY</span></div><div class="otp-code">' + esc(otp) + '</div><div class="otp-actions"><button class="primary-btn otp-copy-primary" type="button" data-copy="' + esc(otp.replace(/\s/g, '')) + '" data-copy-message="OTP copied">Copy code</button><span class="otp-help">Use the code shown here to complete verification.</span></div></div>'
-    : '<div class="otp-panel waiting-panel"><div class="otp-panel-head"><span class="otp-label">TIME REMAINING</span><span class="code-state ' + esc(statusInfo.tone) + '">' + esc(statusInfo.label.toUpperCase()) + '</span></div><div class="timer">◷ ' + minutes + ':' + seconds + '</div><div class="progress"><span style="width:' + progress + '%"></span></div><div class="waiting-note">' + (status === 'CancellationPending' ? '◷ Cancellation is being processed' : status === 'ExpirationPending' ? '◷ Finalizing this activation' : '▣ Waiting for the verification code') + '</div></div>';
+    : syntheticNumberHidden
+      ? '<div class="otp-panel waiting-panel"><div class="otp-panel-head"><span class="otp-label">NUMBER FETCH</span><span class="code-state waiting">FETCHING</span></div><div class="timer">◷ ' + numberFetchClock + '</div><div class="progress"><span style="width:' + Math.min(100, Math.max(0, ((Date.now() - createdAt) / Math.max(1, syntheticRevealAt - createdAt)) * 100)) + '%"></span></div><div class="waiting-note">▣ Preparing the synthetic number…</div></div>'
+      : '<div class="otp-panel waiting-panel"><div class="otp-panel-head"><span class="otp-label">' + (syntheticOtpWaiting ? 'OTP FETCH' : 'TIME REMAINING') + '</span><span class="code-state ' + esc(statusInfo.tone) + '">' + esc(statusInfo.label.toUpperCase()) + '</span></div><div class="timer">' + (syntheticOtpWaiting ? '◷ ' + otpClock : '◷ ' + minutes + ':' + seconds) + '</div><div class="progress"><span style="width:' + (syntheticOtpWaiting ? Math.min(100, Math.max(0, ((Date.now() - syntheticRevealAt) / Math.max(1, syntheticOtpAt - syntheticRevealAt)) * 100)) : progress) + '%"></span></div><div class="waiting-note">' + (status === 'CancellationPending' ? '◷ Cancellation is being processed' : status === 'ExpirationPending' ? '◷ Finalizing this activation' : syntheticOtpWaiting ? '▣ Number ready. Complete the verification on the service, then the synthetic OTP will appear.' : '▣ Waiting for the verification code') + '</div></div>';
   const errorBlock = actionError ? '<div class="active-action-error" role="alert"><span>' + esc(actionError) + '</span><button class="refresh-btn" type="button" data-action="refresh-activation" data-refresh-activation="' + esc(activation.id) + '">Check status</button></div>' : '';
+  const displayNumber = syntheticNumberHidden ? 'Fetching number…' : activation.number;
+  const copyNumber = syntheticNumberHidden
+    ? '<span class="copy-btn disabled" aria-disabled="true">Preparing…</span>'
+    : '<button class="copy-btn" type="button" data-copy="' + esc(activation.number.replace(/\s/g, '')) + '" data-copy-message="Number copied">Copy number</button>';
   return '<article class="active-card ' + (cancelBusy ? 'is-cancelling' : '') + ' ' + esc(statusInfo.tone) + '">' +
-    '<div class="active-card-header"><div class="service-icon large">' + iconFor(service?.category) + '</div><div class="service-meta"><span class="service-category">' + esc(activation.service) + '</span><h3>' + esc(activation.number) + '</h3></div><span class="activation-status ' + esc(statusInfo.tone) + '"><span></span>' + (cancelBusy ? 'Cancelling…' : esc(statusInfo.label)) + '</span></div>' +
-    '<div class="active-context"><span>+91 number format</span><span>' + money(activation.pricePaise) + '</span><span>Order ' + esc(activation.id) + '</span><button class="copy-btn" type="button" data-copy="' + esc(activation.number.replace(/\s/g, '')) + '" data-copy-message="Number copied">Copy number</button></div>' +
+    '<div class="active-card-header"><div class="service-icon large">' + iconFor(service?.category) + '</div><div class="service-meta"><span class="service-category">' + esc(activation.service) + '</span><h3>' + esc(displayNumber) + '</h3></div><span class="activation-status ' + esc(statusInfo.tone) + '"><span></span>' + (cancelBusy ? 'Cancelling…' : esc(statusInfo.label)) + '</span></div>' +
+    '<div class="active-context"><span>+91 number format</span><span>' + money(activation.pricePaise) + '</span><span>Order ' + esc(activation.id) + '</span>' + copyNumber + '</div>' +
     otpPanel + errorBlock +
     '<div class="active-footer"><span><small>ACTIVATION</small><strong>' + (status === 'CancellationPending' ? 'Cancellation in progress' : status === 'ExpirationPending' ? 'Expiration in progress' : 'Number valid for up to 25 minutes') + '</strong></span>' + cancelUi + '</div>' +
   '</article>';
