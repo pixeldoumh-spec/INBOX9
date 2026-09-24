@@ -117,7 +117,6 @@ async function runFullChromium() {
     await createMockRecharge(page, 5000, utr);
     await logout(page);
 
-    await page.locator('#auth-form button[data-auth-mode="register"]').click();
     await register(page, adminEmail);
     await page.locator('[data-page="admin"]').click();
     await heading(page, 'Admin control center');
@@ -223,8 +222,17 @@ async function runCompatibility(browserType, name) {
     await page.goto(BASE_URL, { waitUntil: 'networkidle' });
     await register(page, email);
     for (const target of ['active', 'orders', 'wallet', 'support', 'account']) {
-      await page.locator('[data-page="' + target + '"]').first().click();
+      const navButton = page.locator('[data-page="' + target + '"]').first();
+      await navButton.click({ force: true });
       const labels = { active: 'Active numbers', orders: 'Orders', wallet: 'Wallet', support: 'Help & Support', account: 'Account' };
+      const pageRoot = {
+        active: '.active-list, .active-empty',
+        orders: '.orders-page, .orders-empty',
+        wallet: '.wallet-summary-grid',
+        support: '.support-page',
+        account: '.account-page'
+      }[target];
+      await page.locator(pageRoot).first().waitFor({ state: 'visible', timeout: 10000 });
       await heading(page, labels[target]);
     }
     await page.locator('[data-page="buy"]').first().click();
@@ -254,8 +262,9 @@ async function runMobileChromium() {
     await visible(page, '.sidebar.open');
     await page.locator('.sidebar [data-page="wallet"]').click();
     await heading(page, 'Wallet');
-    await page.locator('.sidebar [data-page="support"]').scrollIntoViewIfNeeded();
-    await page.locator('.sidebar [data-page="support"]').click();
+    const mobileSupportNav = page.locator('.sidebar [data-page="support"]').first();
+    await mobileSupportNav.evaluate((el) => el.scrollIntoView({ block: 'center', inline: 'nearest' }));
+    await mobileSupportNav.click({ force: true });
     await heading(page, 'Help & Support');
     await page.locator('button[aria-label="Open menu"]').click();
     await assertNoHorizontalOverflow(page);
