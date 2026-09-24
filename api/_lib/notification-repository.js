@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import { getPool } from './db.js';
 
 function id() { return 'NOT-' + crypto.randomUUID(); }
