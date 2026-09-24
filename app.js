@@ -1563,6 +1563,11 @@ function bindEvents() {
   document.querySelectorAll('[data-generate-recovery]').forEach((n)=>n.addEventListener('click',generateRecoveryCode));
   document.querySelectorAll('[data-revoke-session]').forEach((n)=>n.addEventListener('click',()=>revokeSession(n.dataset.revokeSession)));
   document.getElementById('support-form')?.addEventListener('submit', submitSupportTicket);
+  document.getElementById('support-form')?.addEventListener('input', (event) => {
+    const field = event.target;
+    if (!field?.name || !(field.name in state.supportForm)) return;
+    state.supportForm[field.name] = String(field.value || '');
+  });
   document.querySelectorAll('[data-action="refresh-support"]').forEach((node) => node.addEventListener('click', () => void refreshSupport().then(() => render())));
   document.querySelectorAll('[data-recovery]').forEach((node) => node.addEventListener('click', () => void runRecovery(node.dataset.recovery)));
 
