@@ -450,7 +450,7 @@ const {
   refreshCatalog
 } = customerData;
 
-async function loadCustomerData(options = {}) {
+const loadCustomerData = async (options = {}) => {
   const before = notificationSnapshot();
   const result = await loadCustomerDataRaw(options);
   if (result) {
@@ -459,7 +459,7 @@ async function loadCustomerData(options = {}) {
     processNotificationSnapshot({ announce: hadBaseline });
   }
   return result;
-}
+};
 
 const {
   pageFromHash,
