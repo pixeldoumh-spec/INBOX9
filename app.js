@@ -604,8 +604,10 @@ function toggleServiceDetails(serviceId) {
 
 async function bootstrapSession() {
   state.bootstrapError = '';
+  const hadAuthenticatedShell = Boolean(state.user);
   state.loading = true;
-  render();
+  // Keep the authenticated shell mounted during session verification.
+  if (!hadAuthenticatedShell) render();
   try {
     const session = await api('/api/auth/me');
     state.user = session.user;
@@ -2134,6 +2136,10 @@ document.addEventListener('keydown', (event) => {
     event.preventDefault();
     document.getElementById('service-search')?.focus();
   }
+});
+
+window.addEventListener('pagehide', () => {
+  if (state.user) writeSessionHint(state.user);
 });
 
 window.addEventListener('hashchange', handleHashNavigation);
