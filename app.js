@@ -304,7 +304,7 @@ function notificationPanel() {
           '<span class="notification-icon">•</span><span class="notification-copy"><strong>' + esc(item.title) + '</strong><small>' + esc(item.body) + '</small><em>' + age + '</em></span></button>';
       }).join('')
     : '<div class="notification-empty"><span>✓</span><strong>All caught up</strong><small>Important wallet and activation updates will appear here.</small></div>';
-  return '<div class="notification-wrap"><button class="icon-btn notification-btn" type="button" aria-label="Notifications" aria-expanded="' + String(state.notificationsOpen) + '" data-action="notifications"><span class="notification-bell">◔</span>' +
+  return '<div class="notification-wrap ' + (unread ? 'has-unread' : '') + '"><button class="icon-btn notification-btn" type="button" aria-label="' + (unread ? 'Notifications, ' + unread + ' unread' : 'Notifications') + '" aria-expanded="' + String(state.notificationsOpen) + '" data-action="notifications"><span class="notification-bell" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"></path></svg></span><span class="notification-status-light" aria-hidden="true"></span>' +
     (unread ? '<b class="notification-badge">' + unread + '</b>' : '') + '</button>' +
     (state.notificationsOpen ? '<div class="notification-panel" role="dialog" aria-label="Notifications"><div class="notification-panel-head"><div><span class="kicker">UPDATES</span><strong>Notifications</strong></div><button class="ghost-btn" type="button" data-action="notifications-read" ' + (unread ? '' : 'disabled') + '>Mark read</button></div><div class="notification-list">' + rows + '</div></div>' : '') +
     '</div>';
@@ -1266,7 +1266,7 @@ function render() {
       <main class="main">
         <header class="topbar">
           <div class="breadcrumb"><button class="menu-btn icon-btn" type="button" aria-label="Open menu" data-action="open-menu">☰</button><span>Market</span><span>/</span><strong>${esc(current)}</strong></div>
-          <div class="top-actions">${notificationPanel()}<button class="wallet-chip" type="button" data-page="wallet">▱ ${money(state.balancePaise)} <b>+</b></button><span class="topbar-live-status"><span class="live-dot"></span><span>Connected</span></span></div>
+          <div class="top-actions"><button class="wallet-chip" type="button" data-page="wallet">▱ ${money(state.balancePaise)} <b>+</b></button><span class="topbar-live-status"><span class="live-dot"></span><span>Connected</span></span>${notificationPanel()}</div>
         </header>
         <section class="content-wrap">
           ${state.page === 'buy' ? hero() : ''}
