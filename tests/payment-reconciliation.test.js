@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
 const migration = fs.readFileSync(new URL('../db/migrations/010_payment_reconciliation.sql', import.meta.url), 'utf8');
+const sessionMigration = fs.readFileSync(new URL('../db/migrations/029_recharge_session_linkage.sql', import.meta.url), 'utf8');
 const walletRepo = fs.readFileSync(new URL('../api/_lib/wallet-repository.js', import.meta.url), 'utf8');
 const adminRoute = fs.readFileSync(new URL('../api/admin/recharges/_id.js', import.meta.url), 'utf8');
 const reconciliationRoute = fs.readFileSync(new URL('../api/admin/_payment-reconciliation.js', import.meta.url), 'utf8');
@@ -35,7 +36,7 @@ test('admin payment reconciliation exposes summary and flagged requests', () => 
 
 
 test('recharge requests capture the originating session and admin queue exposes payment history context', () => {
-  assert.match(migration, /submission_session_id/);
+  assert.match(sessionMigration, /submission_session_id/);
   assert.match(walletRepo, /createRecharge\(userId, amountPaise, utr, submissionSessionId = null\)/);
   assert.match(walletRepo, /submission_session_id\)/);
   assert.match(walletRepo, /recent_payment_history/);
