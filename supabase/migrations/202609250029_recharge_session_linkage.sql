@@ -1,4 +1,4 @@
--- INBOX9: link manual UTR deposits to the authenticated session that submitted them.
+-- INBOX9 mirror: link manual UTR deposits to the authenticated session that submitted them.
 -- The session ID is an audit snapshot, not a foreign key, because old sessions may be revoked/deleted later.
 BEGIN;
 
