@@ -73,6 +73,10 @@ jobs:
 
       - run: npm run check
       - run: npm test
+
+      - name: Dependency vulnerability audit
+        run: npm audit --audit-level=high
+
       - run: npm run issue9:e2e
 
       - name: Secret pattern scan
