@@ -648,7 +648,7 @@ function purchaseReviewModal() {
   if (!data.service) return '';
   const insufficient = state.balancePaise < data.pricePaise;
   const activating = flow.step === 'activation' || flow.submitting;
-  const error = flow.error ? `<div class="purchase-error">${esc(flow.error)}</div>` : '';
+  const error = flow.error ? `<div class="purchase-error">${esc(flow.error)}</div>` + (flow.errorCode === 'NETWORK_ERROR' ? '<div class="purchase-recovery-actions"><button class="secondary-btn" type="button" data-purchase-check-active>Check Active</button><button class="secondary-btn" type="button" data-purchase-retry>Retry request</button></div>' : '') : '';
   if (activating) return `<div class="purchase-overlay" role="presentation"><div class="purchase-backdrop"></div><section class="purchase-sheet purchase-sheet-loading" role="dialog" aria-modal="true" aria-labelledby="purchase-title" tabindex="-1"><div class="purchase-sheet-top"><div><span class="kicker">STEP 3 OF 3</span><h2 id="purchase-title">Getting your number</h2></div></div><div class="purchase-steps" aria-label="Purchase progress"><span class="purchase-step done"><b>1</b> Service</span><span class="purchase-step done"><b>2</b> Review</span><span class="purchase-step current"><b>3</b> Track</span></div><div class="purchase-activation-state"><div class="purchase-loader" aria-hidden="true"></div><span class="service-category">ACTIVATION</span><h3>Reserving your number…</h3><p>We’re preparing your number now. Your active number will appear shortly.</p></div></section></div>`;
   return `<div class="purchase-overlay" role="presentation"><button class="purchase-backdrop" type="button" aria-label="Close purchase review" data-purchase-close></button><section class="purchase-sheet" role="dialog" aria-modal="true" aria-labelledby="purchase-title" tabindex="-1"><div class="purchase-sheet-top"><div><span class="kicker">STEP 2 OF 3</span><h2 id="purchase-title">Review your number</h2></div><button class="icon-btn" type="button" aria-label="Close" data-purchase-close>×</button></div><div class="purchase-steps" aria-label="Purchase progress"><span class="purchase-step done"><b>1</b> Service</span><span class="purchase-step current"><b>2</b> Review</span><span class="purchase-step"><b>3</b> Track</span></div><div class="purchase-service-card"><div class="service-icon large">${iconFor(data.service.category)}</div><div class="purchase-service-copy"><span class="service-category">${esc(data.service.category)}</span><strong>${esc(data.service.name)}</strong><span>Number format: +91 · OTP delivery timing varies by service</span></div></div><div class="purchase-detail-grid"><div><span>Number format</span><strong>+91</strong><small>Marketplace format</small></div><div><span>Price</span><strong>${money(data.pricePaise)}</strong><small>One activation</small></div><div><span>Number validity</span><strong>25 minutes</strong><small>Maximum validity</small></div><div><span>Wallet balance</span><strong>${money(state.balancePaise)}</strong><small>Available to use now</small></div><div><span>After purchase</span><strong>${insufficient ? "—" : money(Math.max(0, data.afterBalancePaise))}</strong><small>${insufficient ? "Add funds required" : "Estimated remaining balance"}</small></div></div><div class="purchase-trust"><span>✓</span><div><strong>Activation tracking</strong><small>After confirmation, your number appears in Active. OTP delivery timing varies by service; status updates are shown there.</small></div></div>${error}${insufficient ? `<div class="purchase-actions"><button class="secondary-btn" type="button" data-purchase-close>Back</button><button class="primary-btn" type="button" data-purchase-wallet>Add funds</button></div>` : `<div class="purchase-actions"><button class="secondary-btn" type="button" data-purchase-close>Back</button><button class="primary-btn purchase-confirm-btn" type="button" data-purchase-confirm>Get number <span>→</span></button></div>`}</section></div>`;
 }
@@ -658,12 +658,14 @@ async function confirmPurchase() {
   if (!data.service) return;
   if (state.balancePaise < data.pricePaise) {
     state.purchaseFlow.error = 'You need more wallet balance to complete this activation.';
+    state.purchaseFlow.errorCode = 'INSUFFICIENT_BALANCE';
     renderBuyCatalog();
     return;
   }
   state.purchaseFlow.step = 'activation';
   state.purchaseFlow.submitting = true;
   state.purchaseFlow.error = '';
+  state.purchaseFlow.errorCode = '';
   renderBuyCatalog();
   scheduleDialogFocus();
   await buy(data.service.id);
@@ -725,7 +727,8 @@ async function buy(serviceId, serverId = null) {
     if (error.code === 'NETWORK_ERROR') {
       state.purchaseFlow.step = 'review';
       state.purchaseFlow.submitting = false;
-      state.purchaseFlow.error = 'The request may still be processing. You can safely retry.';
+      state.purchaseFlow.error = 'The request may still be processing. Use Active to check before starting another request.';
+      state.purchaseFlow.errorCode = 'NETWORK_ERROR';
       persist();
       renderBuyCatalog();
       return;
@@ -734,6 +737,7 @@ async function buy(serviceId, serverId = null) {
     state.purchaseFlow.step = 'review';
     state.purchaseFlow.submitting = false;
     state.purchaseFlow.error = error.message || 'We could not complete this activation.';
+    state.purchaseFlow.errorCode = error.code || 'ACTIVATION_ERROR';
     persist();
     if (error.code === 'IDEMPOTENCY_KEY_REUSED') {
       toast('Purchase request could not be reused. Please start a new purchase.');
@@ -744,11 +748,39 @@ async function buy(serviceId, serverId = null) {
   }
 }
 
+async function refreshSingleActivation(id) {
+  const target = state.active.find((entry) => entry.id === id);
+  if (!target) return;
+  try {
+    const latest = await api('/api/activations/' + encodeURIComponent(id));
+    delete state.activeActionErrorById[id];
+    const index = state.active.findIndex((entry) => entry.id === id);
+    if (isLiveActivation(latest)) {
+      if (index >= 0) state.active[index] = { ...state.active[index], ...latest };
+      else state.active.push(latest);
+    } else {
+      if (index >= 0) state.active.splice(index, 1);
+      if (['Completed', 'Expired', 'Refunded', 'Cancelled'].includes(String(latest.status || ''))) {
+        state.recentActivations = [latest, ...state.recentActivations.filter((entry) => entry.id !== latest.id)]
+          .filter((entry) => !entry.createdAt || Number(entry.createdAt) >= Date.now() - 15 * 60 * 1000)
+          .slice(0, 6);
+      }
+    }
+    state.activeSyncError = '';
+    renderActiveOnly();
+  } catch (error) {
+    if (Number(error.status) === 401) { handleSessionExpired(); return; }
+    state.activeActionErrorById[id] = error.message || 'Could not refresh this activation.';
+    renderActiveOnly();
+  }
+}
+
 async function cancelActivation(id) {
   const item = state.active.find((entry) => entry.id === id);
   if (!item || state.activeCancelBusy.has(id)) return;
   state.activeCancelBusy.add(id);
   state.activeCancelId = null;
+  delete state.activeActionErrorById[id];
   renderActiveOnly();
   try {
     const result = await api('/api/activations/' + encodeURIComponent(id) + '/cancel', { method: 'POST' });
@@ -761,8 +793,9 @@ async function cancelActivation(id) {
       handleSessionExpired();
       return;
     }
-    state.activeSyncError = error.message || 'We could not cancel this activation safely.';
-    toast(state.activeSyncError);
+    state.activeActionErrorById[id] = error.message || 'We could not cancel this activation safely.';
+    state.activeSyncError = state.activeActionErrorById[id];
+    toast(state.activeActionErrorById[id]);
     renderActiveOnly();
   } finally {
     state.activeCancelBusy.delete(id);
@@ -838,16 +871,20 @@ async function syncActivationItem(item) {
     if (isLiveActivation(latest)) {
       if (index >= 0) state.active[index] = { ...state.active[index], ...latest };
       else state.active.push(latest);
+      delete state.activeActionErrorById[item.id];
       return;
     }
     if (index >= 0) state.active.splice(index, 1);
-    if (['Completed', 'Expired', 'Refunded'].includes(String(latest.status || ''))) {
+    if (['Completed', 'Expired', 'Refunded', 'Cancelled'].includes(String(latest.status || ''))) {
       state.recentActivations = [latest, ...state.recentActivations.filter((entry) => entry.id !== latest.id)]
         .filter((entry) => !entry.createdAt || Number(entry.createdAt) >= Date.now() - 15 * 60 * 1000)
         .slice(0, 6);
     }
   } catch (error) {
-    if (!/Activation not found/i.test(error.message)) state.activeSyncError = error.message || 'Live activation status is temporarily unavailable';
+    if (!/Activation not found/i.test(error.message)) {
+      state.activeSyncError = error.message || 'Live activation status is temporarily unavailable';
+      state.activeActionErrorById[item.id] = error.message || 'Could not refresh this activation.';
+    }
   }
 }
 
@@ -1375,6 +1412,8 @@ function buyPage() {
 function activePage() {
   const activeCount = state.active.length;
   const recent = Array.isArray(state.recentActivations) ? state.recentActivations : [];
+  const justReceived = recent.filter(isJustReceivedCode);
+  const olderRecent = recent.filter((activation) => !isJustReceivedCode(activation));
   const syncLabel = state.customerDataRefreshing
     ? 'Checking live status…'
     : state.lastActivationSyncAt
@@ -1386,11 +1425,27 @@ function activePage() {
   const liveBlock = activeCount
     ? '<div class="active-list">' + state.active.map(activeCard).join('') + '</div>'
     : '<div class="panel empty active-empty"><div class="empty-icon">▤</div><h3>No active numbers</h3><p>Reserve a number from the marketplace and the activation will appear here.</p><button class="refresh-btn empty-state-action" type="button" data-page="buy">Browse services</button></div>';
-  const recentBlock = recent.length
-    ? '<section class="recent-activation-section"><div class="section-head recent-section-head"><div><span class="kicker">RECENT</span><h3>Recently finished</h3></div><span class="result-note">Last 15 minutes</span></div><div class="recent-activation-list">' + recent.map(recentActivationCard).join('') + '</div></section>'
+  const receivedBlock = justReceived.length
+    ? '<section class="active-received-section"><div class="section-head recent-section-head"><div><span class="kicker">CODE RECEIVED</span><h3>Ready to use</h3></div><span class="result-note">Recent activations</span></div><div class="active-received-list">' + justReceived.map(receivedCodeCard).join('') + '</div></section>'
     : '';
-  return '<div class="section-head with-action"><div><span class="kicker">LIVE SESSION</span><h2>Active numbers</h2></div><div class="page-head-actions"><span class="status-chip">● ' + activeCount + ' active</span><span class="result-note active-sync-label">' + syncLabel + '</span><button class="refresh-btn" type="button" data-action="refresh-customer">' + (state.customerDataRefreshing ? 'Refreshing…' : 'Refresh') + '</button></div></div>' + errorBlock + liveBlock + recentBlock;
+  const recentBlock = olderRecent.length
+    ? '<section class="recent-activation-section"><div class="section-head recent-section-head"><div><span class="kicker">RECENT</span><h3>Recently finished</h3></div><span class="result-note">Last 15 minutes</span></div><div class="recent-activation-list">' + olderRecent.map(recentActivationCard).join('') + '</div></section>'
+    : '';
+  return '<div class="section-head with-action"><div><span class="kicker">LIVE SESSION</span><h2>Active numbers</h2></div><div class="page-head-actions"><span class="status-chip">● ' + activeCount + ' active</span><span class="result-note active-sync-label">' + syncLabel + '</span><button class="refresh-btn" type="button" data-action="refresh-customer">' + (state.customerDataRefreshing ? 'Refreshing…' : 'Refresh') + '</button></div></div>' + errorBlock + liveBlock + receivedBlock + recentBlock;
 }
+
+function isJustReceivedCode(activation) {
+  return String(activation?.status || '') === 'Completed' &&
+    Boolean(String(activation?.otp || '').trim()) &&
+    (!activation.createdAt || Number(activation.createdAt) >= Date.now() - 3 * 60 * 1000);
+}
+
+function receivedCodeCard(activation) {
+  const service = state.services.find((s) => s.id === activation.serviceId);
+  const otp = String(activation.otp || '').trim();
+  return '<article class="received-code-card"><div class="received-code-main"><div class="service-icon large">' + iconFor(service?.category) + '</div><div class="received-code-copy"><span>' + esc(activation.service) + '</span><strong>' + esc(activation.number) + '</strong><small>Code received · Activation finished</small></div></div><div class="received-code-value"><span>VERIFICATION CODE</span><strong>' + esc(otp) + '</strong><button class="primary-btn otp-copy-primary" type="button" data-copy="' + esc(otp.replace(/\s/g, '')) + '" data-copy-message="OTP copied">Copy code</button></div><div class="received-code-footer"><span>Order ' + esc(activation.id) + '</span><button class="ghost-btn" type="button" data-page="orders">View order</button></div></article>';
+}
+
 
 function recentActivationCard(activation) {
   const completed = activation.status === 'Completed';
@@ -1409,6 +1464,8 @@ function renderActiveOnly() {
 }
 
 function activeCard(activation) {
+  const status = String(activation.status || 'Active');
+  const otp = String(activation.otp || '').trim();
   const expiresAt = Number(activation.expiresAt || 0);
   const createdAt = Number(activation.createdAt || 0);
   const total = Math.max(1, expiresAt - createdAt || (25 * 60 * 1000));
@@ -1418,18 +1475,29 @@ function activeCard(activation) {
   const progress = Math.min(100, Math.max(0, ((remaining * 1000) / total) * 100));
   const cancelling = state.activeCancelId === activation.id;
   const cancelBusy = state.activeCancelBusy.has(activation.id);
+  const actionError = state.activeActionErrorById[activation.id] || '';
   const service = state.services.find((s) => s.id === activation.serviceId);
+  const statusInfo = {
+    Active: otp ? { label: 'Code received', tone: 'received' } : { label: 'Waiting for SMS', tone: 'waiting' },
+    CancellationPending: { label: 'Cancellation in progress', tone: 'pending' },
+    ExpirationPending: { label: 'Expiring', tone: 'pending' }
+  }[status] || { label: status, tone: 'neutral' };
+  const canCancel = status === 'Active' && !otp && !cancelBusy;
   const cancelUi = cancelling
-    ? '<div class="cancel-confirm"><span>Cancel this activation and request the server-side refund.</span><div><button class="ghost-btn" type="button" data-cancel-dismiss>Keep number</button><button class="text-danger confirm-danger" type="button" data-cancel-confirm="' + esc(activation.id) + '">Confirm cancel</button></div></div>'
-    : '<button class="text-danger" type="button" data-cancel="' + esc(activation.id) + '" ' + (cancelBusy ? 'disabled' : '') + '>' + (cancelBusy ? 'Cancelling…' : 'Cancel & refund') + '</button>';
-  return '<article class="active-card ' + (cancelBusy ? 'is-cancelling' : '') + '">' +
-    '<div class="active-card-header"><div class="service-icon large">' + iconFor(service?.category) + '</div><div class="service-meta"><span class="service-category">' + esc(activation.service) + '</span><h3>' + esc(activation.number) + '</h3></div><span class="activation-status waiting"><span></span>' + (cancelBusy ? 'Cancelling…' : 'Waiting for SMS') + '</span></div>' +
-    '<div class="active-context"><span>+91 number format</span><span>' + money(activation.pricePaise) + '</span><span>Order ' + esc(activation.id) + '</span><button class="copy-btn" type="button" data-copy="' + esc(activation.number.replace(/\\s/g, '')) + '" data-copy-message="Number copied">Copy number</button></div>' +
-    '<div class="otp-panel waiting-panel"><div class="otp-panel-head"><span class="otp-label">TIME REMAINING</span><span class="code-state">LIVE</span></div><div class="timer">◷ ' + minutes + ':' + seconds + '</div><div class="progress"><span style="width:' + progress + '%"></span></div><div class="waiting-note">▣ Waiting for the verification code</div></div>' +
-    '<div class="active-footer"><span><small>ACTIVATION</small><strong>Temporary number · valid for up to 25 minutes</strong></span>' + cancelUi + '</div>' +
-    (cancelling ? '' : '') +
+    ? '<div class="cancel-confirm"><span>Cancel this activation and request a refund.</span><div><button class="ghost-btn" type="button" data-cancel-dismiss>Keep number</button><button class="text-danger confirm-danger" type="button" data-cancel-confirm="' + esc(activation.id) + '">Confirm cancel</button></div></div>'
+    : (canCancel ? '<button class="text-danger" type="button" data-cancel="' + esc(activation.id) + '">Cancel & refund</button>' : '<span class="cancel-disabled-note">' + (status === 'CancellationPending' ? 'Cancellation processing' : status === 'ExpirationPending' ? 'Expiration processing' : otp ? 'Code received' : 'Not cancellable') + '</span>');
+  const otpPanel = otp
+    ? '<div class="otp-panel otp-received-panel"><div class="otp-panel-head"><span class="otp-label">VERIFICATION CODE</span><span class="code-state success">READY</span></div><div class="otp-code">' + esc(otp) + '</div><div class="otp-actions"><button class="primary-btn otp-copy-primary" type="button" data-copy="' + esc(otp.replace(/\s/g, '')) + '" data-copy-message="OTP copied">Copy code</button><span class="otp-help">Use the code shown here to complete verification.</span></div></div>'
+    : '<div class="otp-panel waiting-panel"><div class="otp-panel-head"><span class="otp-label">TIME REMAINING</span><span class="code-state ' + esc(statusInfo.tone) + '">' + esc(statusInfo.label.toUpperCase()) + '</span></div><div class="timer">◷ ' + minutes + ':' + seconds + '</div><div class="progress"><span style="width:' + progress + '%"></span></div><div class="waiting-note">' + (status === 'CancellationPending' ? '◷ Cancellation is being processed' : status === 'ExpirationPending' ? '◷ Finalizing this activation' : '▣ Waiting for the verification code') + '</div></div>';
+  const errorBlock = actionError ? '<div class="active-action-error" role="alert"><span>' + esc(actionError) + '</span><button class="refresh-btn" type="button" data-action="refresh-activation" data-refresh-activation="' + esc(activation.id) + '">Check status</button></div>' : '';
+  return '<article class="active-card ' + (cancelBusy ? 'is-cancelling' : '') + ' ' + esc(statusInfo.tone) + '">' +
+    '<div class="active-card-header"><div class="service-icon large">' + iconFor(service?.category) + '</div><div class="service-meta"><span class="service-category">' + esc(activation.service) + '</span><h3>' + esc(activation.number) + '</h3></div><span class="activation-status ' + esc(statusInfo.tone) + '"><span></span>' + (cancelBusy ? 'Cancelling…' : esc(statusInfo.label)) + '</span></div>' +
+    '<div class="active-context"><span>+91 number format</span><span>' + money(activation.pricePaise) + '</span><span>Order ' + esc(activation.id) + '</span><button class="copy-btn" type="button" data-copy="' + esc(activation.number.replace(/\s/g, '')) + '" data-copy-message="Number copied">Copy number</button></div>' +
+    otpPanel + errorBlock +
+    '<div class="active-footer"><span><small>ACTIVATION</small><strong>' + (status === 'CancellationPending' ? 'Cancellation in progress' : status === 'ExpirationPending' ? 'Expiration in progress' : 'Number valid for up to 25 minutes') + '</strong></span>' + cancelUi + '</div>' +
   '</article>';
 }
+
 
 function orderStatusClass(status) {
   return String(status || 'Unknown').toLowerCase().replace(/[^a-z]+/g, '-');
@@ -1531,6 +1599,18 @@ function apiPage() {
 }</pre></div><div class="panel api-card"><div class="api-title"><div class="info-icon">⌘</div><div><h3>HTTP surface</h3><p>Production auth, rate limiting, idempotency and persistence sit in front of these routes.</p></div></div>${[['GET','/api/health'],['POST','/api/auth/change-password'],['POST','/api/auth/logout-all'],['GET','/api/services'],['GET','/api/wallet'],['POST','/api/recharges'],['GET','/api/activations'],['POST','/api/activations'],['GET','/api/activations/:id'],['POST','/api/activations/:id/cancel'],['GET','/api/admin/overview'],['GET','/api/admin/recharges'],['POST','/api/admin/recharges/:id'],['GET','/api/admin/services'],['PATCH','/api/admin/services/:id'],['GET','/api/admin/users'],['GET','/api/admin/activations'],['GET','/api/admin/ledger'],['GET','/api/admin/providers'],['GET','/api/admin/providers-health'],['GET','/api/admin/audit']].map(([method, path]) => `<div class="endpoint"><span class="method ${method.toLowerCase()}">${method}</span><code>${path}</code><span>↗</span></div>`).join('')}</div></div>`;
 }
 
+let lastForegroundRefreshAt = 0;
+
+function handleCustomerVisibilityRefresh() {
+  if (document.visibilityState !== 'visible' || !state.user) return;
+  const now = Date.now();
+  if (now - lastForegroundRefreshAt < 15_000) return;
+  lastForegroundRefreshAt = now;
+  void loadCustomerData({ silent: true }).then(() => {
+    if (state.page === 'active') renderActiveOnly();
+  });
+}
+
 function bindEvents() {
   document.getElementById('auth-form')?.addEventListener('submit', submitAuth);
   document.querySelectorAll('[data-auth-mode]').forEach((node) => node.addEventListener('click', () => { state.authMode = node.dataset.authMode; state.bootstrapError = ''; render(); }));
@@ -1581,6 +1661,7 @@ function bindEvents() {
     renderActiveOnly();
   }));
   document.querySelectorAll('[data-cancel-confirm]').forEach((node) => node.addEventListener('click', () => void cancelActivation(node.dataset.cancelConfirm)));
+  document.querySelectorAll('[data-action="refresh-activation"]').forEach((node) => node.addEventListener('click', () => void refreshSingleActivation(node.dataset.refreshActivation)));
   document.querySelectorAll('[data-copy]').forEach((node) => node.addEventListener('click', async () => {
     const value = node.dataset.copy || '';
     const message = node.dataset.copyMessage || 'Copied';
@@ -1678,6 +1759,20 @@ function bindMarketplaceEvents() {
       return;
     }
 
+    const purchaseCheckActive = event.target.closest("[data-purchase-check-active]");
+    if (purchaseCheckActive && root.contains(purchaseCheckActive)) {
+      resetPurchaseFlow();
+      setPage('active');
+      void loadCustomerData({ silent: true }).then(() => renderActiveOnly());
+      return;
+    }
+
+    const purchaseRetry = event.target.closest("[data-purchase-retry]");
+    if (purchaseRetry && root.contains(purchaseRetry)) {
+      void confirmPurchase();
+      return;
+    }
+
     const purchaseClose = event.target.closest("[data-purchase-close]");
     if (purchaseClose && root.contains(purchaseClose)) {
       closePurchaseReview();
@@ -1746,4 +1841,6 @@ document.addEventListener('keydown', (event) => {
 
 window.addEventListener('hashchange', handleHashNavigation);
 window.addEventListener('popstate', handleHashNavigation);
+document.addEventListener('visibilitychange', handleCustomerVisibilityRefresh);
+window.addEventListener('focus', handleCustomerVisibilityRefresh);
 boot();
