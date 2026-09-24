@@ -29,7 +29,7 @@ INBOX9 is currently synthetic-only. The checklist below distinguishes completed 
 - [x] Full browser/device E2E coverage
 - [x] Error monitoring/alerting integration (structured server/client capture + scheduled production canary; Sentry optional)
 - [x] Production metrics/trace dashboards (Render metrics + request telemetry + scheduled canary)
-- [ ] Disaster-recovery rehearsal and restore verification
+- [x] Disaster-recovery rehearsal and restore verification (logical PostgreSQL 17 dump/restore rehearsal + invariant verification; managed production PITR drill remains operator-controlled)
 
 ## P2 — scale
 - [ ] Redis/cache layer beyond rate limiting
