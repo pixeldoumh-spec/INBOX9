@@ -124,6 +124,8 @@ export async function listProxnumInventoryForServices() {
        FROM provider_service_inventory i
        JOIN providers p ON p.id=i.provider_id
       WHERE p.adapter_key='proxnum' AND i.country=$1
+        AND i.active=TRUE
+        AND i.synced_at > NOW() - INTERVAL '12 minutes'
       ORDER BY i.service_id`,
     [PROXNUM_INDIA_COUNTRY_ID]
   );
