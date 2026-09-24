@@ -1,4 +1,4 @@
-export const SYNTHETIC_CAPACITY = 5000;
+export const SYNTHETIC_CAPACITY = 100;
 export const SYNTHETIC_SERVER_COUNT = 11;
 
 function normalizePositiveInt(value, fallback) {
@@ -8,7 +8,7 @@ function normalizePositiveInt(value, fallback) {
 
 /**
  * Partition the synthetic pool into deterministic server-sized chunks.
- * The 5,000-slot pool is split contiguously so every synthetic slot belongs
+ * The 100-slot pool is split contiguously so every synthetic slot belongs
  * to exactly one server and the final server receives any remainder.
  */
 export function listSyntheticServers(capacity = SYNTHETIC_CAPACITY, count = SYNTHETIC_SERVER_COUNT) {
