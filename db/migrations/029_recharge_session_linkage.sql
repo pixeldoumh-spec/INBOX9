@@ -8,4 +8,8 @@ ALTER TABLE public.recharge_requests
 CREATE INDEX IF NOT EXISTS idx_recharge_submission_session
   ON public.recharge_requests(submission_session_id);
 
+INSERT INTO schema_migrations(version)
+VALUES ('029_recharge_session_linkage')
+ON CONFLICT DO NOTHING;
+
 COMMIT;
