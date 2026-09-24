@@ -93,7 +93,7 @@ INBOX9_CRON_URL=https://your-public-host.example/api/internal-provider-reconcile
 INBOX9_CRON_SECRET=<same value as CRON_SECRET>
 ```
 
-GitHub Free currently includes 2,000 hosted-runner minutes per month for private repositories, subject to the account plan allowance. The daily reconciliation job uses very little runner time.
+This repository is public, so standard GitHub-hosted runner usage for these workflows is free. The five-minute reconciliation job is intentionally kept lightweight and uses no repository write token.
 
 ## Free infrastructure
 
