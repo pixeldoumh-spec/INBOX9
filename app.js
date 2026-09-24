@@ -570,7 +570,7 @@ async function refreshSupport({ announce = false, silent = false } = {}) {
   }
 }
 
-async function submitSupportReply(event,ticketId){event.preventDefault();if(state.supportReplyBusyById[ticketId])return;const message=String(new FormData(event.currentTarget).get('message')||'').trim();if(message.length<2)return toast('Reply must contain at least 2 characters');state.supportReplyBusyById[ticketId]=true;render();try{await api('/api/support/'+encodeURIComponent(ticketId)+'/replies',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({message})});await refreshSupport();state.expandedSupportTicketId=ticketId;toast('Reply sent');}catch(error){if(Number(error.status)===401){handleSessionExpired();return;}toast(error.message);}finally{delete state.supportReplyBusyById[ticketId];render();}}
+async function submitSupportReply(event,ticketId){event.preventDefault();if(state.supportReplyBusyById[ticketId])return;const message=String(new FormData(event.currentTarget).get('message')||'').trim();if(message.length<2)return toast('Reply must contain at least 2 characters');state.supportReplyBusyById[ticketId]=true;render();try{const replyPayload=await api('/api/support/'+encodeURIComponent(ticketId)+'/replies',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({message})});if(replyPayload.ticket){state.supportTickets=[replyPayload.ticket,...state.supportTickets.filter((ticket)=>ticket.id!==ticketId)];}else{await waitForSupportSyncIdle();await refreshSupport();}state.expandedSupportTicketId=ticketId;toast('Reply sent');}catch(error){if(Number(error.status)===401){handleSessionExpired();return;}toast(error.message);}finally{delete state.supportReplyBusyById[ticketId];render();}}
 
 async function submitSupportTicket(event) {
   event.preventDefault();
@@ -588,14 +588,14 @@ async function submitSupportTicket(event) {
   state.supportError = '';
   render();
   try {
-    await api('/api/support', {
+    const createPayload=await api('/api/support', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ category, subject, message, activationId: activationId || null, rechargeId: rechargeId || null })
     });
     state.supportForm = { category, subject: '', message: '', activationId: '', rechargeId: '' };
-    await waitForSupportSyncIdle();
-    await refreshSupport();
+    if(createPayload.ticket){state.supportTickets=[createPayload.ticket,...state.supportTickets.filter((ticket)=>ticket.id!==createPayload.ticket.id)];}
+    else{await waitForSupportSyncIdle();await refreshSupport();}
     toast('Support ticket created');
   } catch (error) {
     if (Number(error.status) === 401) { handleSessionExpired(); return; }
