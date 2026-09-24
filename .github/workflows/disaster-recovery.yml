@@ -140,7 +140,7 @@ jobs:
         run: |
           set -euo pipefail
           started=$(date +%s%3N)
-          pg_dump --format=custom --no-owner --dbname="$DATABASE_URL_SOURCE" --file="$RUNNER_TEMP/inbox9-dr.dump"
+          docker exec inbox9-dr-postgres pg_dump --format=custom --no-owner --dbname="$DB_SOURCE" > "$RUNNER_TEMP/inbox9-dr.dump"
           finished=$(date +%s%3N)
           echo "DR_DUMP_DURATION_MS=$((finished-started))" >> "$GITHUB_ENV"
           echo "DR_DUMP_BYTES=$(stat -c%s "$RUNNER_TEMP/inbox9-dr.dump")" >> "$GITHUB_ENV"
@@ -150,7 +150,7 @@ jobs:
         run: |
           set -euo pipefail
           started=$(date +%s%3N)
-          pg_restore --clean --if-exists --no-owner --dbname="$DATABASE_URL_RESTORE" "$RUNNER_TEMP/inbox9-dr.dump"
+          cat "$RUNNER_TEMP/inbox9-dr.dump" | docker exec --interactive inbox9-dr-postgres pg_restore --exit-on-error --clean --if-exists --no-owner --dbname="$DB_RESTORE"
           finished=$(date +%s%3N)
           echo "DR_RESTORE_DURATION_MS=$((finished-started))" >> "$GITHUB_ENV"
 
