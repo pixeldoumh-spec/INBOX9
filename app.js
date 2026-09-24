@@ -80,27 +80,6 @@ function syncFromServerActivations(activations) {
   state.active = ordered.filter(isLiveActivation);
 }
 
-async function api(url, options = {}) {
-  let response;
-  try {
-    response = await fetch(url, { ...options, headers: { accept: 'application/json', ...(options.headers || {}) } });
-  } catch (networkError) {
-    networkError.status = 0;
-    networkError.code = 'NETWORK_ERROR';
-    throw networkError;
-  }
-  let payload;
-  try { payload = await response.json(); } catch { payload = { error: `HTTP ${response.status}` }; }
-  if (!response.ok) {
-    const error = new Error(payload.error || `Request failed (${response.status})`);
-    error.status = response.status;
-    error.code = payload.code || null;
-    error.retryAfter = response.headers.get('Retry-After');
-    throw error;
-  }
-  return payload;
-}
-
 function toast(message) {
   const node = document.createElement('div');
   node.className = 'toast';
