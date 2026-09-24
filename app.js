@@ -360,6 +360,11 @@ function handleSessionSignedOut() {
   state.recharges = [];
   state.walletSummary = { creditPaise: 0, debitPaise: 0, pendingPaise: 0, creditCount: 0, debitCount: 0, pendingCount: 0 };
   state.rechargeSubmitting = false;
+  state.supportTickets = [];
+  state.supportLoading = false;
+  state.supportSubmitting = false;
+  state.supportError = '';
+  state.supportForm = { category: 'activation', subject: '', message: '', activationId: '', rechargeId: '' };
   state.orderFilter = 'all';
   state.expandedOrderId = null;
   state.securityOpen = false;
@@ -473,9 +478,81 @@ const {
   loadAdminTab,
   refreshWallet,
   refreshCatalog,
+  refreshSupport,
   resetPurchaseFlow,
   toast
 });
+
+async function refreshSupport() {
+  state.supportLoading = true;
+  state.supportError = '';
+  try {
+    const payload = await api('/api/support');
+    state.supportTickets = Array.isArray(payload.tickets) ? payload.tickets : [];
+    return payload;
+  } catch (error) {
+    if (Number(error.status) === 401) { handleSessionExpired(); return null; }
+    state.supportError = error.message || 'Support service unavailable';
+    return null;
+  } finally {
+    state.supportLoading = false;
+  }
+}
+
+async function submitSupportTicket(event) {
+  event.preventDefault();
+  if (state.supportSubmitting) return;
+  const data = new FormData(event.currentTarget);
+  const category = String(data.get('category') || 'other');
+  const subject = String(data.get('subject') || '').trim();
+  const message = String(data.get('message') || '').trim();
+  const activationId = String(data.get('activationId') || '').trim();
+  const rechargeId = String(data.get('rechargeId') || '').trim();
+  state.supportForm = { category, subject, message, activationId, rechargeId };
+  if (subject.length < 4) return toast('Subject must be at least 4 characters');
+  if (message.length < 10) return toast('Please provide at least 10 characters of detail');
+  state.supportSubmitting = true;
+  state.supportError = '';
+  render();
+  try {
+    await api('/api/support', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ category, subject, message, activationId: activationId || null, rechargeId: rechargeId || null })
+    });
+    state.supportForm = { category, subject: '', message: '', activationId: '', rechargeId: '' };
+    await refreshSupport();
+    toast('Support ticket created');
+  } catch (error) {
+    if (Number(error.status) === 401) { handleSessionExpired(); return; }
+    state.supportError = error.message || 'Support ticket could not be created';
+    toast(state.supportError);
+  } finally {
+    state.supportSubmitting = false;
+    render();
+  }
+}
+
+async function runRecovery(kind) {
+  if (kind === 'wallet') {
+    state.page = 'wallet';
+    syncPageHash('wallet');
+    await refreshWallet();
+    render();
+    return;
+  }
+  if (kind === 'orders') {
+    await loadCustomerData({ renderAfter: true });
+    state.page = 'orders';
+    syncPageHash('orders');
+    render();
+    return;
+  }
+  await loadCustomerData({ renderAfter: true });
+  state.page = 'active';
+  syncPageHash('active');
+  render();
+}
 
 function purchaseFlowData() {
   const service = state.services.find((item) => item.id === state.purchaseFlow.serviceId);
@@ -1033,11 +1110,62 @@ function catalogEmptyMarkup() {
   return marketListMarkup(filteredMarketServices());
 }
 
+const SUPPORT_CATEGORIES = [
+  ['activation', 'Activation / OTP'],
+  ['recharge', 'Recharge / Payment'],
+  ['wallet', 'Wallet / Balance'],
+  ['account', 'Account / Login'],
+  ['other', 'Other']
+];
+
+function supportStatusClass(status) {
+  return String(status || 'Open').toLowerCase().replace(/[^a-z]+/g, '-');
+}
+
+function supportTicketCard(ticket) {
+  const status = String(ticket.status || 'Open');
+  const category = SUPPORT_CATEGORIES.find(([id]) => id === ticket.category)?.[1] || 'Support';
+  const created = ticket.createdAt ? new Date(ticket.createdAt).toLocaleString() : 'Recently';
+  return '<article class="support-ticket-card">' +
+    '<div class="support-ticket-head"><div><span class="kicker">' + esc(category) + '</span><h3>' + esc(ticket.subject) + '</h3><small>#' + esc(ticket.id) + ' · ' + esc(created) + '</small></div><span class="table-status ' + supportStatusClass(status) + '">' + esc(status) + '</span></div>' +
+    '<p>' + esc(ticket.message) + '</p>' +
+    (ticket.activationId ? '<span class="support-reference">Activation: ' + esc(ticket.activationId) + '</span>' : '') +
+    (ticket.rechargeId ? '<span class="support-reference">Recharge: ' + esc(ticket.rechargeId) + '</span>' : '') +
+    '<div class="support-ticket-foot"><span>We’ll update this ticket when action is taken.</span><span class="support-live-dot">● ' + esc(status) + '</span></div>' +
+  '</article>';
+}
+
+function supportPage() {
+  const tickets = Array.isArray(state.supportTickets) ? state.supportTickets : [];
+  const form = state.supportForm || {};
+  const activeOptions = state.active.map((item) => '<option value="' + esc(item.id) + '">' + esc(item.service) + ' · ' + esc(item.number) + '</option>').join('');
+  const rechargeOptions = state.recharges.map((item) => '<option value="' + esc(item.id) + '">' + money(item.amountPaise) + ' · ' + esc(item.status) + ' · UTR ' + esc(item.utr) + '</option>').join('');
+  const busy = state.supportSubmitting;
+  const recovery = '<div class="support-recovery-grid">' +
+    '<button class="panel recovery-card" type="button" data-recovery="active"><span class="recovery-icon">◌</span><div><strong>Activation recovery</strong><small>Refresh active numbers and OTP status.</small></div><span>→</span></button>' +
+    '<button class="panel recovery-card" type="button" data-recovery="wallet"><span class="recovery-icon">▱</span><div><strong>Wallet recovery</strong><small>Refresh balance and recharge status.</small></div><span>→</span></button>' +
+    '<button class="panel recovery-card" type="button" data-recovery="orders"><span class="recovery-icon">▤</span><div><strong>Order recovery</strong><small>Reload the authoritative activation timeline.</small></div><span>→</span></button>' +
+  '</div>';
+  const formBlock = '<section class="support-form-panel panel"><div class="panel-head"><div><h3>Report an issue</h3><span>Include the activation or recharge reference when possible.</span></div><span class="status-chip">SECURE TICKET</span></div>' +
+    '<form id="support-form" class="support-form"><div class="support-form-grid">' +
+    '<label>Issue type<select name="category">' + SUPPORT_CATEGORIES.map(([id,label]) => '<option value="' + id + '" ' + (form.category === id ? 'selected' : '') + '>' + label + '</option>').join('') + '</select></label>' +
+    '<label>Subject<input name="subject" maxlength="120" value="' + esc(form.subject || '') + '" placeholder="Example: OTP not received" required></label></div>' +
+    '<label>Message<textarea name="message" maxlength="2000" rows="5" placeholder="Tell us what happened and what you expected." required>' + esc(form.message || '') + '</textarea></label>' +
+    '<div class="support-form-grid"><label>Activation reference<select name="activationId"><option value="">Not linked</option>' + activeOptions + '</select></label><label>Recharge reference<select name="rechargeId"><option value="">Not linked</option>' + rechargeOptions + '</select></label></div>' +
+    '<div class="support-form-actions"><span>Never share passwords, OTPs, or card PINs here.</span><button class="primary-btn" type="submit" ' + (busy ? 'disabled' : '') + '>' + (busy ? 'Sending…' : 'Create support ticket') + '</button></div></form></section>';
+  const ticketBlock = tickets.length
+    ? '<section class="support-tickets"><div class="section-head recent-section-head"><div><span class="kicker">YOUR TICKETS</span><h3>Recent support</h3></div><span class="result-note">' + tickets.length + ' shown</span></div><div class="support-ticket-list">' + tickets.map(supportTicketCard).join('') + '</div></section>'
+    : '<div class="panel support-empty"><div class="empty-icon">?</div><h3>No support tickets</h3><p>Create a ticket when an activation, wallet, recharge, or account issue needs help.</p></div>';
+  const err = state.supportError ? '<div class="panel active-sync-error" role="alert"><span>' + esc(state.supportError) + '</span><button class="refresh-btn" type="button" data-action="refresh-support">Retry</button></div>' : '';
+  return '<div class="section-head with-action"><div><span class="kicker">CUSTOMER CARE</span><h2>Help & Support</h2><p class="section-subcopy">Recovery tools and account-specific support in one place.</p></div><div class="page-head-actions"><button class="refresh-btn" type="button" data-action="refresh-support">' + (state.supportLoading ? 'Refreshing…' : 'Refresh') + '</button></div></div>' + err + recovery + formBlock + ticketBlock;
+}
+
 function content() {
   if (state.loading) return `<div class="service-grid customer-service-grid catalog-initial-loading">${catalogLoadingMarkup()}</div>`;
   if (state.page === 'active') return activePage();
   if (state.page === 'orders') return ordersPage();
   if (state.page === 'wallet') return walletPage();
+  if (state.page === 'support') return supportPage();
   if (state.page === 'api') return apiPage();
   if (state.page === 'admin') return adminPage();
   return buyPage();
@@ -1290,6 +1418,10 @@ function bindEvents() {
     if (page) setPage(page); else render();
   }));
   document.getElementById('change-password-form')?.addEventListener('submit', submitChangePassword);
+  document.getElementById('support-form')?.addEventListener('submit', submitSupportTicket);
+  document.querySelectorAll('[data-action="refresh-support"]').forEach((node) => node.addEventListener('click', () => void refreshSupport().then(() => render())));
+  document.querySelectorAll('[data-recovery]').forEach((node) => node.addEventListener('click', () => void runRecovery(node.dataset.recovery)));
+
   document.querySelectorAll('[data-page]').forEach((node) => node.addEventListener('click', () => {
     const page = node.dataset.page;
     if (page === 'buy' && state.page === 'buy') {
