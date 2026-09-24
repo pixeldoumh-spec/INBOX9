@@ -31,7 +31,7 @@ test('active countdown derives total duration from activation timestamps', async
   const app = await read('app.js');
   assert.match(app, /const expiresAt = Number\(activation\.expiresAt/);
   assert.match(app, /const createdAt = Number\(activation\.createdAt/);
-  assert.match(app, /const total = Math\.max\(1, expiresAt - createdAt \|\| 180000\)/);
+  assert.match(app, /const total = Math\.max\(1, expiresAt - createdAt \|\| \(25 \* 60 \* 1000\)\)/);
 });
 
 test('active cancellation uses the authoritative API and confirmation step', async () => {
