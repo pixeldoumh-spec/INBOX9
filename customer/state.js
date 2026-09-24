@@ -20,6 +20,9 @@ export function createCustomerState() {
     rechargeAmount: 100,
     services: [],
     active: [],
+    recentActivations: [],
+    activeCancelId: null,
+    activeCancelBusy: new Set(),
     orders: [],
     loading: true,
     error: '',
@@ -52,6 +55,8 @@ export function createCustomerState() {
     catalogLoading: false,
     catalogError: '',
     customerDataRefreshing: false,
+    lastActivationSyncAt: 0,
+    activeSyncError: '',
     liveProviders: {},
     tickTimer: null,
     purchaseFlow: {

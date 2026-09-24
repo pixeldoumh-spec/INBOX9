@@ -1442,3 +1442,59 @@ body::before{
   .wallet-ready-chip{min-height:30px}
   .purchase-detail-grid{grid-template-columns:1fr 1fr}
 }
+
+
+/* Active activation experience v3 */
+.active-list{max-width:980px}
+.active-card.is-cancelling{border-color:#493b2d;box-shadow:0 18px 52px rgba(0,0,0,.28)}
+.active-context{display:flex;align-items:center;flex-wrap:wrap;gap:7px;padding:0 18px 13px;color:#67768a;font-size:9px}
+.active-context>span{padding-right:9px;border-right:1px solid #263140}
+.active-context>span:last-of-type{border-right:0}
+.active-context .copy-btn{margin-left:auto;min-height:29px;padding:0 9px}
+.otp-panel-head{display:flex;align-items:center;justify-content:center;gap:10px}
+.otp-panel-head .code-state{margin-left:auto}
+.waiting-note{min-height:18px}
+.active-footer{min-height:52px}
+.active-footer>span{min-width:0}
+.active-footer>span small{color:#536176}
+.active-footer>span strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cancel-confirm{margin-left:auto;display:flex;align-items:center;gap:12px;padding:8px 0}
+.cancel-confirm>span{color:#a08d76;font-size:9px;max-width:300px}
+.cancel-confirm>div{display:flex;gap:7px}
+.confirm-danger{border:1px solid #5a3234;background:#211315;padding:7px 10px;border-radius:8px;margin-left:0}
+.recent-activation-section{max-width:980px;margin-top:26px}
+.recent-section-head{margin-bottom:10px;align-items:center}
+.recent-section-head h3{margin:5px 0 0;font:600 17px 'Space Grotesk';color:#dce6ef}
+.recent-activation-list{display:grid;gap:8px}
+.recent-activation-card{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:13px 15px;border:1px solid #202d3b;border-radius:13px;background:linear-gradient(180deg,#0d151e,#0a1118)}
+.recent-activation-card.completed{border-color:#29412d;background:linear-gradient(180deg,#0f1711,#0b120e)}
+.recent-activation-main{display:flex;align-items:center;gap:11px;min-width:0}
+.recent-activation-copy{min-width:0;display:flex;flex-direction:column}
+.recent-activation-copy>span{color:#68778b;font-size:8px;text-transform:uppercase;letter-spacing:.09em}
+.recent-activation-copy>strong{color:#dfe8f0;font-size:11px;margin-top:3px}
+.recent-activation-copy>small{color:#5e6c7f;font-size:8px;margin-top:3px}
+.recent-otp{display:flex;align-items:center;gap:9px}
+.recent-otp>span,.recent-status{color:#5f6e80;font-size:8px;text-transform:uppercase;letter-spacing:.1em}
+.recent-otp>strong{color:#b5e6a8;font:700 17px 'Space Grotesk';letter-spacing:.12em}
+.recent-status{padding:6px 8px;border:1px solid #2a3442;border-radius:8px;color:#8994a3;background:#0d141d}
+.active-sync-error{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 13px;margin:-4px 0 14px;border-color:#4b2d31;background:#171012}
+.active-sync-error>span{color:#bf9397;font-size:9px;overflow-wrap:anywhere}
+.active-sync-label{white-space:nowrap}
+@media(max-width:780px){
+  .active-context{padding:0 15px 11px}
+  .cancel-confirm{align-items:flex-start;flex-direction:column;margin-left:0;width:100%;gap:8px}
+  .cancel-confirm>span{max-width:none}
+  .cancel-confirm>div{width:100%}
+  .cancel-confirm>div>*{flex:1}
+  .recent-activation-card{align-items:flex-start;flex-direction:column}
+  .recent-otp{width:100%;justify-content:space-between}
+}
+@media(max-width:620px){
+  .active-context{gap:6px}
+  .active-context>span{padding-right:7px}
+  .active-context .copy-btn{width:100%;margin-left:0;justify-content:center}
+  .otp-panel-head .code-state{display:none}
+  .active-sync-label{display:none}
+  .recent-activation-card{padding:12px}
+  .recent-otp>strong{font-size:15px}
+}

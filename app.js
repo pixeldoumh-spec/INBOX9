@@ -240,6 +240,9 @@ async function logout() {
 function handleSessionSignedOut() {
   state.user = null;
   state.active = [];
+  state.recentActivations = [];
+  state.activeCancelId = null;
+  state.activeCancelBusy.clear();
   state.orders = [];
   state.walletLedger = [];
   state.recharges = [];
@@ -523,31 +526,26 @@ async function buy(serviceId, serverId = null) {
 
 async function cancelActivation(id) {
   const item = state.active.find((entry) => entry.id === id);
-  if (!item) return;
-  if (item?.metadata?.engine === 'synthetic-local') {
-    const index = state.active.findIndex((entry) => entry.id === id);
-    if (index >= 0) state.active.splice(index, 1);
-    state.balancePaise += Number(item.pricePaise || 0);
-    const order = state.orders.find((entry) => entry.id === id);
-    if (order) { order.status = 'Refunded'; order.otp = '—'; }
-    persist();
-    render();
-    toast('Activation cancelled • credits refunded');
-    return;
-  }
+  if (!item || state.activeCancelBusy.has(id)) return;
+  state.activeCancelBusy.add(id);
+  state.activeCancelId = null;
+  renderActiveOnly();
   try {
-    const result = await api(`/api/activations/${encodeURIComponent(id)}/cancel`, { method: 'POST' });
-    const index = state.active.findIndex((entry) => entry.id === id);
-    if (index >= 0) state.active.splice(index, 1);
+    const result = await api('/api/activations/' + encodeURIComponent(id) + '/cancel', { method: 'POST' });
     if (Number.isFinite(result.walletBalancePaise)) state.balancePaise = result.walletBalancePaise;
-    const order = state.orders.find((entry) => entry.id === id);
-    if (order) { order.status = 'Refunded'; order.otp = '—'; }
-    persist();
     await loadCustomerData({ silent: true });
     render();
     toast('Activation cancelled and wallet refunded');
   } catch (error) {
-    toast(error.message);
+    if (Number(error.status) === 401) {
+      handleSessionExpired();
+      return;
+    }
+    state.activeSyncError = error.message || 'We could not cancel this activation safely.';
+    toast(state.activeSyncError);
+    renderActiveOnly();
+  } finally {
+    state.activeCancelBusy.delete(id);
   }
 }
 
@@ -596,31 +594,8 @@ let lastActivationSync = 0;
 let activationSyncInFlight = false;
 
 async function syncActivationItem(item) {
-  if (item?.metadata?.engine === 'synthetic-local') {
-    const now = Date.now();
-    const updated = { ...item };
-    if (item.mockOtpAt && now >= item.mockOtpAt) {
-      updated.status = 'Completed';
-      updated.otp = item.syntheticOtp || updated.otp || '000000';
-    } else if (item.expiresAt && now >= item.expiresAt) {
-      updated.status = 'Expired';
-      updated.otp = null;
-    }
-    const order = state.orders.find((entry) => entry.id === item.id);
-    if (order) {
-      order.status = updated.status;
-      order.otp = updated.otp || (isLiveActivation(updated) ? 'Waiting…' : '—');
-    }
-    const index = state.active.findIndex((entry) => entry.id === item.id);
-    if (isLiveActivation(updated)) {
-      if (index >= 0) state.active[index] = updated;
-    } else if (index >= 0) {
-      state.active.splice(index, 1);
-    }
-    return;
-  }
   try {
-    const latest = await api(`/api/activations/${encodeURIComponent(item.id)}`);
+    const latest = await api('/api/activations/' + encodeURIComponent(item.id));
     const order = state.orders.find((entry) => entry.id === item.id);
     if (order) {
       order.status = latest.status;
@@ -630,11 +605,16 @@ async function syncActivationItem(item) {
     if (isLiveActivation(latest)) {
       if (index >= 0) state.active[index] = { ...state.active[index], ...latest };
       else state.active.push(latest);
-    } else if (index >= 0) {
-      state.active.splice(index, 1);
+      return;
+    }
+    if (index >= 0) state.active.splice(index, 1);
+    if (['Completed', 'Expired', 'Refunded'].includes(String(latest.status || ''))) {
+      state.recentActivations = [latest, ...state.recentActivations.filter((entry) => entry.id !== latest.id)]
+        .filter((entry) => !entry.createdAt || Number(entry.createdAt) >= Date.now() - 15 * 60 * 1000)
+        .slice(0, 6);
     }
   } catch (error) {
-    if (!/Activation not found/i.test(error.message)) console.warn('activation.sync_failed', error.message);
+    if (!/Activation not found/i.test(error.message)) state.activeSyncError = error.message || 'Live activation status is temporarily unavailable';
   }
 }
 
@@ -1029,8 +1009,34 @@ function buyPage() {
   </div>`;
 }
 function activePage() {
-  return `<div class="section-head with-action"><div><span class="kicker">LIVE SESSION</span><h2>Active numbers</h2></div><div class="page-head-actions"><span class="status-chip">● ${state.active.length} active</span><button class="refresh-btn" type="button" data-action="refresh-customer">${state.customerDataRefreshing ? 'Refreshing…' : 'Refresh'}</button></div></div>${state.active.length ? `<div class="active-list">${state.active.map(activeCard).join('')}</div>` : `<div class="panel empty"><div class="empty-icon">▤</div><h3>No active numbers</h3><p>Reserve a number from the marketplace and the activation will appear here.</p><button class="refresh-btn empty-state-action" type="button" data-page="buy">Browse services</button></div>`}`;
+  const activeCount = state.active.length;
+  const recent = Array.isArray(state.recentActivations) ? state.recentActivations : [];
+  const syncLabel = state.customerDataRefreshing
+    ? 'Checking live status…'
+    : state.lastActivationSyncAt
+      ? 'Checked ' + Math.max(1, Math.floor((Date.now() - state.lastActivationSyncAt) / 1000)) + 's ago'
+      : 'Live status';
+  const errorBlock = state.activeSyncError
+    ? '<div class="panel active-sync-error" role="alert"><span>' + esc(state.activeSyncError) + '</span><button class="refresh-btn" type="button" data-action="refresh-customer">Retry</button></div>'
+    : '';
+  const liveBlock = activeCount
+    ? '<div class="active-list">' + state.active.map(activeCard).join('') + '</div>'
+    : '<div class="panel empty active-empty"><div class="empty-icon">▤</div><h3>No active numbers</h3><p>Reserve a number from the marketplace and the activation will appear here.</p><button class="refresh-btn empty-state-action" type="button" data-page="buy">Browse services</button></div>';
+  const recentBlock = recent.length
+    ? '<section class="recent-activation-section"><div class="section-head recent-section-head"><div><span class="kicker">RECENT</span><h3>Recently finished</h3></div><span class="result-note">Last 15 minutes</span></div><div class="recent-activation-list">' + recent.map(recentActivationCard).join('') + '</div></section>'
+    : '';
+  return '<div class="section-head with-action"><div><span class="kicker">LIVE SESSION</span><h2>Active numbers</h2></div><div class="page-head-actions"><span class="status-chip">● ' + activeCount + ' active</span><span class="result-note active-sync-label">' + syncLabel + '</span><button class="refresh-btn" type="button" data-action="refresh-customer">' + (state.customerDataRefreshing ? 'Refreshing…' : 'Refresh') + '</button></div></div>' + errorBlock + liveBlock + recentBlock;
 }
+
+function recentActivationCard(activation) {
+  const completed = activation.status === 'Completed';
+  const otp = String(activation.otp || '');
+  const service = state.services.find((s) => s.id === activation.serviceId);
+  const when = activation.createdAt ? new Date(activation.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Recently';
+  return '<article class="recent-activation-card ' + (completed ? 'completed' : '') + '"><div class="recent-activation-main"><div class="service-icon">' + iconFor(service?.category) + '</div><div class="recent-activation-copy"><span>' + esc(activation.service) + '</span><strong>' + esc(activation.number) + '</strong><small>' + esc(activation.status) + ' · ' + esc(when) + '</small></div></div>' + (completed && otp ? '<div class="recent-otp"><span>OTP</span><strong>' + esc(otp) + '</strong><button class="copy-btn" type="button" data-copy="' + esc(otp.replace(/\\s/g, '')) + '" data-copy-message="OTP copied">Copy OTP</button></div>' : '<span class="recent-status">' + esc(activation.status) + '</span>') + '</article>';
+}
+
+
 
 function renderActiveOnly() {
   const node = document.getElementById('content');
@@ -1039,21 +1045,26 @@ function renderActiveOnly() {
 }
 
 function activeCard(activation) {
-  const remaining = Math.max(0, Math.floor((activation.expiresAt - Date.now()) / 1000));
+  const expiresAt = Number(activation.expiresAt || 0);
+  const createdAt = Number(activation.createdAt || 0);
+  const total = Math.max(1, expiresAt - createdAt || 180000);
+  const remaining = expiresAt ? Math.max(0, Math.floor((expiresAt - Date.now()) / 1000)) : 180;
   const minutes = String(Math.floor(remaining / 60)).padStart(2, '0');
   const seconds = String(remaining % 60).padStart(2, '0');
-  const progress = Math.min(100, Math.max(0, (remaining / 180) * 100));
-  const completed = activation.status === 'Completed';
-  return `<article class="active-card ${completed ? 'completed' : ''}">
-    <div class="active-card-header">
-      <div class="service-icon large">${iconFor(state.services.find((s) => s.id === activation.serviceId)?.category)}</div>
-      <div class="service-meta"><span class="service-category">${esc(activation.service)}</span><h3>${esc(activation.number)}</h3></div>
-      <span class="activation-status">${completed ? '✓ OTP received' : '↻ Waiting SMS'}</span>
-    </div>
-    <div class="active-context"><span>+91 number format</span><span>${money(activation.pricePaise)}</span><span>Order ${esc(activation.id)}</span></div>
-    ${completed ? `<div class="otp-panel"><div class="otp-label">VERIFICATION CODE</div><div class="otp-code">${esc(activation.otp)}</div><button class="copy-btn" type="button" data-copy="${esc(activation.otp.replace(/\\s/g, ''))}">⧉ Copy OTP</button></div>` : `<div class="otp-panel"><div class="otp-label">TIME REMAINING</div><div class="timer">◷ ${minutes}:${seconds}</div><div class="progress"><span style="width:${progress}%"></span></div><div class="waiting-note">▣ Your verification code will appear here automatically</div></div>`}
-    <div class="active-footer"><span>Temporary number</span>${!completed ? `<button class="text-danger" type="button" data-cancel="${esc(activation.id)}">Cancel & refund</button>` : '<span>Verification complete</span>'}</div>
-  </article>`;
+  const progress = Math.min(100, Math.max(0, ((remaining * 1000) / total) * 100));
+  const cancelling = state.activeCancelId === activation.id;
+  const cancelBusy = state.activeCancelBusy.has(activation.id);
+  const service = state.services.find((s) => s.id === activation.serviceId);
+  const cancelUi = cancelling
+    ? '<div class="cancel-confirm"><span>Cancel this activation and request the server-side refund.</span><div><button class="ghost-btn" type="button" data-cancel-dismiss>Keep number</button><button class="text-danger confirm-danger" type="button" data-cancel-confirm="' + esc(activation.id) + '">Confirm cancel</button></div></div>'
+    : '<button class="text-danger" type="button" data-cancel="' + esc(activation.id) + '" ' + (cancelBusy ? 'disabled' : '') + '>' + (cancelBusy ? 'Cancelling…' : 'Cancel & refund') + '</button>';
+  return '<article class="active-card ' + (cancelBusy ? 'is-cancelling' : '') + '">' +
+    '<div class="active-card-header"><div class="service-icon large">' + iconFor(service?.category) + '</div><div class="service-meta"><span class="service-category">' + esc(activation.service) + '</span><h3>' + esc(activation.number) + '</h3></div><span class="activation-status waiting"><span></span>' + (cancelBusy ? 'Cancelling…' : 'Waiting for SMS') + '</span></div>' +
+    '<div class="active-context"><span>+91 number format</span><span>' + money(activation.pricePaise) + '</span><span>Order ' + esc(activation.id) + '</span><button class="copy-btn" type="button" data-copy="' + esc(activation.number.replace(/\\s/g, '')) + '" data-copy-message="Number copied">Copy number</button></div>' +
+    '<div class="otp-panel waiting-panel"><div class="otp-panel-head"><span class="otp-label">TIME REMAINING</span><span class="code-state">LIVE</span></div><div class="timer">◷ ' + minutes + ':' + seconds + '</div><div class="progress"><span style="width:' + progress + '%"></span></div><div class="waiting-note">▣ Waiting for the verification code</div></div>' +
+    '<div class="active-footer"><span><small>ACTIVATION</small><strong>Temporary number · server monitored</strong></span>' + cancelUi + '</div>' +
+    (cancelling ? '' : '') +
+  '</article>';
 }
 
 function ordersPage() {
@@ -1105,8 +1116,34 @@ function bindEvents() {
   document.getElementById('change-password-form')?.addEventListener('submit', submitChangePassword);
   document.querySelectorAll('[data-page]').forEach((node) => node.addEventListener('click', () => setPage(node.dataset.page)));
   bindMarketplaceEvents();
-  document.querySelectorAll('[data-cancel]').forEach((node) => node.addEventListener('click', () => cancelActivation(node.dataset.cancel)));
-  document.querySelectorAll('[data-copy]').forEach((node) => node.addEventListener('click', async () => { try { await navigator.clipboard.writeText(node.dataset.copy); toast('OTP copied'); } catch { toast('Copy unavailable on this browser'); } }));
+  document.querySelectorAll('[data-cancel]').forEach((node) => node.addEventListener('click', () => {
+    state.activeCancelId = node.dataset.cancel;
+    renderActiveOnly();
+  }));
+  document.querySelectorAll('[data-cancel-dismiss]').forEach((node) => node.addEventListener('click', () => {
+    state.activeCancelId = null;
+    renderActiveOnly();
+  }));
+  document.querySelectorAll('[data-cancel-confirm]').forEach((node) => node.addEventListener('click', () => void cancelActivation(node.dataset.cancelConfirm)));
+  document.querySelectorAll('[data-copy]').forEach((node) => node.addEventListener('click', async () => {
+    const value = node.dataset.copy || '';
+    const message = node.dataset.copyMessage || 'Copied';
+    try {
+      await navigator.clipboard.writeText(value);
+      toast(message);
+    } catch {
+      const field = document.createElement('textarea');
+      field.value = value;
+      field.setAttribute('readonly', '');
+      field.style.position = 'fixed';
+      field.style.opacity = '0';
+      document.body.appendChild(field);
+      field.select();
+      try { document.execCommand('copy'); toast(message); }
+      catch { toast('Copy unavailable on this browser'); }
+      finally { field.remove(); }
+    }
+  }));
   document.querySelectorAll('[data-action="open-menu"]').forEach((node) => node.addEventListener('click', openMenu));
   document.querySelectorAll('[data-action="close-menu"]').forEach((node) => node.addEventListener('click', closeMenu));
   document.querySelectorAll('[data-action="reset"]').forEach((node) => node.addEventListener('click', resetDemo));

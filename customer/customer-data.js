@@ -10,6 +10,7 @@ export function createCustomerDataController({
   function loadPersisted() {
     // Financial and order state is server-authoritative. Browser storage is not used.
     state.active = [];
+    state.recentActivations = [];
     state.orders = [];
     state.pendingPurchaseKeys = {};
   }
@@ -27,6 +28,11 @@ export function createCustomerDataController({
       created: activation.createdAt ? new Date(activation.createdAt).toLocaleString() : '—'
     }));
     state.active = ordered.filter(isLiveActivation);
+    state.recentActivations = ordered
+      .filter((activation) => ['Completed', 'Expired', 'Refunded'].includes(String(activation.status || '')))
+      .filter((activation) => !activation.createdAt || Number(activation.createdAt) >= Date.now() - 15 * 60 * 1000)
+      .slice(0, 6);
+    state.activeSyncError = '';
   }
 
   async function loadCustomerData({ renderAfter = false, silent = false } = {}) {
