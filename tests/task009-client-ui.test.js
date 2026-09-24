@@ -23,7 +23,10 @@ test('advanced UI layer includes mobile and reduced-motion safeguards', async ()
   assert.match(css, /@media\(max-width:620px\)/);
   assert.match(css, /@media\(prefers-reduced-motion:reduce\)/);
   assert.match(css, /backdrop-filter:blur/);
-  assert.match(css, /content-visibility:auto/);
+  assert.doesNotMatch(css, /content-visibility:auto/);
+  assert.match(css, /\.customer-service-grid\{align-content:start\}/);
+  assert.match(css, /\.account-grid\{align-items:start\}/);
+  assert.match(css, /\.refresh-btn:disabled\{opacity:.65;cursor:wait\}/);
 });
 
 test('marketplace hero exposes customer-safe state instead of provider connectivity claims', async () => {
@@ -77,4 +80,17 @@ test('marketplace URL state does not pollute the page hash or unrelated query pa
   const app = await read('app.js');
   assert.match(app, /const next = url\.pathname \+ \(url\.searchParams\.toString\(\) \? `\?\${url\.searchParams\.toString\(\)\}` : ''\) \+ url\.hash/);
   assert.match(app, /window\.location\.hash/);
+});
+
+
+test('customer refresh controls expose a page-aware sync state', async () => {
+  const app = await read('app.js');
+  assert.match(app, /data-global-sync/);
+  assert.match(app, /Reconnecting/);
+  assert.match(app, /Syncing/);
+  assert.match(app, /async function refreshCurrentCustomerPage\(\)/);
+  assert.match(app, /if \(page === 'wallet'\)/);
+  assert.match(app, /if \(page === 'support'\)/);
+  assert.match(app, /if \(page === 'account'\)/);
+  assert.match(app, /if \(page === 'admin'\)/);
 });
