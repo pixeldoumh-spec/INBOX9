@@ -2,11 +2,12 @@ name: INBOX9 scheduled reconciliation
 
 on:
   schedule:
-    - cron: "0 3 * * *"
+    - cron: "2/5 * * * *"
   workflow_dispatch:
 
 jobs:
   reconcile:
+    permissions: {}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
