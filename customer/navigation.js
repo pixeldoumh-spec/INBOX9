@@ -52,6 +52,10 @@ export function createCustomerNavigation({
     state.user = null;
     state.active = [];
     state.orders = [];
+    state.supportTickets = [];
+    state.supportLoading = false;
+    state.supportSubmitting = false;
+    state.supportError = '';
     state.securityOpen = false;
     resetPurchaseFlow();
     state.page = 'buy';
