@@ -535,6 +535,12 @@ const {
   toast
 });
 
+async function waitForSupportSyncIdle() {
+  while (supportSyncInFlight) {
+    await new Promise((resolve) => window.setTimeout(resolve, 25));
+  }
+}
+
 async function refreshSupport({ announce = false, silent = false } = {}) {
   if (supportSyncInFlight) return null;
   supportSyncInFlight = true;
@@ -588,6 +594,7 @@ async function submitSupportTicket(event) {
       body: JSON.stringify({ category, subject, message, activationId: activationId || null, rechargeId: rechargeId || null })
     });
     state.supportForm = { category, subject: '', message: '', activationId: '', rechargeId: '' };
+    await waitForSupportSyncIdle();
     await refreshSupport();
     toast('Support ticket created');
   } catch (error) {
