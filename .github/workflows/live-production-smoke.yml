@@ -1,0 +1,26 @@
+name: INBOX9 live production smoke
+
+on:
+  pull_request:
+    branches: ["main"]
+  workflow_dispatch:
+
+jobs:
+  production-smoke:
+    name: Live production HTTP smoke
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install application dependencies
+        run: npm ci --ignore-scripts
+      - name: Run live Render smoke
+        env:
+          RENDER_SMOKE_URL: https://inbox9.onrender.com
+        run: npm run render:smoke
