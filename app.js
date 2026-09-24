@@ -1157,7 +1157,7 @@ function supportPage() {
     ? '<section class="support-tickets"><div class="section-head recent-section-head"><div><span class="kicker">YOUR TICKETS</span><h3>Recent support</h3></div><span class="result-note">' + tickets.length + ' shown</span></div><div class="support-ticket-list">' + tickets.map(supportTicketCard).join('') + '</div></section>'
     : '<div class="panel support-empty"><div class="empty-icon">?</div><h3>No support tickets</h3><p>Create a ticket when an activation, wallet, recharge, or account issue needs help.</p></div>';
   const err = state.supportError ? '<div class="panel active-sync-error" role="alert"><span>' + esc(state.supportError) + '</span><button class="refresh-btn" type="button" data-action="refresh-support">Retry</button></div>' : '';
-  return '<div class="section-head with-action"><div><span class="kicker">CUSTOMER CARE</span><h2>Help & Support</h2><p class="section-subcopy">Recovery tools and account-specific support in one place.</p></div><div class="page-head-actions"><button class="refresh-btn" type="button" data-action="refresh-support">' + (state.supportLoading ? 'Refreshing…' : 'Refresh') + '</button></div></div>' + err + recovery + formBlock + ticketBlock;
+  return '<div class="support-page"><div class="section-head with-action"><div><span class="kicker">CUSTOMER CARE</span><h2>Help & Support</h2><p class="section-subcopy">Recovery tools and account-specific support in one place.</p></div><div class="page-head-actions"><button class="refresh-btn" type="button" data-action="refresh-support">' + (state.supportLoading ? 'Refreshing…' : 'Refresh') + '</button></div></div>' + err + recovery + formBlock + ticketBlock + '</div>';
 }
 
 function content() {

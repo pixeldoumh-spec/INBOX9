@@ -43,6 +43,7 @@ test('customer support page exposes recovery paths and avoids sensitive credenti
   assert.match(app, /Create support ticket/);
   assert.match(app, /Never share passwords, OTPs, or card PINs here/);
   assert.match(app, /id="support-form"/);
+  assert.match(app, /class="support-page"/);
   assert.doesNotMatch(app, /support-form[\s\S]*type="password"/);
 });
 
