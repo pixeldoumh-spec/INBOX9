@@ -54,7 +54,6 @@ export function createCustomerDataController({
   
     if (servicesResult.status === 'fulfilled') {
       state.services = Array.isArray(servicesResult.value.services) ? servicesResult.value.services : [];
-      state.liveProviders = servicesResult.value.liveProviders || {};
       prepareServiceCatalog();
     } else {
       state.catalogError = servicesResult.reason?.message || 'Service catalog unavailable';
@@ -94,7 +93,6 @@ export function createCustomerDataController({
     try {
       const payload = await api('/api/services');
       state.services = Array.isArray(payload.services) ? payload.services : [];
-      state.liveProviders = payload.liveProviders || {};
       prepareServiceCatalog();
       state.catalogError = '';
       state.lastCatalogRefreshAt = Date.now();
