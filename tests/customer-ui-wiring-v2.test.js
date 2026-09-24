@@ -74,9 +74,12 @@ test('purchase and cancellation refresh the authoritative customer snapshot', as
 });
 
 test('marketplace search keeps a bounded visible result set', async () => {
-  const app = await read('app.js');
-  assert.match(app, /MARKET_PAGE_SIZE = 48/);
-  assert.match(app, /MARKET_MAX_SEARCH_RESULTS = 96/);
+  const [app, state] = await Promise.all([
+    read('app.js'),
+    read('customer/state.js'),
+  ]);
+  assert.match(state, /export const MARKET_PAGE_SIZE = 48/);
+  assert.match(state, /export const MARKET_MAX_SEARCH_RESULTS = 96/);
   assert.match(app, /scheduleMarketSearch\(/);
   assert.match(app, /filteredMarketServices\(/);
 });
