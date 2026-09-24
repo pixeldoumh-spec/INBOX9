@@ -21,10 +21,12 @@ test('purchase flow is a three-step customer-facing state machine', async () => 
 test('confirmation shows the key customer decision data', async () => {
   const app = await fs.readFile(new URL('../app.js', import.meta.url), 'utf8');
   assert.match(app, /\+91/);
-  assert.match(app, /Availability/);
+  assert.match(app, /Price/);
   assert.match(app, /Number validity/);
-  assert.match(app, /OTP appears in about 20 seconds/);
-  assert.match(app, /Number first\. OTP next\./);
+  assert.match(app, /OTP delivery timing varies by service/);
+  assert.match(app, /Activation tracking/);
+  assert.doesNotMatch(app, /Availability/);
+  assert.doesNotMatch(app, /OTP appears in about 20 seconds/);
   assert.match(app, /Get number/);
 });
 
