@@ -119,7 +119,7 @@ export async function getWalletSummary(userId) {
   };
 }
 
-export async function createRecharge(userId, amountPaise, utr) {
+export async function createRecharge(userId, amountPaise, utr, submissionSessionId = null) {
   if (!UPI_ID) { const error = new Error('UPI recharge is not configured'); error.code = 'UPI_DESTINATION_NOT_CONFIGURED'; throw error; }
   if (!Number.isInteger(amountPaise) || amountPaise < MIN_RECHARGE_PAISE || amountPaise > MAX_RECHARGE_PAISE) {
     throw new Error('Recharge amount must be between ₹100 and ₹5,000');
@@ -132,9 +132,9 @@ export async function createRecharge(userId, amountPaise, utr) {
     let result;
     try {
       result = await client.query(
-        `INSERT INTO recharge_requests (id,user_id,amount_paise,utr,payment_method,upi_id)
-         VALUES ($1,$2,$3,$4,'UPI',$5) RETURNING *`,
-        [id('RCH'), userId, amountPaise, normalizedUtr, UPI_ID]
+        `INSERT INTO recharge_requests (id,user_id,amount_paise,utr,payment_method,upi_id,submission_session_id)
+         VALUES ($1,$2,$3,$4,'UPI',$5,$6) RETURNING *`,
+        [id('RCH'), userId, amountPaise, normalizedUtr, UPI_ID, submissionSessionId || null]
       );
     } catch (error) {
       if (error?.code === '23505' && error?.constraint === 'uq_recharge_utr') {
@@ -167,10 +167,80 @@ export async function listPendingRecharges(limit = 100) {
   const pool = await getPool();
   const safeLimit = Math.min(Math.max(Number(limit) || 100, 1), 200);
   const result = await pool.query(
-    `SELECT r.*, u.email FROM recharge_requests r JOIN users u ON u.id=r.user_id
-     WHERE r.status='Pending' ORDER BY r.submitted_at ASC LIMIT $1`, [safeLimit]
+    `SELECT r.*, u.email, u.created_at AS user_created_at,
+            ss.session_id AS submission_session_id,
+            ss.created_at AS submission_session_created_at,
+            ss.last_used_at AS submission_session_last_used_at,
+            ss.expires_at AS submission_session_expires_at,
+            ss.revoked_at AS submission_session_revoked_at,
+            COALESCE((
+              SELECT COUNT(*)::int
+              FROM sessions sa
+              WHERE sa.user_id=r.user_id
+                AND sa.revoked_at IS NULL
+                AND sa.expires_at>NOW()
+            ),0)::int AS active_session_count,
+            cs.session_id AS current_session_id,
+            cs.created_at AS current_session_created_at,
+            cs.last_used_at AS current_session_last_used_at,
+            COALESCE((
+              SELECT jsonb_agg(to_jsonb(history_row) ORDER BY history_row.submitted_at DESC)
+              FROM (
+                SELECT r2.id, r2.amount_paise, r2.utr, r2.status, r2.submitted_at, r2.reviewed_at
+                FROM recharge_requests r2
+                WHERE r2.user_id=r.user_id AND r2.id<>r.id
+                ORDER BY r2.submitted_at DESC
+                LIMIT 5
+              ) AS history_row
+            ), '[]'::jsonb) AS recent_payment_history
+       FROM recharge_requests r
+       JOIN users u ON u.id=r.user_id
+       LEFT JOIN sessions ss ON ss.session_id=r.submission_session_id
+       LEFT JOIN LATERAL (
+         SELECT s.session_id, s.created_at, s.last_used_at
+         FROM sessions s
+         WHERE s.user_id=r.user_id
+           AND s.revoked_at IS NULL
+           AND s.expires_at>NOW()
+         ORDER BY CASE WHEN s.session_id=r.submission_session_id THEN 0 ELSE 1 END,
+                  s.last_used_at DESC NULLS LAST,
+                  s.created_at DESC
+         LIMIT 1
+       ) cs ON TRUE
+       WHERE r.status='Pending'
+       ORDER BY r.submitted_at ASC
+       LIMIT $1`, [safeLimit]
   );
-  return result.rows.map(row => ({ ...mapRecharge(row), userId: row.user_id, email: row.email }));
+  return result.rows.map(row => ({
+    ...mapRecharge(row),
+    userId: row.user_id,
+    email: row.email,
+    accountCreatedAt: row.user_created_at ? new Date(row.user_created_at).getTime() : null,
+    submissionSessionId: row.submission_session_id || null,
+    submissionSession: row.submission_session_id ? {
+      id: row.submission_session_id,
+      createdAt: row.submission_session_created_at ? new Date(row.submission_session_created_at).getTime() : null,
+      lastUsedAt: row.submission_session_last_used_at ? new Date(row.submission_session_last_used_at).getTime() : null,
+      expiresAt: row.submission_session_expires_at ? new Date(row.submission_session_expires_at).getTime() : null,
+      revokedAt: row.submission_session_revoked_at ? new Date(row.submission_session_revoked_at).getTime() : null,
+      active: !row.submission_session_revoked_at && row.submission_session_expires_at && new Date(row.submission_session_expires_at).getTime() > Date.now()
+    } : null,
+    sessionContext: {
+      activeCount: Number(row.active_session_count || 0),
+      currentId: row.current_session_id || null,
+      currentCreatedAt: row.current_session_created_at ? new Date(row.current_session_created_at).getTime() : null,
+      currentLastUsedAt: row.current_session_last_used_at ? new Date(row.current_session_last_used_at).getTime() : null,
+      currentMatchesSubmission: Boolean(row.submission_session_id && row.current_session_id === row.submission_session_id)
+    },
+    recentPayments: Array.isArray(row.recent_payment_history) ? row.recent_payment_history.map(item => ({
+      id: item.id,
+      amountPaise: Number(item.amount_paise || 0),
+      utr: item.utr,
+      status: item.status,
+      submittedAt: item.submitted_at ? new Date(item.submitted_at).getTime() : null,
+      reviewedAt: item.reviewed_at ? new Date(item.reviewed_at).getTime() : null
+    })) : []
+  }));
 }
 
 export async function reviewRecharge(idValue, adminUserId, decision, rejectionReason = '', verification = {}) {

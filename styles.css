@@ -1900,3 +1900,21 @@ body::before{
   .notification-panel{position:fixed;top:62px;right:10px;width:calc(100vw - 20px)}
   .notification-badge{right:-4px}
 }
+
+
+/* Payment-session verification context */
+.admin-recharge-user{display:flex;flex-direction:column;gap:2px;min-width:150px}
+.admin-recharge-context{min-width:460px;padding:10px 12px;border:1px solid #273142;border-radius:10px;background:#0b1018}
+.admin-recharge-context-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px}
+.admin-recharge-context-head strong{font-size:11px}
+.admin-recharge-context-grid{display:grid;grid-template-columns:repeat(4,minmax(90px,1fr));gap:7px;margin-bottom:9px}
+.admin-recharge-context-grid>span{display:flex;flex-direction:column;gap:3px;color:#738096;font-size:8px;text-transform:uppercase;letter-spacing:.06em}
+.admin-recharge-context-grid strong{font-size:9px;color:#dfe7ef;text-transform:none;letter-spacing:0;overflow-wrap:anywhere}
+.admin-recharge-history{border-top:1px solid #202a38;padding-top:8px;margin-top:2px;margin-bottom:9px}
+.admin-recharge-history-head{display:flex;justify-content:space-between;gap:10px;align-items:baseline;margin-bottom:6px}
+.admin-recharge-history-head span{font-size:9px;color:#b5c0cd;text-transform:uppercase;letter-spacing:.05em}
+.admin-recharge-history-head small{font-size:8px;color:#687589}
+.admin-recharge-history-row{display:grid;grid-template-columns:minmax(105px,1fr) 70px 72px 138px;gap:8px;align-items:center;padding:5px 0;border-top:1px solid #1a232f;font-size:9px}
+.admin-recharge-history-row small{font-size:8px;color:#647286;text-align:right}
+@media (max-width:980px){.admin-recharge-context{min-width:320px}.admin-recharge-context-grid{grid-template-columns:repeat(2,minmax(110px,1fr))}.admin-recharge-history-row{grid-template-columns:1fr 65px 68px}.admin-recharge-history-row small{grid-column:1/-1;text-align:left}}
+@media (max-width:680px){.admin-recharge-context{min-width:260px}.admin-recharge-history-head{flex-direction:column;align-items:flex-start}}
