@@ -74,6 +74,17 @@ test('browser hash navigation refreshes the destination data source', async () =
   assert.match(navigation, /refreshPageData\(next\);/);
 });
 
+test('customer API centralizes expired-session recovery without hijacking login failures', async () => {
+  const apiClient = await read('customer/api-client.js');
+  const navigation = await read('customer/navigation.js');
+  assert.match(apiClient, /response\.status === 401/);
+  assert.match(apiClient, /inbox9:session-expired/);
+  assert.match(apiClient, /\/api\/auth\/login/);
+  assert.match(apiClient, /\/api\/auth\/register/);
+  assert.match(apiClient, /\/api\/auth\/recover/);
+  assert.match(navigation, /window\.addEventListener\('inbox9:session-expired', handleSessionExpired\)/);
+});
+
 test('authenticated customer screens have server refresh and session-expiry recovery', async () => {
   const [app, navigation, customerData] = await Promise.all([
     read('app.js'),
