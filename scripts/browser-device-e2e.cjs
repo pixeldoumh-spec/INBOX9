@@ -87,7 +87,12 @@ async function runFullChromium() {
   const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
   const page = await context.newPage();
-  const errors = attachErrorCapture(page);
+  let offlineExpected = false;
+  const errors = [];
+  page.on('pageerror', (error) => errors.push(String(error.message || error)));
+  page.on('console', (message) => {
+    if (message.type() === 'error' && !offlineExpected) errors.push(String(message.text() || message));
+  });
   const customerEmail = 'browser-e2e-' + Date.now() + '@example.test';
   const adminEmail = 'admin-browser-e2e@example.test';
   const utr = 'BROWSER-E2E-' + Date.now();
@@ -193,8 +198,10 @@ async function runFullChromium() {
     await visible(page, '[role="dialog"]');
     await page.getByRole('dialog').getByRole('button', { name: 'Close', exact: true }).click();
 
+    offlineExpected = true;
     await context.setOffline(true);
     await page.getByText('You are offline. Live updates are paused.', { exact: true }).waitFor({ state: 'visible', timeout: 4000 });
+    offlineExpected = false;
     await context.setOffline(false);
     await page.getByText('Connection restored', { exact: true }).waitFor({ state: 'visible', timeout: 8000 });
 
