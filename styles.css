@@ -129,9 +129,6 @@ html.overlay-open,body.overlay-open{overflow:hidden}.security-overlay{position:f
 .admin-verify-fields input{width:100%;box-sizing:border-box;height:34px;padding:0 9px;border:1px solid #293242;border-radius:8px;background:#090d14;color:#eef3f8;font-size:11px;outline:none}
 .admin-verify-fields input:focus{border-color:#6d7cff;box-shadow:0 0 0 3px rgba(109,124,255,.12)}
 @media(max-width:900px){.admin-verify-fields{grid-template-columns:1fr}.admin-verify-fields input{height:38px;font-size:12px}}
-
-/* TASK-003 mobile readability and browser ergonomics */
-.purchase-return-banner{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:13px 15px;margin-bottom:14px}
 @media(max-width:620px){.orders-table{min-width:0}.orders-table thead{display:none}.orders-table tbody{display:grid}.orders-table tr{display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid #18212d;padding:8px 0}.orders-table td{display:grid;grid-template-columns:68px minmax(0,1fr);gap:8px;align-items:start;padding:8px 12px;border:0;min-width:0;font-size:11px}.orders-table td::before{content:attr(data-label);color:#657286;font-size:9px;text-transform:uppercase;letter-spacing:.08em}.orders-table td:last-child{grid-column:1/-1}.orders-table td strong{font-size:11px}.orders-table .table-status{font-size:11px}.table-panel{overflow-x:auto}}
 @media(max-width:500px){.kicker,.nav-label{font-size:10px}th{font-size:9px}td{font-size:11px}.table-status{font-size:11px}.waiting-note{font-size:11px}}
 @media(max-width:780px) and (max-height:600px){.auth-shell{place-items:start center;min-height:100dvh;padding:16px;overflow:auto}}
@@ -660,10 +657,6 @@ body::before{
 .balance-card>strong{
   font-size:46px;
   letter-spacing:-.055em;
-}
-.premium-recharge-grid .panel-head{
-  padding:18px 18px 15px;
-  background:linear-gradient(180deg,#0f1720,#0d141c);
 }
 
 .auth-shell{
@@ -1308,8 +1301,6 @@ body::before{
 .wallet-stat-card>strong{display:block;margin-top:22px;color:#edf3f8;font:700 21px 'Space Grotesk'}
 .wallet-stat-card>small{display:block;margin-top:5px;color:#67768a;font-size:8px}
 .wallet-stat-card.pending{border-color:#3b3025;background:linear-gradient(180deg,#15110e,#0d0b09)}
-.ledger-amount.credit{color:#9fdf92}
-.ledger-amount.debit{color:#c9a4a0}
 .order-summary-strip{
   display:grid;
   grid-template-columns:repeat(3,1fr);
@@ -1414,30 +1405,6 @@ body::before{
   .order-detail-grid{grid-template-columns:1fr 1fr}
 }
 
-
-/* Recharge reconciliation status cards */
-.recharge-status-card{
-  margin:10px 12px;
-  padding:12px;
-  border:1px solid #202d3b;
-  border-radius:12px;
-  background:#0b121a;
-}
-.recharge-status-card.approved{border-color:#29412d;background:#0d1510}
-.recharge-status-card.rejected{border-color:#45292d;background:#160f11}
-.recharge-status-card p{
-  margin:9px 0 3px;
-  color:#9aa7b6;
-  font-size:9px;
-  line-height:1.45;
-}
-.recharge-status-card>small{
-  color:#5f6e80;
-  font-size:8px;
-}
-@media(max-width:620px){
-  .recharge-status-card{margin:9px 10px;padding:11px}
-}
 
 /* Customer notification center */
 .notification-wrap{position:relative;z-index:20}
