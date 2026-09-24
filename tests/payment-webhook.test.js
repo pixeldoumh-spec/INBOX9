@@ -67,6 +67,24 @@ test('Postgres settlement is exactly-once and rejects a reused event ID with ano
     assert.equal(mismatch.ok, false);
     assert.equal(mismatch.code, 'PAYMENT_WEBHOOK_EVENT_CONFLICT');
     assert.equal(Number((await pool.query('SELECT balance_paise FROM wallets WHERE user_id=$1', [userId])).rows[0].balance_paise), 50000);
+
+    const unknownPayload = {
+      eventId: 'evt_' + crypto.randomUUID(),
+      eventType: 'payment.succeeded',
+      data: { rechargeId: 'RCH-NOT-FOUND-' + crypto.randomUUID(), amountPaise: 50000, currency: 'INR' }
+    };
+    const unknown = await processPaymentWebhook({
+      rawBody: JSON.stringify(unknownPayload),
+      normalized: normalizePaymentWebhook(unknownPayload),
+      provider
+    });
+    assert.equal(unknown.ok, false);
+    assert.equal(unknown.code, 'PAYMENT_RECHARGE_NOT_FOUND');
+    const unknownEvent = await pool.query(
+      'SELECT status,error_code FROM payment_webhook_events WHERE provider=$1 AND event_id=$2',
+      [provider, unknownPayload.eventId]
+    );
+    assert.deepEqual(unknownEvent.rows[0], { status: 'Rejected', error_code: 'PAYMENT_RECHARGE_NOT_FOUND' });
   } finally {
     // The wallet ledger is intentionally immutable and its user foreign key is
     // cascading, so deleting the fixture user would invoke the ledger mutation guard.
