@@ -237,6 +237,9 @@ function processNotificationSnapshot({ announce = true } = {}) {
   notificationBaseline = current;
 }
 
+async function markNotificationRead(id){if(!id)return;try{await api('/api/notifications/'+encodeURIComponent(id),{method:'PATCH',headers:{'content-type':'application/json'},body:JSON.stringify({read:true})});}catch(error){toast(error.message);}}
+async function markAllNotificationsRead(){try{await api('/api/notifications/read-all',{method:'POST'});state.notifications=state.notifications.map(i=>({...i,read:true}));state.notificationsOpen=false;render();}catch(error){toast(error.message);}}
+function openNotifications(){state.notificationsOpen=!state.notificationsOpen;if(state.notificationsOpen)void refreshNotifications().then(()=>render());else render();}
 function markAllNotificationsRead() {
   state.notifications = state.notifications.map((item) => ({ ...item, read: true }));
   state.notificationsOpen = false;
@@ -255,7 +258,7 @@ function notificationPanel() {
     ? state.notifications.map((item) => {
         const elapsed = Math.max(0, Math.floor((Date.now() - item.createdAt) / 1000));
         const age = elapsed < 60 ? 'Just now' : elapsed < 3600 ? Math.floor(elapsed / 60) + 'm ago' : Math.floor(elapsed / 3600) + 'h ago';
-        return '<button class="notification-row ' + esc(item.tone) + ' ' + (item.read ? 'read' : 'unread') + '" type="button" data-notification-page="' + esc(item.page || '') + '">' +
+        return '<button class="notification-row ' + esc(item.tone) + ' ' + (item.read ? 'read' : 'unread') + '" type="button" data-notification-page="' + esc(item.page || '') + '" data-notification-id="' + esc(item.id) + '">' +
           '<span class="notification-icon">•</span><span class="notification-copy"><strong>' + esc(item.title) + '</strong><small>' + esc(item.body) + '</small><em>' + age + '</em></span></button>';
       }).join('')
     : '<div class="notification-empty"><span>✓</span><strong>All caught up</strong><small>Important wallet and activation updates will appear here.</small></div>';
@@ -328,6 +331,10 @@ async function submitAuth(event) {
   const data = new FormData(form);
   const email = String(data.get('email') || '').trim();
   const password = String(data.get('password') || '');
+  if (state.authMode === 'recover') {
+    if(password!==String(data.get('confirm')||'')) return toast('Passwords do not match');
+    try{const payload=await api('/api/auth/recover',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({email,recoveryCode:String(data.get('recoveryCode')||''),password})});state.user=payload.user;state.authMode='login';state.page='buy';loadPersisted();await loadCustomerData();render();toast('Password reset. You are signed in.');return;}catch(error){toast(error.message);return;}
+  }
   if (state.authMode === 'register' && password !== String(data.get('confirm') || '')) return toast('Passwords do not match');
   try {
     const endpoint = state.authMode === 'register' ? '/api/auth/register' : '/api/auth/login';
@@ -343,12 +350,7 @@ async function submitAuth(event) {
 }
 
 
-function openSecurity() {
-  state.dialogReturnFocus = { kind: 'security' };
-  state.securityOpen = true;
-  render();
-  scheduleDialogFocus();
-}
+function openSecurity(){setPage('account');}
 function closeSecurity() {
   state.securityOpen = false;
   render();
@@ -1154,11 +1156,7 @@ function adminAuditPage() {
   return `<div class="panel table-panel"><div class="panel-head"><div><h3>Audit log</h3><span>Administrative actions are append-only.</span></div></div><table><thead><tr><th>Event</th><th>Actor</th><th>Action</th><th>Target</th><th>Target ID</th><th>Metadata</th><th>Created</th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 
-function authPage() {
-  const register = state.authMode === 'register';
-  return `<div class="auth-shell"><div class="auth-card"><div class="brand-row auth-brand"><div class="brand-mark">ϟ</div><div><div class="brand-name">INBOX9</div><div class="brand-sub">OTP MARKETPLACE</div></div></div><span class="kicker">SECURE ACCOUNT</span><h1>${register ? 'Create your account' : 'Welcome back'}</h1><p class="auth-copy">${register ? 'Create an account to access the marketplace.' : 'Sign in to continue to your INBOX9 dashboard.'}</p><form id="auth-form"><label>Email<input name="email" type="email" autocomplete="email" required placeholder="you@example.com"></label><label>Password<input name="password" type="password" autocomplete="${register ? 'new-password' : 'current-password'}" minlength="8" required placeholder="Minimum 8 characters"></label>${register ? '<label>Confirm password<input name="confirm" type="password" autocomplete="new-password" minlength="8" required placeholder="Repeat your password"></label>' : ''}<button class="primary-btn auth-submit" type="submit">${register ? 'Create account' : 'Sign in'}</button></form><div class="auth-switch">${register ? 'Already have an account?' : 'New to INBOX9?'} <button type="button" data-auth-mode="${register ? 'login' : 'register'}">${register ? 'Sign in' : 'Create account'}</button></div><div class="auth-note">Your account is protected with email and password. Secure access is required for every session.</div></div></div>`;
-}
-
+function authPage(){const register=state.authMode==='register',recover=state.authMode==='recover';if(recover)return'<div class="auth-shell"><div class="auth-card"><div class="brand-row auth-brand"><div class="brand-mark">ϟ</div><div><div class="brand-name">INBOX9</div><div class="brand-sub">OTP MARKETPLACE</div></div></div><span class="kicker">ACCOUNT RECOVERY</span><h1>Recover your account</h1><p class="auth-copy">Use the single-use recovery code saved from Account.</p><form id="auth-form"><label>Email<input name="email" type="email" autocomplete="email" required></label><label>Recovery code<input name="recoveryCode" type="text" autocomplete="one-time-code" required placeholder="REC-XXXXXXXXXXXXXXXX"></label><label>New password<input name="password" type="password" autocomplete="new-password" minlength="8" maxlength="128" required></label><label>Confirm password<input name="confirm" type="password" autocomplete="new-password" minlength="8" maxlength="128" required></label><button class="primary-btn auth-submit" type="submit">Reset password</button></form><div class="auth-switch"><button type="button" data-auth-mode="login">Back to sign in</button></div><div class="auth-note">Recovery codes are single-use. Store them offline.</div></div></div>';return'<div class="auth-shell"><div class="auth-card"><div class="brand-row auth-brand"><div class="brand-mark">ϟ</div><div><div class="brand-name">INBOX9</div><div class="brand-sub">OTP MARKETPLACE</div></div></div><span class="kicker">SECURE ACCOUNT</span><h1>'+(register?'Create your account':'Welcome back')+'</h1><p class="auth-copy">'+(register?'Create an account to access the marketplace.':'Sign in to continue to your INBOX9 dashboard.')+'</p><form id="auth-form"><label>Email<input name="email" type="email" autocomplete="email" required></label><label>Password<input name="password" type="password" autocomplete="'+(register?'new-password':'current-password')+'" minlength="8" required></label>'+(register?'<label>Confirm password<input name="confirm" type="password" autocomplete="new-password" minlength="8" required></label>':'')+'<button class="primary-btn auth-submit" type="submit">'+(register?'Create account':'Sign in')+'</button></form><div class="auth-switch">'+(register?'Already have an account?':'New to INBOX9?')+' <button type="button" data-auth-mode="'+(register?'login':'register')+'">'+(register?'Sign in':'Create account')+'</button></div>'+(!register?'<button class="link-btn auth-forgot" type="button" data-auth-mode="recover">Forgot password? Use a recovery code</button>':'')+'<div class="auth-note">Secure access is required for every session.</div></div></div>';}
 function bootstrapErrorPage() {
   const message = esc(state.bootstrapError || 'The application is temporarily unavailable.');
   return '<div class="auth-shell"><div class="auth-card"><div class="brand-row auth-brand"><div class="brand-mark">ϟ</div><div><div class="brand-name">INBOX9</div><div class="brand-sub">OTP MARKETPLACE</div></div></div><span class="kicker">CONNECTION CHECK</span><h1>We could not load INBOX9</h1><p class="auth-copy">' + message + '</p><button class="primary-btn auth-submit" type="button" data-action="retry-bootstrap">Retry</button><div class="auth-note">Your account data remains on the server. A temporary connection problem does not sign you out.</div></div></div>';
@@ -1187,7 +1185,7 @@ function render() {
         </div>
         <div class="nav-label">MARKET</div>
         <nav>
-          ${appNav().map(([id, label, glyph]) => `<button class="nav-item ${state.page === id ? 'active' : ''}" type="button" data-page="${id}"><span>${glyph}</span>${label}${id === 'active' && state.active.length ? `<span class="count-badge">${state.active.length}</span>` : ''}</button>`).join('')}
+          ${appNav().map(([id, label, glyph]) => `<button class="nav-item ${state.page === id ? 'active' : ''}" type="button" data-page="${id}" aria-current="${state.page === id ? 'page' : 'false'}"><span>${glyph}</span>${label}${id === 'active' && state.active.length ? `<span class="count-badge">${state.active.length}</span>` : ''}</button>`).join('')}
         </nav>
         <div class="sidebar-spacer"></div>
         <div class="trust-card"><span>✓</span><div><strong>Secure activation</strong><span>Protected service layer</span></div></div>
@@ -1331,6 +1329,7 @@ function content() {
   if (state.page === 'orders') return ordersPage();
   if (state.page === 'wallet') return walletPage();
   if (state.page === 'support') return supportPage();
+  if (state.page === 'account') return accountPage();
   if (state.page === 'api') return apiPage();
   if (state.page === 'admin') return adminPage();
   return buyPage();
@@ -1590,6 +1589,11 @@ function walletPage() {
     '<div class="wallet-two-column"><div class="panel ledger"><div class="panel-head"><div><h3>Wallet ledger</h3><span>Authoritative account activity</span></div></div>' + ledgerRows + '</div><div class="panel ledger"><div class="panel-head"><div><h3>Recharge status</h3><span>Submitted → Verified → Wallet outcome</span></div></div>' + rechargeRows + '</div></div>';
 }
 
+function refreshAccount(){if(!state.user)return false;state.accountLoading=true;state.accountError='';return Promise.all([api('/api/auth/sessions'),api('/api/auth/me')]).then(([sessions,me])=>{state.accountSessions=Array.isArray(sessions.sessions)?sessions.sessions:[];if(me.user)state.user=me.user;return true;}).catch(error=>{if(Number(error.status)===401){handleSessionExpired();return false;}state.accountError=error.message||'Account data unavailable';return false;}).finally(()=>{state.accountLoading=false;});}
+function saveProfile(event){event.preventDefault();const displayName=String(new FormData(event.currentTarget).get('displayName')||'').trim();api('/api/auth/profile',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({displayName})}).then(p=>{state.user=p.user;toast('Profile saved');render();}).catch(error=>toast(error.message));}
+function generateRecoveryCode(){if(state.accountRecoveryBusy)return;state.accountRecoveryBusy=true;state.accountRecoveryCode='';render();api('/api/auth/recovery-code',{method:'POST'}).then(p=>{state.accountRecoveryCode=p.code||'';toast('Recovery code generated');}).catch(error=>toast(error.message)).finally(()=>{state.accountRecoveryBusy=false;render();});}
+function revokeSession(id){api('/api/auth/sessions/'+encodeURIComponent(id),{method:'DELETE'}).then(result=>{if(result.current){handleSessionSignedOut();return;}return refreshAccount().then(()=>{render();toast('Session signed out');});}).catch(error=>toast(error.message));}
+function accountPage(){const user=state.user||{},sessions=Array.isArray(state.accountSessions)?state.accountSessions:[];const rows=sessions.length?sessions.map(s=>'<div class="account-session-row"><div><strong>'+esc(s.current?'Current session':'Signed-in session')+'</strong><small>Started '+esc(s.createdAt?new Date(s.createdAt).toLocaleString():'—')+' · Last active '+esc(s.lastUsedAt?new Date(s.lastUsedAt).toLocaleString():'—')+'</small></div><span>'+(s.current?'<span class="status-chip">CURRENT</span>':'<button class="filter-btn" type="button" data-revoke-session="'+esc(s.id)+'">Sign out</button>')+'</span></div>').join(''):'<div class="empty-mini">No active session records are available.</div>';return'<div class="account-page"><div class="section-head with-action"><div><span class="kicker">ACCOUNT</span><h2>Account</h2><p class="section-subcopy">Profile, password, recovery, and signed-in sessions.</p></div><button class="refresh-btn" type="button" data-action="refresh-account">Refresh</button></div>'+(state.accountError?'<div class="panel active-sync-error" role="alert"><span>'+esc(state.accountError)+'</span><button class="refresh-btn" type="button" data-action="refresh-account">Retry</button></div>':'')+'<div class="account-grid"><section class="panel account-card"><div class="panel-head"><div><h3>Profile</h3><span>Set a display name for your account.</span></div></div><form id="profile-form" class="account-form"><label>Display name<input name="displayName" maxlength="64" value="'+esc(user.displayName||'')+'" placeholder="Your display name"></label><label>Email<input value="'+esc(user.email||'')+'" readonly aria-readonly="true"></label><button class="primary-btn" type="submit">Save profile</button></form></section><section class="panel account-card"><div class="panel-head"><div><h3>Password</h3><span>Changing it signs out other sessions.</span></div></div><form id="change-password-form" class="security-form"><label>Current password<input name="currentPassword" type="password" autocomplete="current-password" required></label><label>New password<input name="newPassword" type="password" autocomplete="new-password" minlength="8" maxlength="128" required></label><label>Confirm new password<input name="confirmPassword" type="password" autocomplete="new-password" minlength="8" maxlength="128" required></label><button class="primary-btn" type="submit">Change password</button></form></section></div><section class="panel account-card"><div class="panel-head"><div><h3>Recovery code</h3><span>Generate while signed in and store it offline.</span></div><button class="secondary-btn" type="button" data-generate-recovery '+(state.accountRecoveryBusy?'disabled':'')+'>'+(state.accountRecoveryBusy?'Generating…':'Generate code')+'</button></div>'+(state.accountRecoveryCode?'<div class="recovery-code-box" role="alert"><span>YOUR RECOVERY CODE</span><strong>'+esc(state.accountRecoveryCode)+'</strong><div><button class="primary-btn" type="button" data-copy="'+esc(state.accountRecoveryCode)+'" data-copy-message="Recovery code copied">Copy code</button><small>A new code invalidates the previous unused code.</small></div></div>':'<div class="account-note">The code is only shown after generation.</div>')+'</section><section class="panel account-card"><div class="panel-head"><div><h3>Active sessions</h3><span>7-day sessions · up to 5 retained by default.</span></div><button class="buy-btn" type="button" data-action="logout-all">Sign out all</button></div><div class="account-session-list">'+rows+'</div></section></div>';}
 function apiPage() {
   return `<div class="section-head"><div><span class="kicker">OPERATIONS</span><h2>API foundation</h2></div><span class="status-chip">ADMIN ONLY</span></div><div class="api-grid"><div class="panel api-card"><div class="api-title"><div class="info-icon">ϟ</div><div><h3>Provider adapter contract</h3><p>Upstream integrations stay behind a server-only adapter and never leak provider credentials to the browser.</p></div></div><pre>interface ProviderAdapter {
   listServices(): Promise&lt;Service[]&gt;
@@ -1620,14 +1624,13 @@ function bindEvents() {
   document.querySelectorAll('[data-action="close-security"]').forEach((node) => node.addEventListener('click', closeSecurity));
   document.querySelectorAll('[data-action="logout-all"]').forEach((node) => node.addEventListener('click', logoutAll));
   document.querySelectorAll('[data-action="notifications"]').forEach((node) => node.addEventListener('click', openNotifications));
-  document.querySelectorAll('[data-action="notifications-read"]').forEach((node) => node.addEventListener('click', markAllNotificationsRead));
-  document.querySelectorAll('[data-notification-page]').forEach((node) => node.addEventListener('click', () => {
-    state.notifications = state.notifications.map((item) => ({ ...item, read: true }));
-    const page = node.dataset.notificationPage;
-    state.notificationsOpen = false;
-    if (page) setPage(page); else render();
-  }));
+  document.querySelectorAll('[data-action="notifications-read"]').forEach((node)=>node.addEventListener('click',()=>void markAllNotificationsRead()));
+  document.querySelectorAll('[data-notification-page]').forEach((node)=>node.addEventListener('click',()=>{const id=node.dataset.notificationId,page=node.dataset.notificationPage;void markNotificationRead(id).finally(()=>{state.notifications=state.notifications.map(item=>item.id===id?{...item,read:true}:item);state.notificationsOpen=false;if(page)setPage(page);else render();});}));
   document.getElementById('change-password-form')?.addEventListener('submit', submitChangePassword);
+  document.getElementById('profile-form')?.addEventListener('submit', saveProfile);
+  document.querySelectorAll('[data-action="refresh-account"]').forEach((n)=>n.addEventListener('click',()=>void refreshAccount().then(()=>render())));
+  document.querySelectorAll('[data-generate-recovery]').forEach((n)=>n.addEventListener('click',generateRecoveryCode));
+  document.querySelectorAll('[data-revoke-session]').forEach((n)=>n.addEventListener('click',()=>revokeSession(n.dataset.revokeSession)));
   document.getElementById('support-form')?.addEventListener('submit', submitSupportTicket);
   document.querySelectorAll('[data-action="refresh-support"]').forEach((node) => node.addEventListener('click', () => void refreshSupport().then(() => render())));
   document.querySelectorAll('[data-recovery]').forEach((node) => node.addEventListener('click', () => void runRecovery(node.dataset.recovery)));
