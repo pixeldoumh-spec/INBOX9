@@ -541,7 +541,7 @@ async function refreshSupport({ announce = false, silent = false } = {}) {
     state.supportTickets = Array.isArray(payload.tickets) ? payload.tickets : [];
     if (announce && notificationBaseline) {
       notificationBaseline = before;
-      processNotificationSnapshot({ announce: true });
+      void refreshNotifications();
     } else {
       notificationBaseline = notificationSnapshot();
     }
@@ -1006,11 +1006,12 @@ async function adminUpdateSupport(id, form) {
   const data = new FormData(form);
   const status = String(data.get('status') || 'Open');
   const adminNote = String(data.get('adminNote') || '').trim();
+  const reply = String(data.get('reply') || '').trim();
   try {
     await api(`/api/admin/support/${encodeURIComponent(id)}`, {
       method: 'PATCH',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ status, adminNote })
+      body: JSON.stringify({ status, adminNote, reply })
     });
     toast('Support ticket updated');
     await loadAdminTab('support');
@@ -1080,45 +1081,7 @@ function adminRechargesPage() {
   return `<div class="panel table-panel"><div class="panel-head"><div><h3>Pending UTR verification</h3><span>Verify the payment independently before approving.</span></div></div><table><thead><tr><th>Request</th><th>User</th><th>Amount</th><th>UTR</th><th>Submitted</th><th>Action</th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 
-function adminSupportPage() {
-  const tickets = Array.isArray(state.admin.support) ? state.admin.support : [];
-  const filter = state.adminSupportFilter || 'all';
-  const counts = tickets.reduce((acc, ticket) => {
-    const status = String(ticket.status || 'Open');
-    acc[status] = (acc[status] || 0) + 1;
-    return acc;
-  }, {});
-  const visible = filter === 'all' ? tickets : tickets.filter((ticket) => String(ticket.status || 'Open') === filter);
-  const filters = [
-    ['all', 'All', tickets.length],
-    ['Open', 'Open', counts.Open || 0],
-    ['In Progress', 'In Progress', counts['In Progress'] || 0],
-    ['Resolved', 'Resolved', counts.Resolved || 0],
-    ['Closed', 'Closed', counts.Closed || 0]
-  ];
-  const cards = visible.length ? visible.map(ticket => {
-    const status = String(ticket.status || 'Open');
-    const activation = ticket.activation ? '<span class="admin-support-ref">Activation · ' + esc(ticket.activation.id) + (ticket.activation.service ? ' · ' + esc(ticket.activation.service) : '') + (ticket.activation.status ? ' · ' + esc(ticket.activation.status) : '') + '</span>' : '';
-    const recharge = ticket.recharge ? '<span class="admin-support-ref">Recharge · ' + esc(ticket.recharge.id) + (ticket.recharge.status ? ' · ' + esc(ticket.recharge.status) : '') + '</span>' : '';
-    return '<article class="panel admin-support-card">' +
-      '<div class="admin-support-head"><div><span class="kicker">' + esc(ticket.category || 'other') + '</span><h3>' + esc(ticket.subject) + '</h3><small class="mono">' + esc(ticket.id) + ' · ' + esc(new Date(ticket.createdAt).toLocaleString()) + '</small></div><span class="table-status ' + supportStatusClass(status) + '">' + esc(status) + '</span></div>' +
-      '<div class="admin-support-customer"><div><strong>' + esc(ticket.email || 'Unknown customer') + '</strong><small>Created ' + esc(new Date(ticket.createdAt).toLocaleString()) + '</small></div><span>Last updated ' + esc(new Date(ticket.updatedAt || ticket.createdAt).toLocaleString()) + '</span></div>' +
-      '<div class="admin-support-assignment"><span>Assigned to <strong>' + esc(ticket.assignedAdminEmail || 'Unassigned') + '</strong></span><span class="admin-support-assign-actions">' +
-        (ticket.assignedAdminId === state.user?.id ? '<button class="filter-btn selected" type="button" disabled>Assigned to me</button>' : '<button class="filter-btn" type="button" data-admin-support-assign="' + esc(ticket.id) + '">Assign to me</button>') +
-        (ticket.assignedAdminId ? '<button class="filter-btn" type="button" data-admin-support-unassign="' + esc(ticket.id) + '">Unassign</button>' : '') +
-      '</span></div>';
-      '<p class="admin-support-message">' + esc(ticket.message) + '</p>' +
-      '<div class="admin-support-refs">' + activation + recharge + '</div>' +
-      '<form class="admin-support-form" data-admin-support-form="' + esc(ticket.id) + '">' +
-        '<label>Status<select name="status">' + ['Open','In Progress','Resolved','Closed'].map(s => '<option value="' + esc(s) + '" ' + (status === s ? 'selected' : '') + '>' + esc(s) + '</option>').join('') + '</select></label>' +
-        '<label>Customer response / note<textarea name="adminNote" maxlength="1000" rows="3" placeholder="Write a concise response or resolution note.">' + esc(ticket.adminNote || '') + '</textarea></label>' +
-        '<div class="admin-support-actions"><span>Changes are audited.</span><button class="buy-btn" type="submit">Save update</button></div>' +
-      '</form>' +
-    '</article>';
-  }).join('') : '<div class="panel support-empty"><div class="empty-icon">✓</div><h3>No tickets in this view</h3><p>New customer support requests will appear here.</p></div>';
-  return '<div class="admin-support-toolbar"><div class="admin-support-filters">' + filters.map(([id,label,count]) => '<button class="filter-btn ' + (filter === id ? 'selected' : '') + '" type="button" data-admin-support-filter="' + esc(id) + '">' + esc(label) + ' <b>' + count + '</b></button>').join('') + '</div><button class="refresh-btn" type="button" data-admin-support-refresh>Refresh</button></div>' +
-    '<div class="admin-support-list">' + cards + '</div>';
-}
+function adminSupportPage(){const tickets=Array.isArray(state.admin.support)?state.admin.support:[],filter=state.adminSupportFilter||'all';const counts=tickets.reduce((a,t)=>{const st=String(t.status||'Open');a[st]=(a[st]||0)+1;return a;},{});const visible=filter==='all'?tickets:tickets.filter(t=>String(t.status||'Open')===filter);const filters=[['all','All',tickets.length],['Open','Open',counts.Open||0],['In Progress','In Progress',counts['In Progress']||0],['Resolved','Resolved',counts.Resolved||0],['Closed','Closed',counts.Closed||0]];const cards=visible.length?visible.map(ticket=>{const status=String(ticket.status||'Open');const activation=ticket.activation?'<span class="admin-support-ref">Activation · '+esc(ticket.activation.id)+(ticket.activation.service?' · '+esc(ticket.activation.service):'')+(ticket.activation.status?' · '+esc(ticket.activation.status):'')+'</span>':'';const recharge=ticket.recharge?'<span class="admin-support-ref">Recharge · '+esc(ticket.recharge.id)+(ticket.recharge.status?' · '+esc(ticket.recharge.status):'')+'</span>':'';const messages=Array.isArray(ticket.messages)?ticket.messages:[];const thread=messages.length?'<div class="admin-support-thread">'+messages.map(m=>'<div class="admin-support-message-row"><strong>'+esc(m.authorRole==='admin'?'Support':'Customer')+'</strong><span>'+esc(new Date(m.createdAt).toLocaleString())+'</span><p>'+esc(m.body)+'</p></div>').join('')+'</div>':'<p class="admin-support-message">'+esc(ticket.message)+'</p>';return'<article class="panel admin-support-card"><div class="admin-support-head"><div><span class="kicker">'+esc(ticket.category||'other')+'</span><h3>'+esc(ticket.subject)+'</h3><small class="mono">'+esc(ticket.id)+' · '+esc(new Date(ticket.createdAt).toLocaleString())+'</small></div><span class="table-status '+supportStatusClass(status)+'">'+esc(status)+'</span></div><div class="admin-support-customer"><div><strong>'+esc(ticket.email||'Unknown customer')+'</strong><small>Created '+esc(new Date(ticket.createdAt).toLocaleString())+'</small></div><span>Last updated '+esc(new Date(ticket.updatedAt||ticket.createdAt).toLocaleString())+'</span></div><div class="admin-support-assignment"><span>Assigned to <strong>'+esc(ticket.assignedAdminEmail||'Unassigned')+'</strong></span><span class="admin-support-assign-actions">'+(ticket.assignedAdminId===state.user?.id?'<button class="filter-btn selected" type="button" disabled>Assigned to me</button>':'<button class="filter-btn" type="button" data-admin-support-assign="'+esc(ticket.id)+'">Assign to me</button>')+(ticket.assignedAdminId?'<button class="filter-btn" type="button" data-admin-support-unassign="'+esc(ticket.id)+'">Unassign</button>':'')+'</span></div>'+thread+'<div class="admin-support-refs">'+activation+recharge+'</div><form class="admin-support-form" data-admin-support-form="'+esc(ticket.id)+'"><label>Status<select name="status">'+['Open','In Progress','Resolved','Closed'].map(st=>'<option value="'+esc(st)+'" '+(status===st?'selected':'')+'>'+esc(st)+'</option>').join('')+'</select></label><label>Internal note<textarea name="adminNote" maxlength="1000" rows="3" placeholder="Internal note for the support record.">'+esc(ticket.adminNote||'')+'</textarea></label><label>Customer reply<textarea name="reply" maxlength="4000" rows="3" placeholder="Reply directly to the customer."></textarea></label><div class="admin-support-actions"><span>Changes are audited.</span><button class="buy-btn" type="submit">Save update</button></div></form></article>';}).join(''):'<div class="panel support-empty"><div class="empty-icon">✓</div><h3>No tickets in this view</h3><p>New customer support requests will appear here.</p></div>';return'<div class="admin-support-toolbar"><div class="admin-support-filters">'+filters.map(([id,label,count])=>'<button class="filter-btn '+(filter===id?'selected':'')+'" type="button" data-admin-support-filter="'+esc(id)+'">'+esc(label)+' <b>'+count+'</b></button>').join('')+'</div><button class="refresh-btn" type="button" data-admin-support-refresh>Refresh</button></div><div class="admin-support-list">'+cards+'</div>';}
 function adminServicesPage() {
   const rows = state.admin.services.length ? state.admin.services.map(s => `<tr><td><strong>${esc(s.name)}</strong><small class="table-sub">${esc(s.category)} · ${esc(s.id)}</small></td><td><form class="admin-service-form" data-admin-service-form="${esc(s.id)}"><input name="price" type="number" min="0" max="1000000" step="0.01" value="${(s.pricePaise/100).toFixed(2)}" aria-label="Price for ${esc(s.name)}"><input name="stock" type="number" min="0" max="1000000" step="1" value="${s.stock}" aria-label="Stock for ${esc(s.name)}"><select name="availability" aria-label="Availability for ${esc(s.name)}"><option value="high" ${s.availability==='high'?'selected':''}>High</option><option value="medium" ${s.availability==='medium'?'selected':''}>Medium</option><option value="low" ${s.availability==='low'?'selected':''}>Low</option></select><label class="check-inline"><input name="active" type="checkbox" ${s.active?'checked':''}> Active</label><button class="buy-btn" type="submit">Save</button></form></td></tr>`).join('') : `<tr><td colspan="2"><div class="empty-mini">No services found.</div></td></tr>`;
   return `<div class="panel table-panel"><div class="panel-head"><div><h3>Service catalog controls</h3><span>Price is entered in INR; stored as paise.</span></div><span>${state.admin.services.length} services</span></div><table class="admin-services-table"><thead><tr><th>Service</th><th>Configuration</th></tr></thead><tbody>${rows}</tbody></table></div>`;
