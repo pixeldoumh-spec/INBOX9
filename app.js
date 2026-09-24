@@ -541,6 +541,19 @@ async function waitForSupportSyncIdle() {
   }
 }
 
+function mergeSupportTickets(incoming) {
+  const merged = new Map((state.supportTickets || []).map((ticket) => [ticket.id, ticket]));
+  for (const ticket of Array.isArray(incoming) ? incoming : []) {
+    const current = merged.get(ticket.id);
+    const incomingAt = Number(ticket.updatedAt || ticket.createdAt || 0);
+    const currentAt = Number(current?.updatedAt || current?.createdAt || 0);
+    if (!current || incomingAt >= currentAt) merged.set(ticket.id, ticket);
+  }
+  return [...merged.values()]
+    .sort((a, b) => Number(b.updatedAt || b.createdAt || 0) - Number(a.updatedAt || a.createdAt || 0))
+    .slice(0, 50);
+}
+
 async function refreshSupport({ announce = false, silent = false } = {}) {
   if (supportSyncInFlight) return null;
   supportSyncInFlight = true;
@@ -551,7 +564,7 @@ async function refreshSupport({ announce = false, silent = false } = {}) {
   const before = notificationSnapshot();
   try {
     const payload = await api('/api/support');
-    state.supportTickets = Array.isArray(payload.tickets) ? payload.tickets : [];
+    state.supportTickets = mergeSupportTickets(payload.tickets);
     if (announce && notificationBaseline) {
       notificationBaseline = before;
       void refreshNotifications();
