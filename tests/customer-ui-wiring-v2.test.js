@@ -61,9 +61,12 @@ test('customer navigation is extracted and remains wired to the application shel
   assert.match(navigation, /function handleSessionExpired\(/);
 });
 test('authenticated customer screens have server refresh and session-expiry recovery', async () => {
-  const app = await read('app.js');
+  const [app, navigation] = await Promise.all([
+    read('app.js'),
+    read('customer/navigation.js'),
+  ]);
   assert.match(app, /data-action="refresh-customer"/);
-  assert.match(app, /function handleSessionExpired\(/);
+  assert.match(navigation, /function handleSessionExpired\(/);
   assert.match(app, /Number\(result\.reason\?\.status\) === 401/);
   assert.match(app, /state\.page = 'active';\s+syncPageHash\('active'\)/);
 });
