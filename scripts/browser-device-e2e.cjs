@@ -170,11 +170,12 @@ async function runFullChromium() {
     await page.getByRole('button', { name: /Get number/ }).click();
     await heading(page, 'Active numbers', 12000);
 
+    await page.getByText('Ready to use', { exact: true }).waitFor({ state: 'visible', timeout: 45000 });
     await page.waitForFunction(() => {
-      const text = document.querySelector('.otp-code')?.textContent || '';
+      const text = document.querySelector('.received-code-value strong')?.textContent || '';
       return text.replace(/\D/g, '').length === 6;
-    }, null, { timeout: 45000 });
-    assert.equal((await page.locator('.otp-code').first().textContent()).replace(/\D/g, '').length, 6, 'completed activation should display a six-digit OTP');
+    }, null, { timeout: 5000 });
+    assert.equal((await page.locator('.received-code-value strong').first().textContent()).replace(/\D/g, '').length, 6, 'completed activation should display a six-digit OTP');
 
     await page.locator('[data-page="orders"]').first().click();
     await heading(page, 'Orders');
