@@ -1583,7 +1583,6 @@ function render() {
 
 function hero() {
   const activeCount = state.active.length;
-  const serviceCount = state.services.length;
   return `<section class="hero-strip premium-hero">
     <div class="hero-copy">
       <div class="hero-eyebrow"><span class="pulse-dot"></span><span>NUMBER MARKETPLACE</span><span class="hero-eyebrow-sep">/</span><span>TRACK IN ACTIVE</span></div>
