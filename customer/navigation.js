@@ -1,4 +1,4 @@
-export const CUSTOMER_PAGES = new Set(['buy', 'active', 'orders', 'wallet', 'admin', 'api']);
+export const CUSTOMER_PAGES = new Set(['buy', 'active', 'orders', 'wallet', 'support', 'admin', 'api']);
 
 export function createCustomerNavigation({
   state,
@@ -6,6 +6,7 @@ export function createCustomerNavigation({
   loadAdminTab,
   refreshWallet,
   refreshCatalog,
+  refreshSupport,
   resetPurchaseFlow,
   toast
 }) {
@@ -32,6 +33,7 @@ export function createCustomerNavigation({
     if (next === 'admin' && state.user?.role === 'admin') void loadAdminTab(state.adminTab);
     if (next === 'wallet') void refreshWallet().then(() => render());
     if (next === 'buy') void refreshCatalog({ silent: true });
+    if (next === 'support') void refreshSupport().then(() => render());
   }
 
   function handleHashNavigation() {
