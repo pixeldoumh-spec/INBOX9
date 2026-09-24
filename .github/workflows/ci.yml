@@ -44,8 +44,8 @@ jobs:
           sudo -u postgres createdb inbox9_test 2>/dev/null || true
           pg_isready -h 127.0.0.1 -p 5432 -U postgres
 
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
