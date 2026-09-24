@@ -94,3 +94,13 @@ test('customer refresh controls expose a page-aware sync state', async () => {
   assert.match(app, /if \(page === 'account'\)/);
   assert.match(app, /if \(page === 'admin'\)/);
 });
+
+
+test('customer toast manager replaces older toast nodes and clears their timer safely', async () => {
+  const app = await read('app.js');
+  assert.match(app, /function toast\(message\)\s*\{/);
+  assert.match(app, /const existing = document\.querySelector\('\.toast'\)/);
+  assert.match(app, /existing\.remove\(\)/);
+  assert.match(app, /window\.clearTimeout\(state\.toastTimer\)/);
+  assert.match(app, /if \(node\.isConnected\) node\.remove\(\)/);
+});
