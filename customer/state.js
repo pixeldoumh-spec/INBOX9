@@ -61,6 +61,7 @@ export function createCustomerState() {
     mobileMenu: false,
     toastTimer: null,
     user: null,
+    sessionHint: null,
     authMode: 'login',
     adminTab: 'overview',
     adminLoading: false,
