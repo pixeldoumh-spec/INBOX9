@@ -129,7 +129,7 @@ export function normalizeNumberOtpActivation(value) {
     status: String(status),
     otp: raw.otp == null ? null : String(raw.otp),
     createdAt: raw.created_at ? new Date(raw.created_at).getTime() : Date.now(),
-    expiresAt: raw.expires_at ? new Date(raw.expires_at).getTime() : Date.now() + 20 * 60 * 1000,
+    expiresAt: raw.expires_at ? new Date(raw.expires_at).getTime() : Date.now() + 25 * 60 * 1000,
     mockOtpAt: null,
     metadata: {
       engine: 'numberotp',

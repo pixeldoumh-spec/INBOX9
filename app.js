@@ -278,27 +278,16 @@ async function toggleServiceCapacity(serviceId) {
   }
 }
 
-function serverStatsMarkup(service) {
-  const live = service.liveAvailability && service.liveAvailability.numberotp;
+function serviceDetailsMarkup() {
+  return '<div class="server-panel service-details-panel">' +
+    '<div class="service-detail-row"><span class="service-detail-icon">◷</span><div><strong>Number validity</strong><span>Your number remains valid for up to 25 minutes after reservation.</span></div></div>' +
+    '<div class="service-detail-row"><span class="service-detail-icon">⌁</span><div><strong>OTP delivery</strong><span>Verification codes are typically delivered around 20 seconds after activation.</span></div></div>' +
+  '</div>';
+}
 
-  if (state.marketServerLoading[service.id]) {
-    return '<div class="server-panel"><div class="server-loading">Refreshing availability…</div></div>';
-  }
-  const error = state.marketServerErrors[service.id];
-  if (error) {
-    return '<div class="server-panel"><div class="server-note"><span class="server-note-icon">!</span><div><strong>Availability unavailable</strong><span>' + esc(error) + '</span></div></div></div>';
-  }
-  const payload = state.marketServerStats[service.id];
-  const liveBlock = live
-    ? '<div class="external-provider-card"><div><strong>Live availability</strong><span>Current external inventory signal</span></div><b>' + Number(live.available || 0).toLocaleString() + '</b><small>numbers available</small></div>'
-    : '<div class="external-provider-card unavailable"><div><strong>Live availability</strong><span>No current availability signal for this service</span></div></div>';
-  if (!payload) {
-    return '<div class="server-panel">' + liveBlock + '<div class="server-note"><span class="server-note-icon">⌁</span><div><strong>Automatic allocation</strong><span>INBOX9 allocates available inventory automatically after you confirm the purchase.</span></div></div></div>';
-  }
-  const servers = Array.isArray(payload.servers) ? payload.servers : [];
-  const totalAvailable = servers.reduce((sum, server) => sum + Number(server.availableCount || 0), 0);
-  const totalCapacity = servers.reduce((sum, server) => sum + Number(server.capacity || 0), 0);
-  return '<div class="server-panel">' + liveBlock + '<div class="server-note"><span class="server-note-icon">⌁</span><div><strong>Automatic allocation</strong><span>' + totalAvailable.toLocaleString() + ' available across the current inventory view' + (totalCapacity ? ' · ' + totalCapacity.toLocaleString() + ' total capacity' : '') + '. The platform selects the allocation automatically.</span></div></div></div>';
+function toggleServiceDetails(serviceId) {
+  state.expandedServiceId = state.expandedServiceId === serviceId ? null : serviceId;
+  renderBuyCatalog();
 }
 
 async function bootstrapSession() {
@@ -429,8 +418,8 @@ function purchaseReviewModal() {
   const activating = flow.step === 'activation' || flow.submitting;
   const availability = Math.max(0, Number(data.service.stock || 0));
   const error = flow.error ? `<div class="purchase-error">${esc(flow.error)}</div>` : '';
-  if (activating) return `<div class="purchase-overlay" role="presentation"><div class="purchase-backdrop"></div><section class="purchase-sheet purchase-sheet-loading" role="dialog" aria-modal="true" aria-labelledby="purchase-title" tabindex="-1"><div class="purchase-sheet-top"><div><span class="kicker">STEP 3 OF 3</span><h2 id="purchase-title">Getting your number</h2></div></div><div class="purchase-steps" aria-label="Purchase progress"><span class="purchase-step done"><b>1</b> Service</span><span class="purchase-step done"><b>2</b> Review</span><span class="purchase-step current"><b>3</b> Track</span></div><div class="purchase-activation-state"><div class="purchase-loader" aria-hidden="true"></div><span class="service-category">ACTIVATION</span><h3>Reserving your number…</h3><p>We’re assigning a number automatically now. Your live activation will appear next.</p></div></section></div>`;
-  return `<div class="purchase-overlay" role="presentation"><button class="purchase-backdrop" type="button" aria-label="Close purchase review" data-purchase-close></button><section class="purchase-sheet" role="dialog" aria-modal="true" aria-labelledby="purchase-title" tabindex="-1"><div class="purchase-sheet-top"><div><span class="kicker">STEP 2 OF 3</span><h2 id="purchase-title">Review your number</h2></div><button class="icon-btn" type="button" aria-label="Close" data-purchase-close>×</button></div><div class="purchase-steps" aria-label="Purchase progress"><span class="purchase-step done"><b>1</b> Service</span><span class="purchase-step current"><b>2</b> Review</span><span class="purchase-step"><b>3</b> Track</span></div><div class="purchase-service-card"><div class="service-icon large">${iconFor(data.service.category)}</div><div class="purchase-service-copy"><span class="service-category">${esc(data.service.category)}</span><strong>${esc(data.service.name)}</strong><span>Number format: +91 · OTP appears in about 20 seconds</span></div></div><div class="purchase-detail-grid"><div><span>Number format</span><strong>+91</strong><small>Current marketplace format</small></div><div><span>Price</span><strong>${money(data.pricePaise)}</strong><small>One activation</small></div><div><span>Availability</span><strong>${availability.toLocaleString()}</strong><small>numbers available</small></div><div><span>Activation window</span><strong>3 minutes</strong><small>INBOX9 lifecycle</small></div><div><span>Wallet balance</span><strong>${money(state.balancePaise)}</strong><small>Available to use now</small></div><div><span>After purchase</span><strong>${insufficient ? "—" : money(Math.max(0, data.afterBalancePaise))}</strong><small>${insufficient ? "Add funds required" : "Estimated remaining balance"}</small></div></div><div class="purchase-trust"><span>✓</span><div><strong>Number first. OTP next.</strong><small>INBOX9 reserves the number immediately. The OTP is generated automatically around 20 seconds into the activation.</small></div></div>${error}${insufficient ? `<div class="purchase-actions"><button class="secondary-btn" type="button" data-purchase-close>Back</button><button class="primary-btn" type="button" data-purchase-wallet>Add funds</button></div>` : `<div class="purchase-actions"><button class="secondary-btn" type="button" data-purchase-close>Back</button><button class="primary-btn purchase-confirm-btn" type="button" data-purchase-confirm>Get number <span>→</span></button></div>`}</section></div>`;
+  if (activating) return `<div class="purchase-overlay" role="presentation"><div class="purchase-backdrop"></div><section class="purchase-sheet purchase-sheet-loading" role="dialog" aria-modal="true" aria-labelledby="purchase-title" tabindex="-1"><div class="purchase-sheet-top"><div><span class="kicker">STEP 3 OF 3</span><h2 id="purchase-title">Getting your number</h2></div></div><div class="purchase-steps" aria-label="Purchase progress"><span class="purchase-step done"><b>1</b> Service</span><span class="purchase-step done"><b>2</b> Review</span><span class="purchase-step current"><b>3</b> Track</span></div><div class="purchase-activation-state"><div class="purchase-loader" aria-hidden="true"></div><span class="service-category">ACTIVATION</span><h3>Reserving your number…</h3><p>We’re preparing your number now. Your active number will appear shortly.</p></div></section></div>`;
+  return `<div class="purchase-overlay" role="presentation"><button class="purchase-backdrop" type="button" aria-label="Close purchase review" data-purchase-close></button><section class="purchase-sheet" role="dialog" aria-modal="true" aria-labelledby="purchase-title" tabindex="-1"><div class="purchase-sheet-top"><div><span class="kicker">STEP 2 OF 3</span><h2 id="purchase-title">Review your number</h2></div><button class="icon-btn" type="button" aria-label="Close" data-purchase-close>×</button></div><div class="purchase-steps" aria-label="Purchase progress"><span class="purchase-step done"><b>1</b> Service</span><span class="purchase-step current"><b>2</b> Review</span><span class="purchase-step"><b>3</b> Track</span></div><div class="purchase-service-card"><div class="service-icon large">${iconFor(data.service.category)}</div><div class="purchase-service-copy"><span class="service-category">${esc(data.service.category)}</span><strong>${esc(data.service.name)}</strong><span>Number format: +91 · OTP appears in about 20 seconds</span></div></div><div class="purchase-detail-grid"><div><span>Number format</span><strong>+91</strong><small>Current marketplace format</small></div><div><span>Price</span><strong>${money(data.pricePaise)}</strong><small>One activation</small></div><div><span>Availability</span><strong>${availability.toLocaleString()}</strong><small>numbers available</small></div><div><span>Activation window</span><strong>25 minutes</strong><small>Maximum number validity</small></div><div><span>Wallet balance</span><strong>${money(state.balancePaise)}</strong><small>Available to use now</small></div><div><span>After purchase</span><strong>${insufficient ? "—" : money(Math.max(0, data.afterBalancePaise))}</strong><small>${insufficient ? "Add funds required" : "Estimated remaining balance"}</small></div></div><div class="purchase-trust"><span>✓</span><div><strong>Number first. OTP next.</strong><small>INBOX9 reserves the number immediately. The OTP is generated automatically around 20 seconds into the activation.</small></div></div>${error}${insufficient ? `<div class="purchase-actions"><button class="secondary-btn" type="button" data-purchase-close>Back</button><button class="primary-btn" type="button" data-purchase-wallet>Add funds</button></div>` : `<div class="purchase-actions"><button class="secondary-btn" type="button" data-purchase-close>Back</button><button class="primary-btn purchase-confirm-btn" type="button" data-purchase-confirm>Get number <span>→</span></button></div>`}</section></div>`;
 }
 
 async function confirmPurchase() {
@@ -869,7 +858,7 @@ function hero() {
     <div class="hero-copy">
       <div class="hero-eyebrow"><span class="pulse-dot"></span><span>LIVE MARKETPLACE</span><span class="hero-eyebrow-sep">/</span><span>FAST ACTIVATIONS</span></div>
       <h1>Get a number. Get your code. Keep moving.</h1>
-      <p>Pick a service and track the activation from one focused workspace. Server and slot allocation stay automatic.</p>
+      <p>Pick a service and track the activation from one focused workspace. Number handling stays behind the scenes.</p>
       <div class="hero-actions">
         <button class="primary-btn hero-primary" type="button" data-page="buy">Browse services <span>→</span></button>
         <button class="ghost-btn" type="button" data-page="wallet">Add funds <span>+</span></button>
@@ -944,8 +933,6 @@ function serviceCard(service) {
   const insufficient = state.balancePaise < Number(service.pricePaise || 0);
   const actionLabel = availability <= 0 ? 'Unavailable' : insufficient ? 'Top up' : 'Buy number';
   const expanded = state.expandedServiceId === service.id;
-  const live = service.liveAvailability && service.liveAvailability.numberotp;
-  const liveLabel = live ? Number(live.available || 0).toLocaleString() : '—';
   const priceLabel = money(service.pricePaise);
   const balanceDelta = Number(service.pricePaise || 0) - state.balancePaise;
   const balanceReady = !insufficient;
@@ -957,8 +944,8 @@ function serviceCard(service) {
       '<span class="service-group-meta"><span class="availability-pill ' + availabilityState + '"><span></span>' + availabilityLabel + '</span><span class="service-price">' + priceLabel + '</span></span>' +
       '<span class="service-group-chevron" aria-hidden="true">⌄</span>' +
     '</button>' +
-    '<div class="customer-service-bottom"><div class="customer-service-facts"><span class="customer-service-fact"><b>3 min</b> activation window</span><span class="customer-service-fact"><b>' + availability.toLocaleString() + '</b> available inventory</span><span class="customer-service-fact provider-live-fact"><b>' + liveLabel + '</b> live availability</span></div><div class="customer-service-action"><span class="wallet-ready-chip ' + (balanceReady ? 'ready' : 'needs-funds') + '">' + esc(walletLabel) + '</span><button class="buy-btn customer-buy" type="button" data-buy-service="' + esc(service.id) + '" ' + (availability <= 0 ? 'disabled aria-disabled="true"' : '') + '>' + actionLabel + '</button></div></div>' +
-    (expanded ? serverStatsMarkup(service) : '') +
+    '<div class="customer-service-bottom"><div class="customer-service-facts"><span class="customer-service-fact"><b>25 min</b> number validity</span><span class="customer-service-fact"><b>' + availability.toLocaleString() + '</b> available inventory</span><span class="customer-service-fact"><b>~20 sec</b> OTP delivery</span></div><div class="customer-service-action"><span class="wallet-ready-chip ' + (balanceReady ? 'ready' : 'needs-funds') + '">' + esc(walletLabel) + '</span><button class="buy-btn customer-buy" type="button" data-buy-service="' + esc(service.id) + '" ' + (availability <= 0 ? 'disabled aria-disabled="true"' : '') + '>' + actionLabel + '</button></div></div>' +
+    (expanded ? serviceDetailsMarkup() : '') +
   '</article>';
 }
 
@@ -993,10 +980,10 @@ function buyPage() {
   const catalogUnavailable = Boolean(state.catalogError && !state.services.length && !state.catalogLoading);
   return `<div class="market-page">
     <div class="section-head market-section-head">
-      <div><span class="kicker">MARKETPLACE / +91</span><h2>Choose a service</h2><p class="section-subcopy">Pick the service you need. INBOX9 automatically handles number allocation behind the scenes.</p></div>
+      <div><span class="kicker">MARKETPLACE / +91</span><h2>Choose a service</h2><p class="section-subcopy">Pick the service you need. Choose a service, review the price, and start your activation.</p></div>
       <div class="market-summary"><span class="summary-dot"></span><strong>${list.length.toLocaleString()}</strong><span>matches</span></div>
     </div>
-    <div class="market-country-strip"><div class="market-country-pill"><div><strong>+91 number format</strong><small>Current marketplace</small></div></div><div class="country-note">Server and slot allocation are automatic</div></div>
+    <div class="market-country-strip"><div class="market-country-pill"><div><strong>+91 number format</strong><small>Current marketplace</small></div></div><div class="country-note">Standard +91 marketplace</div></div>
     <div class="controls market-controls">
       <div class="toolbar market-toolbar">
         <label class="search-box premium-search" aria-label="Search services"><span class="search-glyph">⌕</span><input id="service-search" value="${esc(state.search)}" placeholder="Search ${state.services.length.toLocaleString()} services…" autocomplete="off" spellcheck="false"><kbd>/</kbd></label>
@@ -1047,7 +1034,7 @@ function renderActiveOnly() {
 function activeCard(activation) {
   const expiresAt = Number(activation.expiresAt || 0);
   const createdAt = Number(activation.createdAt || 0);
-  const total = Math.max(1, expiresAt - createdAt || 180000);
+  const total = Math.max(1, expiresAt - createdAt || (25 * 60 * 1000));
   const remaining = expiresAt ? Math.max(0, Math.floor((expiresAt - Date.now()) / 1000)) : 180;
   const minutes = String(Math.floor(remaining / 60)).padStart(2, '0');
   const seconds = String(remaining % 60).padStart(2, '0');
@@ -1062,7 +1049,7 @@ function activeCard(activation) {
     '<div class="active-card-header"><div class="service-icon large">' + iconFor(service?.category) + '</div><div class="service-meta"><span class="service-category">' + esc(activation.service) + '</span><h3>' + esc(activation.number) + '</h3></div><span class="activation-status waiting"><span></span>' + (cancelBusy ? 'Cancelling…' : 'Waiting for SMS') + '</span></div>' +
     '<div class="active-context"><span>+91 number format</span><span>' + money(activation.pricePaise) + '</span><span>Order ' + esc(activation.id) + '</span><button class="copy-btn" type="button" data-copy="' + esc(activation.number.replace(/\\s/g, '')) + '" data-copy-message="Number copied">Copy number</button></div>' +
     '<div class="otp-panel waiting-panel"><div class="otp-panel-head"><span class="otp-label">TIME REMAINING</span><span class="code-state">LIVE</span></div><div class="timer">◷ ' + minutes + ':' + seconds + '</div><div class="progress"><span style="width:' + progress + '%"></span></div><div class="waiting-note">▣ Waiting for the verification code</div></div>' +
-    '<div class="active-footer"><span><small>ACTIVATION</small><strong>Temporary number · server monitored</strong></span>' + cancelUi + '</div>' +
+    '<div class="active-footer"><span><small>ACTIVATION</small><strong>Temporary number · valid for up to 25 minutes</strong></span>' + cancelUi + '</div>' +
     (cancelling ? '' : '') +
   '</article>';
 }
@@ -1184,7 +1171,7 @@ function bindMarketplaceEvents() {
     }
     const toggleService = event.target.closest("[data-toggle-service]");
     if (toggleService && root.contains(toggleService)) {
-      void toggleServiceCapacity(toggleService.dataset.toggleService);
+      toggleServiceDetails(toggleService.dataset.toggleService);
       return;
     }
     const category = event.target.closest("[data-category]");

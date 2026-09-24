@@ -14,17 +14,15 @@ test('marketplace categories are derived from the live service catalog', async (
   assert.doesNotMatch(app, /const categories = \[/);
 });
 
-test('service capacity is wired to the authenticated backend endpoint', async () => {
+test('customer service cards expose validity details without provider infrastructure', async () => {
   const app = await read('app.js');
-  assert.match(app, /async function toggleServiceCapacity\(/);
-  assert.match(app, /\/api\/services\//);
-  assert.match(app, /encodeURIComponent\(serviceId\)/);
-  assert.match(app, /\/servers/);
-  assert.match(app, /data-toggle-service=/);
-  assert.match(app, /serverStatsMarkup\(/);
-  assert.match(app, /Automatic allocation/);
-  assert.doesNotMatch(app, /NumberOTP ·/);
-  assert.doesNotMatch(app, /synthetic servers/);
+  assert.match(app, /async function toggleServiceDetails\(/);
+  assert.match(app, /serviceDetailsMarkup\(/);
+  assert.match(app, /25 min.*number validity/);
+  assert.match(app, /25 minutes.*Maximum number validity/);
+  assert.doesNotMatch(app, /Live availability/);
+  assert.doesNotMatch(app, /Automatic allocation/);
+  assert.doesNotMatch(app, /\/servers/);
 });
 
 test('customer bootstrap distinguishes authentication from infrastructure failure', async () => {
@@ -126,4 +124,21 @@ test('customer bundle uses extracted architecture modules', async () => {
   assert.doesNotMatch(app, /function loadPersisted\(/);
   assert.doesNotMatch(app, /async function loadCustomerData\(/);
   assert.doesNotMatch(app, /async function refreshCatalog\(/);
+});
+
+
+test('customer services no longer attach external availability telemetry', async () => {
+  const api = await read('api/_services.js');
+  assert.doesNotMatch(api, /getNumberOtpIndiaInventory/);
+  assert.doesNotMatch(api, /liveAvailability/);
+  assert.doesNotMatch(api, /liveProviders/);
+});
+
+test('built-in activation validity defaults to 25 minutes', async () => {
+  const [mock, synthetic, repoSource] = await Promise.all([
+    read('api/_lib/mock.js'),
+    read('api/_lib/synthetic-provider.js'),
+    read('api/_lib/activation-repository.js'),
+  ]);
+  for (const source of [mock, synthetic, repoSource]) assert.match(source, /25 \* 60 \* 1000/);
 });
