@@ -237,7 +237,7 @@ function processNotificationSnapshot({ announce = true } = {}) {
   notificationBaseline = current;
 }
 
-async async function refreshNotifications(){if(!state.user)return null;state.notificationLoading=true;try{const payload=await api('/api/notifications');state.notifications=Array.isArray(payload.notifications)?payload.notifications:[];state.notificationError='';return payload;}catch(error){if(Number(error.status)===401){handleSessionExpired();return null;}state.notificationError=error.message||'Notifications unavailable';return null;}finally{state.notificationLoading=false;}}
+async function refreshNotifications(){if(!state.user)return null;state.notificationLoading=true;try{const payload=await api('/api/notifications');state.notifications=Array.isArray(payload.notifications)?payload.notifications:[];state.notificationError='';return payload;}catch(error){if(Number(error.status)===401){handleSessionExpired();return null;}state.notificationError=error.message||'Notifications unavailable';return null;}finally{state.notificationLoading=false;}}
 function markNotificationRead(id){if(!id)return;try{await api('/api/notifications/'+encodeURIComponent(id),{method:'PATCH',headers:{'content-type':'application/json'},body:JSON.stringify({read:true})});}catch(error){toast(error.message);}}
 async function markAllNotificationsRead(){try{await api('/api/notifications/read-all',{method:'POST'});state.notifications=state.notifications.map(i=>({...i,read:true}));state.notificationsOpen=false;render();}catch(error){toast(error.message);}}
 function openNotifications(){state.notificationsOpen=!state.notificationsOpen;if(state.notificationsOpen)void refreshNotifications().then(()=>render());else render();}
