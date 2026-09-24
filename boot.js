@@ -3,30 +3,42 @@
   const scriptTag = document.currentScript;
   const appScript = scriptTag?.dataset?.appScript || '/app.js';
   let started = false;
+  let settled = false;
 
   const showError = (message) => {
-    if (!app) return;
-    app.innerHTML = `<div class="boot-fallback boot-error" role="alert">${message}</div>`;
+    if (!app || settled) return;
+    settled = true;
+    app.setAttribute('aria-busy', 'false');
+    app.innerHTML = '<div class="boot-loader boot-error" role="alert"><div class="boot-loader-inner"><div class="boot-loader-text">' + message + '</div></div></div>';
   };
 
   const timeout = window.setTimeout(() => {
-    if (!started && app?.querySelector('.boot-fallback')) {
-      showError('INBOX9 could not start. Please reload the page.');
-    }
+    if (!started) showError('The application is taking too long to start. Please reload the page.');
   }, 10000);
 
+  window.addEventListener('error', (event) => {
+    if (!started) {
+      const message = event?.error?.message || event?.message || 'The application could not be started.';
+      showError(message);
+    }
+  });
+
+  window.addEventListener('unhandledrejection', (event) => {
+    if (!started) showError(event?.reason?.message || 'The application could not be started.');
+  });
+
   const script = document.createElement('script');
-  script.src = `${appScript}?v=${Date.now()}`;
+  script.src = appScript + '?v=' + Date.now();
   script.type = 'module';
-  script.defer = false;
   script.onload = () => {
     started = true;
+    settled = true;
     window.clearTimeout(timeout);
+    app?.setAttribute('aria-busy', 'false');
   };
   script.onerror = () => {
-    started = true;
     window.clearTimeout(timeout);
-    showError('INBOX9 application bundle could not be loaded. Please reload the page.');
+    showError('The application bundle could not be loaded. Please reload the page.');
   };
   document.head.appendChild(script);
 })();
