@@ -97,7 +97,6 @@ export function createCustomerDataController({
       return false;
     }
   }
-}
 
   return {
     loadPersisted,
