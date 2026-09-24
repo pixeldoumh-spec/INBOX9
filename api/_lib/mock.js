@@ -7,7 +7,7 @@ const activationIdempotency = new Map();
 const recharges = new Map();
 const wallets = new Map();
 const ledgers = new Map();
-const TTL_MS = 3 * 60 * 1000;
+const TTL_MS = 25 * 60 * 1000;
 const SYNTHETIC_STARTING_BALANCE_PAISE = 0;
 
 export function makeId(prefix = 'ORD') {
