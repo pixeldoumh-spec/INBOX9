@@ -51,6 +51,7 @@ test('reconciliation endpoint requires an authenticated POST from an external sc
   assert.match(src, /req\.method !== 'POST'/);
   assert.match(src, /Bearer /);
   assert.match(src, /timingSafeEqual/);
+  assert.match(src, /verifyGithubOidcToken/);
 });
 
 test('activation polling route has per-user/per-activation rate limiting', async () => {
