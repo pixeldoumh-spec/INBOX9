@@ -241,17 +241,6 @@ async function refreshNotifications(){if(!state.user)return null;state.notificat
 async function markNotificationRead(id){if(!id)return;try{await api('/api/notifications/'+encodeURIComponent(id),{method:'PATCH',headers:{'content-type':'application/json'},body:JSON.stringify({read:true})});}catch(error){toast(error.message);}}
 async function markAllNotificationsRead(){try{await api('/api/notifications/read-all',{method:'POST'});state.notifications=state.notifications.map(i=>({...i,read:true}));state.notificationsOpen=false;render();}catch(error){toast(error.message);}}
 function openNotifications(){state.notificationsOpen=!state.notificationsOpen;if(state.notificationsOpen)void refreshNotifications().then(()=>render());else render();}
-function markAllNotificationsRead() {
-  state.notifications = state.notifications.map((item) => ({ ...item, read: true }));
-  state.notificationsOpen = false;
-  render();
-}
-
-function openNotifications() {
-  processNotificationSnapshot({ announce: false });
-  state.notificationsOpen = !state.notificationsOpen;
-  render();
-}
 
 function notificationPanel() {
   const unread = state.notifications.filter((item) => !item.read).length;
