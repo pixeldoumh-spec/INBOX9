@@ -152,6 +152,7 @@ function notificationSnapshot() {
 }
 
 let notificationBaseline = null;
+let supportSyncInFlight = false;
 
 function addNotification({ title, body, page = null, tone = 'info' }) {
   state.notifications = [{
@@ -340,7 +341,13 @@ async function submitAuth(event) {
 }
 
 
-function openSecurity(){setPage('account');}
+function openSecurity(){
+  state.page = 'account';
+  state.securityOpen = true;
+  syncPageHash('account');
+  render();
+  scheduleDialogFocus();
+}
 function closeSecurity() {
   state.securityOpen = false;
   render();
@@ -380,6 +387,7 @@ async function logout() {
 
 function handleSessionSignedOut() {
   notificationBaseline = null;
+  state.authMode = 'login';
   state.notifications = [];
   state.notificationsOpen = false;
   state.user = null;
@@ -528,9 +536,29 @@ const {
   refreshWallet,
   refreshCatalog,
   refreshSupport,
+  refreshAccount,
   resetPurchaseFlow,
   toast
 });
+
+async function waitForSupportSyncIdle() {
+  while (supportSyncInFlight) {
+    await new Promise((resolve) => window.setTimeout(resolve, 25));
+  }
+}
+
+function mergeSupportTickets(incoming) {
+  const merged = new Map((state.supportTickets || []).map((ticket) => [ticket.id, ticket]));
+  for (const ticket of Array.isArray(incoming) ? incoming : []) {
+    const current = merged.get(ticket.id);
+    const incomingAt = Number(ticket.updatedAt || ticket.createdAt || 0);
+    const currentAt = Number(current?.updatedAt || current?.createdAt || 0);
+    if (!current || incomingAt >= currentAt) merged.set(ticket.id, ticket);
+  }
+  return [...merged.values()]
+    .sort((a, b) => Number(b.updatedAt || b.createdAt || 0) - Number(a.updatedAt || a.createdAt || 0))
+    .slice(0, 50);
+}
 
 async function refreshSupport({ announce = false, silent = false } = {}) {
   if (supportSyncInFlight) return null;
@@ -542,7 +570,7 @@ async function refreshSupport({ announce = false, silent = false } = {}) {
   const before = notificationSnapshot();
   try {
     const payload = await api('/api/support');
-    state.supportTickets = Array.isArray(payload.tickets) ? payload.tickets : [];
+    state.supportTickets = mergeSupportTickets(payload.tickets);
     if (announce && notificationBaseline) {
       notificationBaseline = before;
       void refreshNotifications();
@@ -561,7 +589,7 @@ async function refreshSupport({ announce = false, silent = false } = {}) {
   }
 }
 
-async function submitSupportReply(event,ticketId){event.preventDefault();if(state.supportReplyBusyById[ticketId])return;const message=String(new FormData(event.currentTarget).get('message')||'').trim();if(message.length<2)return toast('Reply must contain at least 2 characters');state.supportReplyBusyById[ticketId]=true;render();try{await api('/api/support/'+encodeURIComponent(ticketId)+'/replies',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({message})});await refreshSupport();state.expandedSupportTicketId=ticketId;toast('Reply sent');}catch(error){if(Number(error.status)===401){handleSessionExpired();return;}toast(error.message);}finally{delete state.supportReplyBusyById[ticketId];render();}}
+async function submitSupportReply(event,ticketId){event.preventDefault();if(state.supportReplyBusyById[ticketId])return;const message=String(new FormData(event.currentTarget).get('message')||'').trim();if(message.length<2)return toast('Reply must contain at least 2 characters');state.supportReplyBusyById[ticketId]=true;render();try{const replyPayload=await api('/api/support/'+encodeURIComponent(ticketId)+'/replies',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({message})});if(replyPayload.ticket){state.supportTickets=[replyPayload.ticket,...state.supportTickets.filter((ticket)=>ticket.id!==ticketId)];}else{await waitForSupportSyncIdle();await refreshSupport();}state.expandedSupportTicketId=ticketId;toast('Reply sent');}catch(error){if(Number(error.status)===401){handleSessionExpired();return;}toast(error.message);}finally{delete state.supportReplyBusyById[ticketId];render();}}
 
 async function submitSupportTicket(event) {
   event.preventDefault();
@@ -579,13 +607,14 @@ async function submitSupportTicket(event) {
   state.supportError = '';
   render();
   try {
-    await api('/api/support', {
+    const createPayload=await api('/api/support', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ category, subject, message, activationId: activationId || null, rechargeId: rechargeId || null })
     });
     state.supportForm = { category, subject: '', message: '', activationId: '', rechargeId: '' };
-    await refreshSupport();
+    if(createPayload.ticket){state.supportTickets=[createPayload.ticket,...state.supportTickets.filter((ticket)=>ticket.id!==createPayload.ticket.id)];}
+    else{await waitForSupportSyncIdle();await refreshSupport();}
     toast('Support ticket created');
   } catch (error) {
     if (Number(error.status) === 401) { handleSessionExpired(); return; }
@@ -1553,6 +1582,11 @@ function bindEvents() {
   document.querySelectorAll('[data-generate-recovery]').forEach((n)=>n.addEventListener('click',generateRecoveryCode));
   document.querySelectorAll('[data-revoke-session]').forEach((n)=>n.addEventListener('click',()=>revokeSession(n.dataset.revokeSession)));
   document.getElementById('support-form')?.addEventListener('submit', submitSupportTicket);
+  document.getElementById('support-form')?.addEventListener('input', (event) => {
+    const field = event.target;
+    if (!field?.name || !(field.name in state.supportForm)) return;
+    state.supportForm[field.name] = String(field.value || '');
+  });
   document.querySelectorAll('[data-action="refresh-support"]').forEach((node) => node.addEventListener('click', () => void refreshSupport().then(() => render())));
   document.querySelectorAll('[data-recovery]').forEach((node) => node.addEventListener('click', () => void runRecovery(node.dataset.recovery)));
 
@@ -1572,6 +1606,10 @@ function bindEvents() {
   }));
   document.querySelectorAll('[data-order-toggle]').forEach((node) => node.addEventListener('click', () => {
     state.expandedOrderId = state.expandedOrderId === node.dataset.orderToggle ? null : node.dataset.orderToggle;
+    render();
+  }));
+  document.querySelectorAll('[data-wallet-detail]').forEach((node) => node.addEventListener('click', () => {
+    state.expandedWalletTransactionId = state.expandedWalletTransactionId === node.dataset.walletDetail ? null : node.dataset.walletDetail;
     render();
   }));
 

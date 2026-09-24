@@ -1,11 +1,11 @@
 import { applySecurityHeaders, requestId, rateLimitAsync, enforceSameOrigin } from '../_lib/security.js';
 import { dbEnabled } from '../_lib/db.js';
-import { getSessionUser, requireUser } from '../_lib/auth.js';
+import { getSessionUser, getMockSession, requireUser } from '../_lib/auth.js';
 import { listNotifications, markAllNotificationsRead } from '../_lib/notification-repository.js';
 
 export default async function handler(req,res) {
   applySecurityHeaders(res); requestId(req,res);
-  const user=await getSessionUser(req);
+  const user=dbEnabled() ? await getSessionUser(req) : getMockSession(req);
   try { requireUser(user); } catch(e) { return res.status(e.statusCode||401).json({error:e.message}); }
   if(req.method==='GET'){
     if(!await rateLimitAsync(req,res,'notifications-read',120,60000,user.id)) return;

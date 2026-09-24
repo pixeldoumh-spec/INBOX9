@@ -1,0 +1,92 @@
+name: INBOX9 browser and device E2E
+
+on:
+  push:
+    branches: ["main"]
+    paths-ignore:
+      - "docs/**"
+      - "*.md"
+  pull_request:
+    branches: ["main"]
+    paths-ignore:
+      - "docs/**"
+      - "*.md"
+  workflow_dispatch:
+
+jobs:
+  browser-e2e:
+    name: Browser / Device E2E
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install application dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Install pinned Playwright runner
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf .e2e
+          mkdir -p .e2e
+          npm install --prefix .e2e --no-save --no-package-lock playwright@1.63.0
+
+      - name: Install browser engines
+        run: ./.e2e/node_modules/.bin/playwright install --with-deps chromium firefox webkit
+
+      - name: Start isolated synthetic browser test server
+        shell: bash
+        run: |
+          set -euo pipefail
+          NODE_ENV=development INBOX9_RUNTIME_MODE=synthetic INBOX9_LOCAL_ADMIN_EMAIL=admin-browser-e2e@example.test PORT=4173 node server.js > /tmp/inbox9-browser.log 2>&1 &
+          echo $! > /tmp/inbox9-browser.pid
+          for attempt in $(seq 1 60); do
+            if curl --fail --silent http://127.0.0.1:4173/api/health > /tmp/inbox9-health.json; then
+              cat /tmp/inbox9-health.json
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/inbox9-browser.log
+          exit 1
+
+      - name: Run browser and device certification
+        env:
+          E2E_BASE_URL: http://127.0.0.1:4173
+          E2E_ARTIFACT_DIR: ${{ github.workspace }}/artifacts/browser-e2e
+          NODE_PATH: ${{ github.workspace }}/.e2e/node_modules
+        run: |
+          mkdir -p "$E2E_ARTIFACT_DIR"
+          node scripts/browser-device-e2e.cjs
+
+      - name: Stop isolated test server
+        if: always()
+        shell: bash
+        run: |
+          if test -f /tmp/inbox9-browser.pid; then
+            kill "$(cat /tmp/inbox9-browser.pid)" 2>/dev/null || true
+          fi
+
+      - name: Upload browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: inbox9-browser-e2e
+          path: artifacts/browser-e2e
+          if-no-files-found: ignore
+
+      - name: Upload server log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: inbox9-browser-server-log
+          path: /tmp/inbox9-browser.log
+          if-no-files-found: ignore

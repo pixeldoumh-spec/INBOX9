@@ -10,6 +10,7 @@ test('Customer UI upgrades 4-6 are wired end-to-end', async () => {
   assert.match(app,/function accountPage\(\)/);
   assert.match(app,/walletActivityItems/);
   assert.match(app,/data-wallet-detail/);
+  assert.match(app,/expandedWalletTransactionId === node.dataset.walletDetail/);
   assert.match(app,/data-support-reply/);
   assert.match(app,/handleConnectivityChange/);
   assert.match(app,/data-generate-recovery/);
