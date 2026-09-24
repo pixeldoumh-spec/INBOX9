@@ -20,3 +20,13 @@ jobs:
         env:
           RENDER_SMOKE_URL: https://inbox9.onrender.com
         run: npm run render:smoke
+
+      - name: Confirm payment webhook stays fail-closed without a secret
+        run: |
+          set -euo pipefail
+          status="$(curl -sS -o /tmp/webhook.json -w '%{http_code}' -X POST \
+            -H 'content-type: application/json' \
+            --data '{"eventId":"qa_evt_20260924","eventType":"payment.succeeded","data":{"rechargeId":"QA-NOT-FOUND","amountPaise":10000,"currency":"INR"}}' \
+            https://inbox9.onrender.com/api/payments/webhook)"
+          cat /tmp/webhook.json
+          test "$status" = "503"
