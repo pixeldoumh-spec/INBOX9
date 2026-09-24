@@ -1,7 +1,7 @@
-import { applySecurityHeaders, requestId, rateLimitAsync, enforceSameOrigin, validateBodySize } from '../../../_lib/security.js';
-import { dbEnabled } from '../../../_lib/db.js';
-import { getSessionUser, requireUser } from '../../../_lib/auth.js';
-import { replySupportTicket } from '../../../_lib/support-repository.js';
+import { applySecurityHeaders, requestId, rateLimitAsync, enforceSameOrigin, validateBodySize } from '../../_lib/security.js';
+import { dbEnabled } from '../../_lib/db.js';
+import { getSessionUser, requireUser } from '../../_lib/auth.js';
+import { replySupportTicket } from '../../_lib/support-repository.js';
 
 export default async function handler(req,res){
   applySecurityHeaders(res); requestId(req,res);
