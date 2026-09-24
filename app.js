@@ -205,6 +205,73 @@ function notificationSnapshot() {
 let notificationBaseline = null;
 let supportSyncInFlight = false;
 
+const NOTIFICATION_POPUP_DURATION_MS = 5_000;
+
+function notificationPopupKey(notification = {}) {
+  const sourceType = String(notification.sourceType || notification.kind || '').trim();
+  const sourceId = String(notification.sourceId || '').trim();
+  const eventKey = String(notification.eventKey || '').trim();
+  return sourceType && sourceId && eventKey ? sourceType + ':' + sourceId + ':' + eventKey : '';
+}
+
+function notificationIsPopupSuppressed(item) {
+  const key = notificationPopupKey(item);
+  if (!key) return false;
+  const current = notificationPopupKey(state.notificationPopup || {});
+  if (current && current === key) return true;
+  return (state.notificationPopupQueue || []).some((queued) => notificationPopupKey(queued) === key);
+}
+
+function renderNotificationPopup() {
+  const popup = state.notificationPopup;
+  if (!popup) return '';
+  return '<div class="notification-popup" role="status" aria-live="polite" aria-atomic="true">' +
+    '<div class="notification-popup-icon ' + esc(popup.tone || 'info') + '">' + (popup.tone === 'danger' ? '!' : '✓') + '</div>' +
+    '<div class="notification-popup-copy"><strong>' + esc(popup.title) + '</strong><span>' + esc(popup.body) + '</span></div>' +
+  '</div>';
+}
+
+function pumpNotificationPopupQueue() {
+  if (state.notificationPopup || !(state.notificationPopupQueue || []).length) return;
+  const now = Date.now();
+  state.notificationPopupQueue.sort((a, b) => Number(a.showAt || 0) - Number(b.showAt || 0));
+  const next = state.notificationPopupQueue[0];
+  const wait = Math.max(0, Number(next.showAt || 0) - now);
+  window.clearTimeout(state.notificationPopupTimer);
+  state.notificationPopupTimer = window.setTimeout(() => {
+    state.notificationPopupTimer = null;
+    const currentNow = Date.now();
+    const index = state.notificationPopupQueue.findIndex((item) => Number(item.showAt || 0) <= currentNow);
+    if (index < 0) return pumpNotificationPopupQueue();
+    state.notificationPopup = state.notificationPopupQueue.splice(index, 1)[0];
+    render();
+    state.notificationPopupTimer = window.setTimeout(() => {
+      state.notificationPopup = null;
+      window.clearTimeout(state.notificationPopupTimer);
+      state.notificationPopupTimer = null;
+      render();
+      void refreshNotifications().then(() => render());
+      pumpNotificationPopupQueue();
+    }, NOTIFICATION_POPUP_DURATION_MS);
+  }, wait);
+}
+
+function queueNotificationPopup({ title, body, page = null, tone = 'info', sourceType = '', sourceId = '', eventKey = '', delayMs = 0 }) {
+  const entry = {
+    title, body, page, tone,
+    sourceType, sourceId, eventKey,
+    showAt: Date.now() + Math.max(0, Number(delayMs) || 0)
+  };
+  const key = notificationPopupKey(entry);
+  if (key) {
+    const duplicate = notificationPopupKey(state.notificationPopup || {}) === key ||
+      (state.notificationPopupQueue || []).some((item) => notificationPopupKey(item) === key);
+    if (duplicate) return;
+  }
+  state.notificationPopupQueue = [...(state.notificationPopupQueue || []), entry];
+  pumpNotificationPopupQueue();
+}
+
 function addNotification({ title, body, page = null, tone = 'info' }) {
   state.notifications = [{
     id: state.notificationsNextId++,
@@ -212,7 +279,6 @@ function addNotification({ title, body, page = null, tone = 'info' }) {
     createdAt: Date.now(),
     read: false
   }, ...state.notifications].slice(0, 30);
-  if (!state.notificationsOpen) toast(title);
 }
 
 function processNotificationSnapshot({ announce = true } = {}) {
@@ -226,11 +292,14 @@ function processNotificationSnapshot({ announce = true } = {}) {
       const previous = notificationBaseline.recharges.get(id);
       if (!previous || previous.status === next.status) continue;
       if (next.status === 'Approved') {
-        addNotification({
-          title: 'Recharge approved',
+        queueNotificationPopup({
+          title: 'Recharge successful',
           body: money(next.amountPaise) + ' has been credited to your wallet.',
           page: 'wallet',
-          tone: 'success'
+          tone: 'success',
+          sourceType: 'recharge',
+          sourceId: id,
+          eventKey: 'status:Approved'
         });
       } else if (next.status === 'Rejected') {
         addNotification({
@@ -246,11 +315,14 @@ function processNotificationSnapshot({ announce = true } = {}) {
       if (!previous) continue;
       const otpChanged = next.otp && !['Waiting…', '—'].includes(next.otp) && ['Waiting…', '—'].includes(previous.otp);
       if (otpChanged) {
-        addNotification({
-          title: 'OTP received',
-          body: 'Verification code is ready for order ' + id + '.',
+        queueNotificationPopup({
+          title: 'OTP received successfully',
+          body: 'Your verification code is ready for order ' + id + '.',
           page: 'active',
-          tone: 'success'
+          tone: 'success',
+          sourceType: 'activation',
+          sourceId: id,
+          eventKey: 'status:Completed'
         });
       } else if (previous.status !== next.status && next.status === 'Expired') {
         addNotification({
