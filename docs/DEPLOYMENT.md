@@ -84,7 +84,7 @@ POST /api/internal-provider-reconcile
 Authorization: Bearer <CRON_SECRET>
 ```
 
-The repository includes `.github/workflows/reconcile.yml`, which runs the authenticated POST once per day at 03:00 UTC and also supports manual execution.
+The repository includes `.github/workflows/reconcile.yml`, which runs the authenticated POST every 5 minutes (at minute 2, 7, 12, … UTC) and also supports manual execution.
 
 Set these GitHub Actions repository secrets:
 
