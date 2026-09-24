@@ -63,6 +63,17 @@ test('customer navigation is extracted and remains wired to the application shel
   assert.match(navigation, /function handleHashNavigation\(/);
   assert.match(navigation, /function handleSessionExpired\(/);
 });
+
+test('browser hash navigation refreshes the destination data source', async () => {
+  const navigation = await read('customer/navigation.js');
+  assert.match(navigation, /function refreshPageData\(next\)/);
+  assert.match(navigation, /if \(next === 'wallet'\) void refreshWallet\(\)\.then\(\(\) => render\(\)\)/);
+  assert.match(navigation, /if \(next === 'support'\) void refreshSupport\(\)/);
+  assert.match(navigation, /if \(next === 'account'\) void refreshAccount\(\)\.then\(\(\) => render\(\)\)/);
+  assert.match(navigation, /if \(state\.page === next\) return refreshPageData\(next\)/);
+  assert.match(navigation, /refreshPageData\(next\);/);
+});
+
 test('authenticated customer screens have server refresh and session-expiry recovery', async () => {
   const [app, navigation, customerData] = await Promise.all([
     read('app.js'),
@@ -131,7 +142,6 @@ test('customer bundle uses extracted architecture modules', async () => {
   assert.doesNotMatch(app, /async function refreshCatalog\(/);
 });
 
-
 test('customer services no longer attach external availability telemetry', async () => {
   const api = await read('api/_services.js');
   assert.doesNotMatch(api, /getNumberOtpIndiaInventory/);
@@ -147,7 +157,6 @@ test('built-in activation validity defaults to 25 minutes', async () => {
   ]);
   for (const source of [mock, synthetic, repoSource]) assert.match(source, /25 \* 60 \* 1000/);
 });
-
 
 test('marketplace quick-start derives recently used services from customer orders', async () => {
   const [app, customerData, css] = await Promise.all([
@@ -179,7 +188,6 @@ test('hero dashboard uses number validity instead of allocation or code timing',
   assert.doesNotMatch(app, /server selected at purchase/);
 });
 
-
 test('orders page is a mobile-friendly transaction timeline with authoritative refresh', async () => {
   const app = await read('app.js');
   assert.match(app, /function filteredOrders\(\)/);
@@ -205,7 +213,6 @@ test('recharge form prevents duplicate submissions while a request is in flight'
   assert.match(app, /state\.rechargeSubmitting = true/);
   assert.match(app, /Submitting…/);
 });
-
 
 test('wallet summary is authoritative and not limited to the visible ledger slice', async () => {
   const [api, repo, state, data] = await Promise.all([
@@ -257,7 +264,6 @@ test('notification monitoring refreshes wallet state periodically using the auth
   assert.match(app, /processNotificationSnapshot\(\{ announce: true \}\)/);
   assert.doesNotMatch(app, /state\.balancePaise \+=/);
 });
-
 
 test('synthetic activation waiting states hide countdown timers from customers', async () => {
   const app = await read('app.js');
