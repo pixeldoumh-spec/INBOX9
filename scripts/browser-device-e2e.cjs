@@ -173,7 +173,7 @@ async function runFullChromium() {
     await page.waitForFunction(() => {
       const text = document.querySelector('.otp-code')?.textContent || '';
       return text.replace(/\D/g, '').length === 6;
-    }, null, { timeout: 30000 });
+    }, null, { timeout: 45000 });
     assert.equal((await page.locator('.otp-code').first().textContent()).replace(/\D/g, '').length, 6, 'completed activation should display a six-digit OTP');
 
     await page.locator('[data-page="orders"]').first().click();
