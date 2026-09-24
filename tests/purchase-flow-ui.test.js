@@ -16,6 +16,8 @@ test('purchase flow is a three-step customer-facing state machine', async () => 
   assert.match(app, /data-purchase-confirm/);
   assert.match(app, /data-purchase-close/);
   assert.match(app, /data-purchase-wallet/);
+  assert.match(app, /data-purchase-check-active/);
+  assert.match(app, /data-purchase-retry/);
 });
 
 test('confirmation shows the key customer decision data', async () => {
