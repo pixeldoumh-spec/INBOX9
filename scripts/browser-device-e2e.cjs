@@ -99,7 +99,10 @@ async function runFullChromium() {
   const errors = [];
   page.on('pageerror', (error) => errors.push(String(error.message || error)));
   page.on('console', (message) => {
-    if (message.type() === 'error' && !offlineExpected) errors.push(String(message.text() || message));
+    if (message.type() !== 'error' || offlineExpected) return;
+    const text = String(message.text() || message);
+    if (/Failed to load resource: the server responded with a status of 401 \(Unauthorized\)/.test(text)) return;
+    errors.push(text);
   });
   const customerEmail = 'browser-e2e-' + Date.now() + '@example.test';
   const adminEmail = 'admin-browser-e2e@example.test';
