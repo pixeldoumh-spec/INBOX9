@@ -25,6 +25,7 @@ jobs:
       DB_RESTORE: inbox9_dr_restore
       DATABASE_URL_SOURCE: postgresql://postgres:postgres@127.0.0.1:5432/inbox9_dr_source
       DATABASE_URL_RESTORE: postgresql://postgres:postgres@127.0.0.1:5432/inbox9_dr_restore
+      DATABASE_SSL: "false"
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
