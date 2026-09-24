@@ -34,7 +34,10 @@ export function createCustomerNavigation({
     if (next === 'admin' && state.user?.role === 'admin') void loadAdminTab(state.adminTab);
     if (next === 'wallet') void refreshWallet().then(() => render());
     if (next === 'buy') void refreshCatalog({ silent: true });
-    if (next === 'support') void refreshSupport().then(() => render());
+    if (next === 'support') void refreshSupport().then(() => {
+      if (document.activeElement?.closest?.('#support-form')) return;
+      render();
+    });
     if (next === 'account') void refreshAccount().then(() => render());
   }
 
