@@ -235,15 +235,19 @@ test('customer notification center surfaces recharge and activation lifecycle ev
   const [app, state, css] = await Promise.all([read('app.js'), read('customer/state.js'), read('styles.css')]);
   assert.match(state, /notifications: \[\]/);
   assert.match(state, /notificationsOpen: false/);
+  assert.match(state, /notificationPopup: null/);
+  assert.match(state, /notificationPopupQueue: \[\]/);
   assert.match(app, /function notificationSnapshot\(\)/);
-  assert.match(app, /Recharge approved/);
+  assert.match(app, /Recharge successful/);
   assert.match(app, /Recharge rejected/);
-  assert.match(app, /OTP received/);
+  assert.match(app, /OTP received successfully/);
+  assert.match(app, /Number fetched successfully/);
   assert.match(app, /Number expired/);
   assert.match(app, /notifications-read/);
   assert.match(app, /data-action="notifications"/);
   assert.match(css, /notification-panel/);
   assert.match(css, /notification-badge/);
+  assert.match(css, /notification-popup/);
 });
 
 test('notification monitoring refreshes wallet state periodically using the authoritative API', async () => {
