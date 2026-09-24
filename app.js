@@ -897,6 +897,7 @@ async function refreshWallet() {
   try {
     const wallet = await api('/api/wallet');
     state.persistentState = Boolean(wallet.persistent);
+    state.rechargeEnabled = Boolean(wallet.rechargeEnabled);
     state.balancePaise = Number(wallet.balancePaise || 0);
     state.walletLedger = Array.isArray(wallet.ledger) ? wallet.ledger : [];
     state.recharges = Array.isArray(wallet.recharges) ? wallet.recharges : [];
@@ -1690,7 +1691,7 @@ function walletPage(){
   const summary=walletSummary(),activity=filteredWalletActivity();
   const filters=[['all','All'],['credits','Money in'],['debits','Money out'],['recharges','Recharges']].map(([v,l])=>'<button class="filter-btn '+(state.walletFilter===v?'selected':'')+'" type="button" data-wallet-filter="'+v+'">'+l+'</button>').join('');
   const paymentSettings=state.rechargePaymentSettings||{};
-  const rechargeReady=Boolean(state.persistentState&&paymentSettings.upiId);
+  const rechargeReady=Boolean(state.persistentState&&state.rechargeEnabled&&paymentSettings.upiId);
   const qrImage=paymentSettings.qrImage
     ? '<div class="recharge-qr-wrap"><img class="recharge-qr" src="'+esc(paymentSettings.qrImage)+'" alt="INBOX9 UPI payment QR code" loading="lazy"></div>'
     : '<div class="recharge-qr-empty"><strong>QR not configured</strong><span>Use the UPI ID below or ask support for the current payment QR.</span></div>';
