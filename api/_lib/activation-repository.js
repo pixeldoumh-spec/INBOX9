@@ -26,6 +26,10 @@ function mapActivation(row) {
     ...(row.refund_paise == null ? {} : { refundPaise: row.refund_paise }),
     ...(row.provider_id ? { providerId: row.provider_id } : {}),
     ...(row.provider_metadata?.serverId ? { serverId: row.provider_metadata.serverId } : {}),
+    ...(String(row.provider_metadata?.engine || '').startsWith('synthetic') ? {
+      syntheticNumberRevealAt: row.provider_metadata?.numberRevealAt ? new Date(row.provider_metadata.numberRevealAt).getTime() : null,
+      syntheticOtpAvailableAt: row.mock_otp_at ? new Date(row.mock_otp_at).getTime() : null
+    } : {}),
   };
 }
 
