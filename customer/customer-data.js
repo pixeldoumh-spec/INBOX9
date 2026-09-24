@@ -22,9 +22,10 @@ export function createCustomerDataController({
   function syncFromServerActivations(activations) {
     const ordered = Array.isArray(activations) ? activations : [];
     state.orders = ordered.map((activation) => ({
-      id: activation.id, service: activation.service, number: activation.number,
+      id: activation.id, serviceId: activation.serviceId, service: activation.service, number: activation.number,
       pricePaise: activation.pricePaise, status: activation.status,
       otp: activation.otp || (isLiveActivation(activation) ? 'Waiting…' : '—'),
+      createdAt: activation.createdAt,
       created: activation.createdAt ? new Date(activation.createdAt).toLocaleString() : '—'
     }));
     state.active = ordered.filter(isLiveActivation);
