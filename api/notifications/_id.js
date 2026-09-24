@@ -1,7 +1,7 @@
 import { applySecurityHeaders, requestId, rateLimitAsync, enforceSameOrigin } from '../_lib/security.js';
-import { dbEnabled } from '../../_lib/db.js';
-import { getSessionUser, requireUser } from '../../_lib/auth.js';
-import { markNotificationRead } from '../../_lib/notification-repository.js';
+import { dbEnabled } from '../_lib/db.js';
+import { getSessionUser, requireUser } from '../_lib/auth.js';
+import { markNotificationRead } from '../_lib/notification-repository.js';
 
 export default async function handler(req,res) {
   applySecurityHeaders(res); requestId(req,res);
