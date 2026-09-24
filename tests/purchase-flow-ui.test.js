@@ -20,14 +20,17 @@ test('purchase flow is a three-step customer-facing state machine', async () => 
 
 test('confirmation shows the key customer decision data', async () => {
   const app = await fs.readFile(new URL('../app.js', import.meta.url), 'utf8');
-  assert.match(app, /\+91/);
-  assert.match(app, /Price/);
-  assert.match(app, /Number validity/);
-  assert.match(app, /OTP delivery timing varies by service/);
-  assert.match(app, /Activation tracking/);
-  assert.doesNotMatch(app, /Availability/);
-  assert.doesNotMatch(app, /OTP appears in about 20 seconds/);
-  assert.match(app, /Get number/);
+  const start = app.indexOf('function purchaseReviewModal()');
+  const end = app.indexOf('\nasync function confirmPurchase', start);
+  const review = app.slice(start, end);
+  assert.match(review, /\+91/);
+  assert.match(review, /Price/);
+  assert.match(review, /Number validity/);
+  assert.match(review, /OTP delivery timing varies by service/);
+  assert.match(review, /Activation tracking/);
+  assert.doesNotMatch(review, /Availability/);
+  assert.doesNotMatch(review, /OTP appears in about 20 seconds/);
+  assert.match(review, /Get number/);
 });
 
 test('customer marketplace no longer exposes server or slot controls', async () => {
