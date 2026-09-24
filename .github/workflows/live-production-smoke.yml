@@ -24,3 +24,34 @@ jobs:
         env:
           RENDER_SMOKE_URL: https://inbox9.onrender.com
         run: npm run render:smoke
+
+  reconciliation:
+    name: Live reconciliation smoke
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      id-token: write
+      contents: none
+    steps:
+      - name: Request GitHub OIDC identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${ACTIONS_ID_TOKEN_REQUEST_URL:-}"
+          test -n "${ACTIONS_ID_TOKEN_REQUEST_TOKEN:-}"
+          token_url="${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=inbox9"
+          response="$(curl --fail --silent --show-error --retry 3 --retry-delay 2 -H "Authorization: Bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" "$token_url")"
+          token="$(printf '%s' "$response" | python3 -c 'import json,sys; print(json.load(sys.stdin)["value"])')"
+          test -n "$token"
+
+      - name: Run authenticated reconciliation
+        env:
+          INBOX9_CRON_URL: https://inbox9.onrender.com/api/internal-provider-reconcile
+        shell: bash
+        run: |
+          set -euo pipefail
+          token_url="${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=inbox9"
+          response="$(curl --fail --silent --show-error --retry 3 --retry-delay 2 -H "Authorization: Bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" "$token_url")"
+          token="$(printf '%s' "$response" | python3 -c 'import json,sys; print(json.load(sys.stdin)["value"])')"
+          test -n "$token"
+          curl --fail --silent --show-error --retry 3 --retry-delay 5 -X POST "$INBOX9_CRON_URL" -H "Authorization: Bearer $token" -H "Content-Type: application/json" --data '{}'
