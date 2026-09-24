@@ -155,7 +155,7 @@ async function runFullChromium() {
     await firstBuy.click();
     await page.getByRole('heading', { name: 'Review your number', exact: true }).waitFor({ state: 'visible' });
     await page.getByRole('button', { name: /Get number/ }).click();
-    await heading(page, 'Active', 12000);
+    await heading(page, 'Active numbers', 12000);
 
     const cancelButton = page.locator('[data-cancel]:visible').first();
     await cancelButton.waitFor({ state: 'visible', timeout: 5000 });
@@ -168,7 +168,7 @@ async function runFullChromium() {
     await page.locator('[data-buy-service]:visible').first().click();
     await page.getByRole('heading', { name: 'Review your number', exact: true }).waitFor({ state: 'visible' });
     await page.getByRole('button', { name: /Get number/ }).click();
-    await heading(page, 'Active', 12000);
+    await heading(page, 'Active numbers', 12000);
 
     await page.waitForFunction(() => {
       const text = document.querySelector('.otp-code')?.textContent || '';
