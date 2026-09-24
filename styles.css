@@ -1675,3 +1675,75 @@ body::before{
   .order-card-body{justify-content:space-between}
   .order-detail-grid{grid-template-columns:1fr 1fr}
 }
+
+
+/* Recharge reconciliation status cards */
+.recharge-status-card{
+  margin:10px 12px;
+  padding:12px;
+  border:1px solid #202d3b;
+  border-radius:12px;
+  background:#0b121a;
+}
+.recharge-status-card.approved{border-color:#29412d;background:#0d1510}
+.recharge-status-card.rejected{border-color:#45292d;background:#160f11}
+.recharge-status-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
+.recharge-status-head>div{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.recharge-status-head strong{color:#e2eaf1;font-size:13px}
+.recharge-status-head code{color:#617085;font-size:8px;overflow-wrap:anywhere}
+.recharge-status-card p{
+  margin:9px 0 3px;
+  color:#9aa7b6;
+  font-size:9px;
+  line-height:1.45;
+}
+.recharge-status-card>small{
+  color:#5f6e80;
+  font-size:8px;
+}
+.recharge-reason{
+  display:block;
+  margin-top:7px;
+  padding-top:7px;
+  border-top:1px solid #2b1b1e;
+  color:#ba858b!important;
+  line-height:1.4;
+}
+.recharge-progress{
+  display:flex;
+  align-items:center;
+  margin-top:12px;
+}
+.recharge-progress span{
+  width:20px;height:20px;flex:none;
+  display:grid;place-items:center;
+  border:1px solid #263442;
+  border-radius:50%;
+  color:#56667a;
+  background:#0d141c;
+  font-size:8px;font-weight:800;
+}
+.recharge-progress span.done{
+  color:#bdeab1;
+  border-color:#345238;
+  background:#122018;
+}
+.recharge-progress i{
+  flex:1;
+  height:1px;
+  background:#23303d;
+}
+@media(max-width:620px){
+  .recharge-status-card{margin:9px 10px;padding:11px}
+  .recharge-status-head{align-items:flex-start;flex-direction:column}
+  .recharge-status-head code{max-width:100%}
+}

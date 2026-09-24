@@ -185,3 +185,28 @@ test('recharge form prevents duplicate submissions while a request is in flight'
   assert.match(app, /state\.rechargeSubmitting = true/);
   assert.match(app, /Submitting…/);
 });
+
+
+test('wallet summary is authoritative and not limited to the visible ledger slice', async () => {
+  const [api, repo, state, data] = await Promise.all([
+    read('api/wallet/_index.js'),
+    read('api/_lib/wallet-repository.js'),
+    read('customer/state.js'),
+    read('customer/customer-data.js')
+  ]);
+  assert.match(api, /getWalletSummary/);
+  assert.match(repo, /SELECT[\\s\\S]*credit_paise/);
+  assert.match(state, /walletSummary/);
+  assert.match(data, /state\.walletSummary = wallet\.summary/);
+});
+
+test('recharge history explains pending, approved and rejected outcomes', async () => {
+  const app = await read('app.js');
+  const css = await read('styles.css');
+  assert.match(app, /Submitted → Verified → Wallet outcome/);
+  assert.match(app, /Payment verified · wallet credited/);
+  assert.match(app, /Payment rejected · wallet not credited/);
+  assert.match(app, /recharge-reason/);
+  assert.match(css, /recharge-status-card/);
+  assert.match(css, /recharge-progress/);
+});

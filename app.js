@@ -246,6 +246,7 @@ function handleSessionSignedOut() {
   state.orders = [];
   state.walletLedger = [];
   state.recharges = [];
+  state.walletSummary = { creditPaise: 0, debitPaise: 0, pendingPaise: 0, creditCount: 0, debitCount: 0, pendingCount: 0 };
   state.rechargeSubmitting = false;
   state.orderFilter = 'all';
   state.expandedOrderId = null;
@@ -1094,13 +1095,15 @@ function walletEntryLabel(entry) {
 }
 
 function walletSummary() {
-  const ledger = Array.isArray(state.walletLedger) ? state.walletLedger : [];
-  const credits = ledger.filter((entry) => entry.type === 'credit').reduce((sum, entry) => sum + Number(entry.amountPaise || 0), 0);
-  const debits = ledger.filter((entry) => entry.type === 'debit').reduce((sum, entry) => sum + Number(entry.amountPaise || 0), 0);
-  const pending = (Array.isArray(state.recharges) ? state.recharges : [])
-    .filter((item) => String(item.status || '').toLowerCase() === 'pending')
-    .reduce((sum, item) => sum + Number(item.amountPaise || 0), 0);
-  return { credits, debits, pending };
+  const summary = state.walletSummary || {};
+  return {
+    credits: Number(summary.creditPaise || 0),
+    debits: Number(summary.debitPaise || 0),
+    pending: Number(summary.pendingPaise || 0),
+    creditCount: Number(summary.creditCount || 0),
+    debitCount: Number(summary.debitCount || 0),
+    pendingCount: Number(summary.pendingCount || 0)
+  };
 }
 
 function walletPage() {
@@ -1108,11 +1111,18 @@ function walletPage() {
     ? '<div class="panel purchase-return-banner"><div><strong>Continue your activation</strong><span>Your selected service is saved.</span></div><button class="primary-btn" type="button" data-return-purchase>Back to purchase</button></div>'
     : '';
   const summary = walletSummary();
+  const statusCopy = { Pending: 'Payment received details submitted · awaiting verification', Approved: 'Payment verified · wallet credited', Rejected: 'Payment rejected · wallet not credited' };
   const ledgerRows = state.walletLedger.length ? state.walletLedger.map(entry => {
     const meta = walletEntryLabel(entry);
     return '<div class="ledger-row ' + (entry.type === 'credit' ? 'positive' : '') + '"><div class="ledger-main"><span class="ledger-kind">' + meta.type + '</span><strong>' + esc(entry.description) + '</strong><small>' + esc(new Date(entry.createdAt).toLocaleString()) + '</small></div><strong class="ledger-amount ' + (entry.type === 'credit' ? 'credit' : 'debit') + '">' + meta.sign + ' ' + money(entry.amountPaise) + '</strong></div>';
   }).join('') : '<div class="empty-mini">No wallet transactions yet.</div>';
-  const rechargeRows = state.recharges.length ? state.recharges.map(item => '<div class="recharge-row"><div><strong>' + money(item.amountPaise) + '</strong><span class="table-status ' + String(item.status).toLowerCase() + '">' + esc(item.status) + '</span></div><code>' + esc(item.utr) + '</code><small>' + esc(new Date(item.submittedAt).toLocaleString()) + '</small></div>').join('') : '<div class="empty-mini">No recharge requests yet.</div>';
+  const rechargeRows = state.recharges.length ? state.recharges.map(item => {
+    const status = String(item.status || 'Pending');
+    const statusText = statusCopy[status] || 'Recharge request status updated';
+    const reviewed = item.reviewedAt ? 'Reviewed ' + new Date(item.reviewedAt).toLocaleString() : 'Submitted ' + new Date(item.submittedAt).toLocaleString();
+    const reason = status === 'Rejected' && item.rejectionReason ? '<small class="recharge-reason">' + esc(item.rejectionReason) + '</small>' : '';
+    return '<article class="recharge-status-card ' + status.toLowerCase() + '"><div class="recharge-status-head"><div><strong>' + money(item.amountPaise) + '</strong><span class="table-status ' + status.toLowerCase() + '">' + esc(status) + '</span></div><code>UTR ' + esc(item.utr) + '</code></div><div class="recharge-progress" aria-label="Recharge status"><span class="' + (status === 'Pending' ? 'done' : 'done') + '">1</span><i></i><span class="' + (status !== 'Pending' ? 'done' : '') + '">2</span><i></i><span class="' + (status === 'Approved' || status === 'Rejected' ? 'done' : '') + '">3</span></div><p>' + esc(statusText) + '</p><small>' + esc(reviewed) + '</small>' + reason + '</article>';
+  }).join('') : '<div class="empty-mini">No recharge requests yet.</div>';
   const rechargeReady = Boolean(state.persistentState && state.rechargeUpiId);
   const submitBusy = state.rechargeSubmitting;
   const fundingPanel = rechargeReady
@@ -1120,9 +1130,9 @@ function walletPage() {
     : '<div class="panel payment-panel"><div class="panel-head"><div><h3>Wallet funding unavailable</h3><span>' + (state.persistentState ? 'Recharge is not configured on this deployment yet.' : 'Payments are disabled in this environment.') + '</span></div><span class="status-chip">' + (state.persistentState ? 'SETUP REQUIRED' : 'PAYMENTS OFF') + '</span></div><p class="form-note">No balance is created in the browser. Credits come from the authoritative wallet ledger.</p></div>';
   return returnPurchase +
     '<div class="section-head with-action"><div><span class="kicker">WALLET / INR</span><h2>Wallet</h2><p class="section-subcopy">Authoritative balance, funding requests, and account transactions.</p></div><div class="page-head-actions"><span class="result-note">Min ₹100 · Max ₹5,000</span><button class="refresh-btn" type="button" data-action="refresh-customer">' + (state.customerDataRefreshing ? 'Refreshing…' : 'Refresh') + '</button></div></div>' +
-    '<div class="wallet-summary-grid"><div class="balance-card"><div class="wallet-card-top"><span>AVAILABLE BALANCE</span><span>INR</span></div><strong>' + money(state.balancePaise) + '</strong><small>Authoritative wallet balance</small></div><div class="wallet-stat-card"><span>LEDGER CREDITS</span><strong>' + money(summary.credits) + '</strong><small>Recorded credits</small></div><div class="wallet-stat-card"><span>LEDGER DEBITS</span><strong>' + money(summary.debits) + '</strong><small>Activation spending</small></div><div class="wallet-stat-card pending"><span>PENDING TOP-UPS</span><strong>' + money(summary.pending) + '</strong><small>Not credited yet</small></div></div>' +
+    '<div class="wallet-summary-grid"><div class="balance-card"><div class="wallet-card-top"><span>AVAILABLE BALANCE</span><span>INR</span></div><strong>' + money(state.balancePaise) + '</strong><small>Authoritative wallet balance</small></div><div class="wallet-stat-card"><span>LEDGER CREDITS</span><strong>' + money(summary.credits) + '</strong><small>' + summary.creditCount + ' recorded credits</small></div><div class="wallet-stat-card"><span>LEDGER DEBITS</span><strong>' + money(summary.debits) + '</strong><small>' + summary.debitCount + ' recorded debits</small></div><div class="wallet-stat-card pending"><span>PENDING TOP-UPS</span><strong>' + money(summary.pending) + '</strong><small>' + summary.pendingCount + ' awaiting review</small></div></div>' +
     fundingPanel +
-    '<div class="wallet-two-column"><div class="panel ledger"><div class="panel-head"><div><h3>Wallet ledger</h3><span>Authoritative account activity</span></div></div>' + ledgerRows + '</div><div class="panel ledger"><div class="panel-head"><div><h3>Recharge requests</h3><span>Pending requests are not credited until verified.</span></div></div>' + rechargeRows + '</div></div>';
+    '<div class="wallet-two-column"><div class="panel ledger"><div class="panel-head"><div><h3>Wallet ledger</h3><span>Authoritative account activity</span></div></div>' + ledgerRows + '</div><div class="panel ledger"><div class="panel-head"><div><h3>Recharge status</h3><span>Submitted → Verified → Wallet outcome</span></div></div>' + rechargeRows + '</div></div>';
 }
 
 function apiPage() {

@@ -90,6 +90,35 @@ export async function listLedger(userId, limit = 25) {
   }));
 }
 
+export async function getWalletSummary(userId) {
+  const pool = await getPool();
+  const [ledger, pending] = await Promise.all([
+    pool.query(
+      `SELECT
+         COALESCE(SUM(CASE WHEN entry_type='credit' THEN amount_paise ELSE 0 END),0)::bigint AS credit_paise,
+         COALESCE(SUM(CASE WHEN entry_type='debit' THEN amount_paise ELSE 0 END),0)::bigint AS debit_paise,
+         COUNT(*) FILTER (WHERE entry_type='credit')::int AS credit_count,
+         COUNT(*) FILTER (WHERE entry_type='debit')::int AS debit_count
+       FROM wallet_ledger WHERE user_id=$1`,
+      [userId]
+    ),
+    pool.query(
+      `SELECT COALESCE(SUM(amount_paise),0)::bigint AS pending_paise,
+              COUNT(*)::int AS pending_count
+       FROM recharge_requests WHERE user_id=$1 AND status='Pending'`,
+      [userId]
+    )
+  ]);
+  return {
+    creditPaise: Number(ledger.rows[0]?.credit_paise || 0),
+    debitPaise: Number(ledger.rows[0]?.debit_paise || 0),
+    creditCount: Number(ledger.rows[0]?.credit_count || 0),
+    debitCount: Number(ledger.rows[0]?.debit_count || 0),
+    pendingPaise: Number(pending.rows[0]?.pending_paise || 0),
+    pendingCount: Number(pending.rows[0]?.pending_count || 0)
+  };
+}
+
 export async function createRecharge(userId, amountPaise, utr) {
   if (!UPI_ID) { const error = new Error('UPI recharge is not configured'); error.code = 'UPI_DESTINATION_NOT_CONFIGURED'; throw error; }
   if (!Number.isInteger(amountPaise) || amountPaise < MIN_RECHARGE_PAISE || amountPaise > MAX_RECHARGE_PAISE) {

@@ -16,6 +16,7 @@ export function createCustomerState() {
     category: 'All',
     balancePaise: 0,
     walletLedger: [],
+    walletSummary: { creditPaise: 0, debitPaise: 0, pendingPaise: 0, creditCount: 0, debitCount: 0, pendingCount: 0 },
     recharges: [],
     rechargeAmount: 100,
     rechargeSubmitting: false,

@@ -72,6 +72,7 @@ export function createCustomerDataController({
       state.persistentState = Boolean(wallet.persistent);
       state.balancePaise = Number(wallet.balancePaise || 0);
       state.walletLedger = Array.isArray(wallet.ledger) ? wallet.ledger : [];
+      state.walletSummary = wallet.summary || { creditPaise: 0, debitPaise: 0, pendingPaise: 0, creditCount: 0, debitCount: 0, pendingCount: 0 };
       state.recharges = Array.isArray(wallet.recharges) ? wallet.recharges : [];
       state.rechargeUpiId = wallet.rechargeEnabled ? (wallet.upiId || null) : null;
     } else {

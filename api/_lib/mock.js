@@ -105,13 +105,23 @@ function ensureMockWallet(email) {
 
 export function getMockWallet(email) {
   const key = ensureMockWallet(email);
+  const ledger = [...ledgers.get(key)].sort((a, b) => b.createdAt - a.createdAt);
+  const userRecharges = [...recharges.values()]
+    .filter(item => item.email === key)
+    .sort((a, b) => b.submittedAt - a.submittedAt);
   return {
     balancePaise: Number(wallets.get(key) || 0),
     currency: 'INR',
-    ledger: [...ledgers.get(key)].sort((a, b) => b.createdAt - a.createdAt),
-    recharges: [...recharges.values()]
-      .filter(item => item.email === key)
-      .sort((a, b) => b.submittedAt - a.submittedAt),
+    summary: {
+      creditPaise: ledger.filter((entry) => entry.type === 'credit').reduce((sum, entry) => sum + Number(entry.amountPaise || 0), 0),
+      debitPaise: ledger.filter((entry) => entry.type === 'debit').reduce((sum, entry) => sum + Number(entry.amountPaise || 0), 0),
+      creditCount: ledger.filter((entry) => entry.type === 'credit').length,
+      debitCount: ledger.filter((entry) => entry.type === 'debit').length,
+      pendingPaise: userRecharges.filter((item) => item.status === 'Pending').reduce((sum, item) => sum + Number(item.amountPaise || 0), 0),
+      pendingCount: userRecharges.filter((item) => item.status === 'Pending').length
+    },
+    ledger,
+    recharges: userRecharges,
   };
 }
 
