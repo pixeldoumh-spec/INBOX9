@@ -46,7 +46,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          NODE_ENV=development INBOX9_RUNTIME_MODE=synthetic PORT=4173 node server.js > /tmp/inbox9-browser.log 2>&1 &
+          NODE_ENV=development INBOX9_RUNTIME_MODE=synthetic INBOX9_LOCAL_ADMIN_EMAIL=admin-browser-e2e@example.test PORT=4173 node server.js > /tmp/inbox9-browser.log 2>&1 &
           echo $! > /tmp/inbox9-browser.pid
           for attempt in $(seq 1 60); do
             if curl --fail --silent http://127.0.0.1:4173/api/health > /tmp/inbox9-health.json; then
