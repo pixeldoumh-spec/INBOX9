@@ -80,3 +80,21 @@ test('marketplace search keeps a bounded visible result set', async () => {
   assert.match(app, /scheduleMarketSearch\(/);
   assert.match(app, /filteredMarketServices\(/);
 });
+
+test('customer bundle uses extracted architecture modules', async () => {
+  const [app, state, apiClient, ui] = await Promise.all([
+    read('app.js'),
+    read('customer/state.js'),
+    read('customer/api-client.js'),
+    read('customer/ui.js'),
+  ]);
+  assert.match(app, /from '\.\/customer\/state\.js'/);
+  assert.match(app, /from '\.\/customer\/api-client\.js'/);
+  assert.match(app, /from '\.\/customer\/ui\.js'/);
+  assert.match(state, /createCustomerState/);
+  assert.match(apiClient, /export async function api/);
+  assert.match(ui, /export function normalizeSearchText/);
+  assert.doesNotMatch(app, /const state = \{/);
+  assert.doesNotMatch(app, /function normalizeSearchText\(/);
+  assert.doesNotMatch(app, /const esc = \(/);
+});
