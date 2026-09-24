@@ -52,6 +52,7 @@ export function createCustomerNavigation({
   function handleSessionExpired() {
     state.bootstrapError = '';
     state.user = null;
+    state.authMode = 'login';
     state.active = [];
     state.orders = [];
     state.recentActivations = [];
