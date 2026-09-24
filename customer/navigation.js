@@ -26,7 +26,7 @@ export function createCustomerNavigation({
 
   function refreshPageData(next) {
     if (next === 'admin' && state.user?.role === 'admin') void loadAdminTab(state.adminTab);
-    if (next === 'buy') void refreshCatalog({ silent: true });
+    if (next === 'buy') void refreshCatalog({ silent: false });
     if (next === 'wallet') void refreshWallet().then(() => render());
     if (next === 'support') void refreshSupport().then(() => {
       if (document.activeElement?.closest?.('#support-form')) return;
