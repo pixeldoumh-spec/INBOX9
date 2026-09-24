@@ -1498,3 +1498,32 @@ body::before{
   .recent-activation-card{padding:12px}
   .recent-otp>strong{font-size:15px}
 }
+
+
+/* Customer validity-only marketplace details */
+.service-details-panel{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  padding:12px;
+}
+.service-detail-row{
+  display:flex;
+  align-items:flex-start;
+  gap:10px;
+  padding:12px;
+  border:1px solid #202d3b;
+  border-radius:11px;
+  background:#0b1219;
+}
+.service-detail-icon{
+  width:30px;height:30px;flex:none;
+  border:1px solid #2a3c4e;
+  border-radius:9px;
+  display:grid;place-items:center;
+  color:#9fb0c2;
+  background:#111b26;
+}
+.service-detail-row strong{display:block;color:#dce5ee;font-size:10px}
+.service-detail-row div>span{display:block;margin-top:4px;color:#69778a;font-size:8px;line-height:1.5}
+@media(max-width:620px){.service-details-panel{grid-template-columns:1fr}}
