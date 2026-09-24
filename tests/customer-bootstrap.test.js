@@ -36,3 +36,9 @@ test('customer login bootstraps services, activations and wallet data', async ()
   assert.match(app.slice(bootStart, bootStart + 700), /await bootstrapSession\(\)/);
   assert.match(app, /boot\(\);\s*$/);
 });
+
+
+test('customer API client explicitly includes same-origin session credentials', async () => {
+  const apiClient = await fs.readFile(new URL('../customer/api-client.js', import.meta.url), 'utf8');
+  assert.match(apiClient, /credentials: options\.credentials \?\? 'same-origin'/);
+});
