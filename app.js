@@ -427,12 +427,17 @@ function notificationPanel() {
 }
 
 function toast(message) {
+  const existing = document.querySelector('.toast');
+  if (existing) existing.remove();
+  window.clearTimeout(state.toastTimer);
   const node = document.createElement('div');
   node.className = 'toast';
   node.textContent = message;
   document.body.appendChild(node);
-  clearTimeout(state.toastTimer);
-  state.toastTimer = setTimeout(() => node.remove(), 2300);
+  state.toastTimer = window.setTimeout(() => {
+    if (node.isConnected) node.remove();
+    state.toastTimer = null;
+  }, 2300);
 }
 
 function setRefreshUi(active, label = active ? 'Syncing' : 'Connected') {
