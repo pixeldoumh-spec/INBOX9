@@ -10,6 +10,9 @@ jobs:
     permissions: {}
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    concurrency:
+      group: inbox9-reconciliation
+      cancel-in-progress: false
     steps:
       - name: Run authenticated reconciliation
         env:
