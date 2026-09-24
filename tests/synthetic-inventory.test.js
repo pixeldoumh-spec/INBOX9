@@ -4,7 +4,7 @@ import fs from 'node:fs/promises';
 import { listSyntheticServers, SYNTHETIC_SERVER_COUNT, SYNTHETIC_CAPACITY, getSyntheticServer } from '../api/_lib/synthetic-servers.js';
 import { claimSyntheticSlot, shouldRestoreSyntheticStock, shouldRequireSyntheticReservation } from '../api/_lib/synthetic-inventory-repository.js';
 
-test('synthetic servers partition 5,000 slots into exactly 11 contiguous chunks', () => {
+test('synthetic servers partition 100 slots into exactly 11 contiguous chunks', () => {
   const servers = listSyntheticServers();
   assert.equal(servers.length, SYNTHETIC_SERVER_COUNT);
   assert.equal(servers.reduce((sum, server) => sum + server.capacity, 0), SYNTHETIC_CAPACITY);
@@ -100,7 +100,7 @@ test('PostgreSQL concurrent claims allow exactly one Reserved slot owner', { ski
   const userB = `USR-SYN-${crypto.randomUUID()}`;
   const activationA = `ACT-SYN-${crypto.randomUUID()}`;
   const activationB = `ACT-SYN-${crypto.randomUUID()}`;
-  const slot = 4999;
+  const slot = 99;
   const serviceId = 'whatsapp-0';
   const serverId = 'server-11';
 
