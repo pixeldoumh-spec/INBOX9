@@ -1149,8 +1149,9 @@ function bindMarketplaceEvents() {
     if (category && root.contains(category)) {
       window.clearTimeout(state.marketSearchTimer);
       state.category = category.dataset.category;
-      state.marketVisibleCount = MARKET_PAGE_SIZE;
+      state.marketVisibleCount = state.search ? MARKET_MAX_SEARCH_RESULTS : MARKET_PAGE_SIZE;
       state.expandedServiceId = null;
+      syncMarketplaceUrlState({ replace: false });
       renderBuyCatalog();
       return;
     }

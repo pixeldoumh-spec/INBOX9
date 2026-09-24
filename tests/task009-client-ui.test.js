@@ -62,7 +62,7 @@ test('marketplace search and category filters persist in the URL and recover on 
   ]);
   assert.match(app, /readMarketplaceUrlState\(\)/);
   assert.match(app, /syncMarketplaceUrlState\(\{ replace: true \}\)/);
-  assert.match(app, /syncMarketplaceUrlState\(\{ replace: false \}\)/);
+  assert.equal(app.includes('syncMarketplaceUrlState({ replace: false });'), true);
   assert.match(app, /handleMarketplaceUrlNavigation\(\)/);
   assert.match(app, /data-clear-market/);
   assert.match(state, /marketUrlSyncTimer: null/);
