@@ -22,11 +22,10 @@ test('phase 1 uses a four-column launcher and avoids redundant single-category c
 });
 
 test('phase 2 keeps launcher tiles inside narrow mobile columns',()=>{
-  
-  
-  assert.match(css,/@media \(max-width:380px\)\{[\s\S]*?\.catalog-apps \.service-logo-md\s*\{[\s\S]*?width:min\(64px,100%\)\s*!important/);
+  assert.match(css,/\.catalog-apps \.service-grid\s*\{[\s\S]*?row-gap:24px/);
+  assert.match(css,/\.catalog-apps \.service-name\s*\{[\s\S]*?max-width:72px/);
+  assert.match(css,/@media \(max-width:380px\)[\s\S]*?\.catalog-apps \.service-grid\s*\{[\s\S]*?row-gap:21px/);
 });
-
 test('phase 2.1 normalizes the shared logo frame and bottom-nav optical icon sizing',()=>{
   assert.match(app,/className="service-logo-art"/);
   assert.match(app,/cropServiceLogo/);
