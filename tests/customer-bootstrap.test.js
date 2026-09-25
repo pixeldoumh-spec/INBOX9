@@ -57,19 +57,26 @@ test('customer render restores the authenticated shell while session bootstrap i
 });
 
 
-test('initial document provides an app-shaped shell instead of a full-screen loading screen', async () => {
+test('initial document provides only the clean INBOX9 startup splash', async () => {
   const index = await fs.readFile(new URL('../index.html', import.meta.url), 'utf8');
-  assert.match(index, /class="instant-app-shell"/);
-  assert.match(index, /class="instant-topbar"/);
+  assert.match(index, /class="boot-loader"/);
+  assert.match(index, /class="boot-brand-mark"/);
+  assert.match(index, /class="boot-brand-name">INBOX9/);
+  assert.doesNotMatch(index, /instant-app-shell/);
   assert.doesNotMatch(index, /Loading your marketplace…/);
+  assert.doesNotMatch(index, /auth-card-loading/);
 });
 
-test('session bootstrap does not remount a loading screen when an authenticated shell is already available', async () => {
+test('session bootstrap uses the same clean startup splash and never renders a second auth loader', async () => {
   const app = await fs.readFile(new URL('../app.js', import.meta.url), 'utf8');
   const bootstrapStart = app.indexOf('async function bootstrapSession()');
   const bootstrapEnd = app.indexOf('\n\nasync function retryBootstrap', bootstrapStart);
   assert.ok(bootstrapStart >= 0 && bootstrapEnd > bootstrapStart);
   const bootstrap = app.slice(bootstrapStart, bootstrapEnd);
-  assert.match(bootstrap, /const hadAuthenticatedShell = Boolean\(state\.user\)/);
-  assert.match(bootstrap, /if \(!hadAuthenticatedShell\) render\(\)/);
+  assert.match(app, /function startupSplashPage\(\)/);
+  assert.match(app, /function showStartupSplash\(\)/);
+  assert.match(bootstrap, /showStartupSplash\(\)/);
+  assert.doesNotMatch(app, /sessionBootstrapPage/);
+  assert.doesNotMatch(app, /Restoring your session/);
+  assert.doesNotMatch(app, /auth-card-loading/);
 });
