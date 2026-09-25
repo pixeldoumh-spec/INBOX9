@@ -191,9 +191,11 @@ async function runFullChromium() {
 
     await page.locator('[data-page="support"]').first().click();
     await heading(page, 'Help & Support');
-    await page.goBack({ waitUntil: 'domcontentloaded' });
+    await page.goBack();
+    await page.waitForFunction(() => window.location.hash === '#wallet', null, { timeout: 5000 });
     await heading(page, 'Wallet');
-    await page.goForward({ waitUntil: 'domcontentloaded' });
+    await page.goForward();
+    await page.waitForFunction(() => window.location.hash === '#support', null, { timeout: 5000 });
     await heading(page, 'Help & Support');
 
     await page.locator('[data-page="buy"]').first().click();
