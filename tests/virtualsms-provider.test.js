@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { validateVirtualSmsPurchaseConfig, normalizeVirtualSmsOrder } from '../api/_lib/virtualsms-provider.js';
+import { validateVirtualSmsPurchaseConfig, validateVirtualSmsPreflightPurchaseBlock, normalizeVirtualSmsOrder } from '../api/_lib/virtualsms-provider.js';
 
 test('VirtualSMS purchase configuration fails closed without credentials', async () => {
   assert.throws(
@@ -72,4 +72,13 @@ test('VirtualSMS order normalization extracts the number, lifecycle and OTP', as
   }, active);
   assert.equal(completed.status, 'Completed');
   assert.equal(completed.otp, '123456');
+});
+
+
+test('VirtualSMS preflight guard blocks purchase mode by construction', async () => {
+  assert.throws(
+    () => validateVirtualSmsPreflightPurchaseBlock('true'),
+    (error) => error.code === 'PROVIDER_PREFLIGHT_PURCHASE_BLOCKED'
+  );
+  assert.doesNotThrow(() => validateVirtualSmsPreflightPurchaseBlock('false'));
 });
