@@ -42,3 +42,11 @@ test('phase 2.2 uses one service-logo size across customer surfaces',()=>{
   assert.match(css,/\.service-logo-sm,\.service-logo-md,\.service-logo-lg\s*\{[\s\S]*?width:72px !important;\s*height:72px !important/);
   assert.match(css,/@media \(max-width:380px\)[\s\S]*?\.catalog-apps \.service-logo-md,[\s\S]*?\.catalog-apps \.service-logo-sm,[\s\S]*?\.catalog-apps \.service-logo-lg[\s\S]*?width:64px !important;[\s\S]*?height:64px !important/);
 });
+
+
+test('phase 2.4 crops logo artwork to visible bounds then contains the full image',()=>{
+  assert.match(app,/cropServiceLogo/);
+  assert.match(app,/output\.toDataURL\('image\/png'\)/);
+  assert.match(app,/data-logo-source=\{src\?'cropped-sprite'/);
+  assert.match(css,/\.service-logo-art img\s*\{[\s\S]*?object-fit:contain/);
+});
