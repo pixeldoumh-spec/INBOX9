@@ -18,7 +18,7 @@ test('phase 1 establishes a constrained mobile app shell',()=>{
 test('phase 1 uses a four-column launcher and avoids redundant single-category controls',()=>{
   assert.match(css,/\.service-grid\s*\{[\s\S]*?grid-template-columns:\s*repeat\(4,minmax\(0,1fr\)/);
   assert.match(app,/\{categories\.length>1\?<div className="category-scroll"/);
-  assert.match(app,/size==='lg'\?104:size==='sm'\?52:72/);
+  assert.match(app,/const d=72/);
 });
 
 test('phase 2 keeps launcher tiles inside narrow mobile columns',()=>{
