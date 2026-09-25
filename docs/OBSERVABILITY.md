@@ -6,7 +6,7 @@ INBOX9 now emits structured JSON application telemetry for every HTTP response. 
 
 Server errors are captured by the runtime error handler and process-level handlers. Browser window.error and unhandledrejection events are reported to the same-origin /api/client-errors endpoint, which is rate-limited and protected by production same-origin checks.
 
-Render remains the infrastructure source for deployment logs and resource metrics. The scheduled GitHub Actions canary runs every 15 minutes and checks the public production runtime, PostgreSQL readiness, catalog cardinality (832 services), request IDs, unauthenticated boundary behavior, and a small concurrent health burst. A failed canary is visible as a failed GitHub Actions run and can trigger the repository owner's configured GitHub notifications.
+Render remains the infrastructure source for deployment logs and resource metrics. The scheduled GitHub Actions canary runs every 15 minutes and checks the public production runtime, PostgreSQL readiness, catalog cardinality (216 active services), request IDs, unauthenticated boundary behavior, and a small concurrent health burst. A failed canary is visible as a failed GitHub Actions run and can trigger the repository owner's configured GitHub notifications.
 
 ## Optional Sentry error monitoring
 
