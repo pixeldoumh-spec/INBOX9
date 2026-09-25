@@ -4,7 +4,7 @@ Status: Architecture frozen for Phase 1 foundation.
 
 ## Source basis
 
-The supplied VirtualSMS analysis describes a mobile-first responsive app-shell/dashboard with a searchable icon-grid service catalog, persistent navigation, REST-backed application data, and live activation events. The supplied reference also emphasizes an app-like service launcher.
+The supplied reference analysis describes a mobile-first responsive app-shell/dashboard with a searchable icon-grid service catalog, persistent navigation, REST-backed application data, and live activation events. The supplied reference also emphasizes an app-like service launcher.
 
 For INBOX9, the primary interaction is separated into independent routes:
 
@@ -90,7 +90,7 @@ POST /api/support
 
 ## Service model
 
-The backend currently exposes an 832-service India/INR catalog. The frontend type models only presentation and purchase fields and intentionally excludes provider internals.
+The backend currently exposes the 216-service India/INR catalog from the 2026-09-25 master list. Service IDs are stable slugs, so logo assets and UI state are not coupled to catalog row order. The frontend type models only presentation and purchase fields and intentionally excludes provider internals.
 
 ## Realtime model
 
