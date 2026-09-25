@@ -365,6 +365,9 @@ export async function cancelActivation(id, userId) {
   const begun = await beginCancellation(id, userId);
   if (!begun) return null;
   if (!begun.operation) return { activation: mapActivation(begun.activation), balancePaise: null };
+  if (begun.alreadyPending) {
+    return { activation: mapActivation(begun.activation), balancePaise: null, pending: true };
+  }
   if (!begun.adapterKey || !begun.providerPayload?.providerActivationId) {
     const result = await completeCancellation(begun.operation.id, true);
     return result.activation ? { activation: mapActivation(result.activation), balancePaise: result.balancePaise } : { activation: mapActivation(begun.activation), balancePaise: null };
