@@ -1,34 +1,25 @@
-name: Export service catalog by kind
+name: Validate service catalog export
 
 on:
   push:
     branches: [main]
     paths:
       - 'data/services.json'
+      - 'data/services-by-kind.csv'
       - 'scripts/export-services-by-kind.mjs'
       - '.github/workflows/export-services-by-kind.yml'
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  export:
+  validate:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Validate and sort service catalog
-        run: node scripts/export-services-by-kind.mjs
-
-      - name: Commit sorted catalog
+      - name: Regenerate and validate service catalog export
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/services-by-kind.csv
-          if git diff --cached --quiet; then
-            echo "No catalog changes."
-            exit 0
-          fi
-          git commit -m "chore: export service catalog sorted by kind"
-          git push
+          node scripts/export-services-by-kind.mjs
+          git diff --exit-code -- data/services-by-kind.csv
