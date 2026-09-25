@@ -37,13 +37,13 @@ test('HD service logo sprite is embedded with the expected tile grid',()=>{
 
 test('service logo manifest uses stable unique service IDs and sprite tiles',()=>{
   const matches=[...manifest.matchAll(/"([^"]+)":\s*\{\s*"spriteIndex":\s*(\d+)\s*\}/g)];
-  assert.equal(matches.length,108);
+  assert.equal(matches.length,88);
   const ids=matches.map(m=>m[1]);
   const indices=matches.map(m=>Number(m[2]));
   assert.equal(new Set(ids).size,ids.length);
   assert.equal(new Set(indices).size,indices.length);
   for(const id of ids) assert.match(id,/^svc-[a-z0-9-]+$/);
-  for(const index of indices) assert.ok(index>=0&&index<108);
+  for(const index of indices) assert.ok(index>=0&&index<88);
   for(const removed of [
     'svc-yono-bonus-51','svc-all-yono-games','svc-yono-all-games','svc-rani-slots','svc-yono-app',
     'svc-new-yono-app','svc-yono-game','svc-all-rummy-apps','svc-all-yono-slots','svc-yono-arcade',
