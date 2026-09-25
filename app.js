@@ -1941,6 +1941,13 @@ function handlePageShow(event) {
   handleCustomerVisibilityRefresh();
 }
 
+function handlePageHide(event) {
+  // Prevent a hard reload from leaving the previous authenticated page visible
+  // while the browser fetches the next document. Keep BFCache restores intact.
+  if (event.persisted) return;
+  showStartupSplash();
+}
+
 function handleCustomerVisibilityRefresh() {
   if (document.visibilityState !== 'visible' || !state.user) return;
   const now = Date.now();
@@ -2222,6 +2229,8 @@ window.addEventListener('popstate', handleBrowserNavigation);
 window.addEventListener('pageshow', handlePageShow);
 document.addEventListener('visibilitychange', handleCustomerVisibilityRefresh);
 window.addEventListener('focus', handleCustomerVisibilityRefresh);
+window.addEventListener('pageshow', handlePageShow);
+window.addEventListener('pagehide', handlePageHide);
 window.addEventListener('online', handleConnectivityChange);
 window.addEventListener('offline', handleConnectivityChange);
 boot();
