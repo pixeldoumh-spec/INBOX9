@@ -57,15 +57,7 @@ const MAX_PAYMENT_SETTINGS_BODY_BYTES = 512_000;
 
 const staticFiles = new Map([
   ['/', ['index.html', 'text/html; charset=utf-8']],
-  ['/index.html', ['index.html', 'text/html; charset=utf-8']],
-  ['/app.js', ['app.js', 'text/javascript; charset=utf-8']],
-  ['/boot.js', ['boot.js', 'text/javascript; charset=utf-8']],
-  ['/styles.css', ['styles.css', 'text/css; charset=utf-8']],
-  ['/customer/state.js', ['customer/state.js', 'text/javascript; charset=utf-8']],
-  ['/customer/api-client.js', ['customer/api-client.js', 'text/javascript; charset=utf-8']],
-  ['/customer/ui.js', ['customer/ui.js', 'text/javascript; charset=utf-8']],
-  ['/customer/navigation.js', ['customer/navigation.js', 'text/javascript; charset=utf-8']],
-  ['/customer/customer-data.js', ['customer/customer-data.js', 'text/javascript; charset=utf-8']]
+  ['/index.html', ['index.html', 'text/html; charset=utf-8']]
 ]);
 
 class RuntimeResponse {
