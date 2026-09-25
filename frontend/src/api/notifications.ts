@@ -1,13 +1,7 @@
 import { apiRequest } from './client';
+import type { Notification } from './types';
 
-export type Notification = {
-  id: string;
-  title: string;
-  body: string;
-  read?: boolean;
-  page?: string | null;
-  createdAt?: number;
-};
+export type { Notification };
 
 export function getNotifications() {
   return apiRequest<{ notifications: Notification[]; persistent: boolean }>(
