@@ -8,6 +8,46 @@ import { claimSyntheticSlot, releaseSyntheticSlot, shouldRestoreSyntheticStock, 
 
 const TTL_MS = 25 * 60 * 1000;
 const SYNTHETIC_SLOT_RESERVATION_ATTEMPTS = 8;
+export const ACTIVATION_QUOTA_LIMIT = 10;
+
+function virtualSmsCanaryCap() {
+  const value = Number(process.env.VIRTUALSMS_CANARY_MAX_ALLOCATIONS || 30);
+  return Number.isFinite(value) && value >= 1 ? Math.min(Math.trunc(value), 1000) : 30;
+}
+
+async function enforceActivationQuotas(client, { userId, serviceId, provider }) {
+  const adapterKey = String(provider?.adapter_key || '').trim().toLowerCase();
+  if (adapterKey === 'synthetic') return;
+
+  await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1, 0))', [String(userId) + ':' + String(serviceId)]);
+  const active = await client.query(
+    `SELECT COUNT(*)::int AS count
+       FROM activations
+      WHERE user_id=$1 AND service_id=$2
+        AND status IN ('Active','CancellationPending','ExpirationPending')`,
+    [userId, serviceId]
+  );
+  if (Number(active.rows[0]?.count || 0) >= ACTIVATION_QUOTA_LIMIT) {
+    const error = new Error('You can have at most 10 active allocations for this service on this account');
+    error.code = 'ACTIVATION_QUOTA_EXCEEDED';
+    throw error;
+  }
+
+  if (adapterKey === 'virtualsms' && String(process.env.VIRTUALSMS_CANARY_ENABLED || '').trim().toLowerCase() === 'true') {
+    await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1, 0))', ['virtualsms-canary-budget']);
+    const used = await client.query(
+      `SELECT COUNT(*)::int AS count
+         FROM activations a
+         JOIN providers p ON p.id=a.provider_id
+        WHERE p.adapter_key='virtualsms'`
+    );
+    if (Number(used.rows[0]?.count || 0) >= virtualSmsCanaryCap()) {
+      const error = new Error('VirtualSMS canary allocation budget has been reached');
+      error.code = 'VIRTUALSMS_CANARY_CAP_REACHED';
+      throw error;
+    }
+  }
+}
 
 function mapActivation(row) {
   if (!row) return null;
@@ -83,6 +123,7 @@ export async function createActivation(service, userId, idempotency = null, opti
           stock: Number(latestService.rows[0].stock),
           active: Boolean(latestService.rows[0].active),
           serverId: options.serverId || null,
+          idempotencyKey: idempotency?.idempotencyKey || null,
         },
       });
 
@@ -111,6 +152,7 @@ export async function createActivation(service, userId, idempotency = null, opti
         const serviceName = dbService.name;
         const currency = dbService.currency || 'INR';
         const country = dbService.country || 'IN';
+        await enforceActivationQuotas(client, { userId, serviceId: service.id, provider });
         if (country !== 'IN' || currency !== 'INR') {
           const error = new Error('Service is unavailable');
           error.code = 'SERVICE_UNAVAILABLE';
