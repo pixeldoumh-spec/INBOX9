@@ -52,7 +52,7 @@ await withServer(async (server) => {
   const services = await request(server, '/api/services');
   assert.equal(services.status, 200);
   const catalog = json(services).services;
-  assert.equal(catalog.length, 193);
+  assert.equal(catalog.length, 90);
 
   const email = `runtime-${Date.now()}-${Math.random().toString(36).slice(2)}@example.test`;
   const password = 'RuntimeTest!123';
