@@ -10,6 +10,7 @@ export function mapService(row) {
     currency: row.currency,
     country: row.country,
     availability: row.availability,
+    catalogPosition: row.catalog_position == null ? undefined : Number(row.catalog_position),
     stock: Number(row.stock),
     active: row.active === undefined ? undefined : Boolean(row.active),
   };
@@ -19,8 +20,8 @@ export async function listPersistedServices() {
   const pool = await getPool();
   if (!pool) return null;
   const result = await pool.query(
-    `SELECT id,name,category,price_paise,currency,country,availability,stock,active
-     FROM services WHERE active=TRUE ORDER BY id`
+    `SELECT id,name,category,price_paise,currency,country,availability,stock,active,catalog_position
+     FROM services WHERE active=TRUE ORDER BY catalog_position ASC, id ASC`
   );
   return result.rows.map(mapService);
 }
@@ -29,7 +30,7 @@ export async function getPersistedService(serviceId) {
   const pool = await getPool();
   if (!pool) return null;
   const result = await pool.query(
-    `SELECT id,name,category,price_paise,currency,country,availability,stock,active
+    `SELECT id,name,category,price_paise,currency,country,availability,stock,active,catalog_position
      FROM services WHERE id=$1`,
     [serviceId]
   );
