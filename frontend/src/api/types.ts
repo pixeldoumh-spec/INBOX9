@@ -29,6 +29,23 @@ export type MeResponse = {
   user?: User;
 };
 
+export type Recharge = {
+  id: string; amountPaise: number; utr: string; paymentMethod: string; upiId: string | null; status: string;
+  rejectionReason?: string | null; submittedAt: number; reviewedAt?: number | null; flaggedAt?: number | null;
+  flagReason?: string | null; verifiedAmountPaise?: number | null; verifiedUtr?: string | null; externalReference?: string | null;
+};
+
+export type Session = { id: string; current: boolean; createdAt: number; lastUsedAt: number | null; expiresAt: number; };
+
+export type SupportMessage = { id: string; authorRole: string; authorUserId?: string | null; body: string; createdAt: number; };
+
+export type SupportTicket = {
+  id: string; category: string; subject: string; message: string; status: string; activationId?: string | null; rechargeId?: string | null;
+  activation?: { id: string; status?: string | null; number?: string | null; service?: string | null } | null;
+  recharge?: { id: string; status?: string | null; amountPaise?: number | null } | null;
+  createdAt: number; updatedAt: number; resolvedAt?: number | null; adminNote?: string | null; messages: SupportMessage[];
+};
+
 export type Wallet = {
   balancePaise: number;
   currency?: string;
