@@ -4,45 +4,19 @@
   const appScript = scriptTag?.dataset?.appScript || '/app.js';
   let started = false;
   let settled = false;
-
-  const showError = (message) => {
-    if (!app || settled) return;
-    settled = true;
-    app.setAttribute('aria-busy', 'false');
-    app.innerHTML = '<div class="boot-loader boot-error" role="alert"><div class="boot-loader-inner"><div class="boot-loader-text">' + message + '</div></div></div>';
+  const showError = (message) => { if (!app || settled) return; settled = true; app.setAttribute('aria-busy','false'); app.innerHTML = '<div class="boot-loader boot-error" role="alert"><div class="boot-loader-inner"><div class="boot-loader-text">' + message + '</div></div></div>'; };
+  const mountCustomerShell = () => {
+    if (!document.querySelector('.app-shell') || document.querySelector('.auth-shell') || document.getElementById('inbox9-mobile-shell')) return;
+    const css=document.createElement('style'); css.id='inbox9-mobile-shell-style'; css.textContent=`#inbox9-mobile-shell{position:fixed;inset:0;z-index:1000;background:#fbfbfd;color:#171925;display:flex;flex-direction:column;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.inbox9-modern-shell>.sidebar,.inbox9-modern-shell>.main{display:none!important}.inbox9-mobile-header{height:82px;flex:none;background:#fff;border-bottom:1px solid #ececf2;display:flex;align-items:center;justify-content:space-between;padding:0 22px}.inbox9-brand{appearance:none;border:0;background:none;display:flex;align-items:center;gap:9px;color:#171925}.inbox9-brand-mark{width:39px;height:39px;border-radius:12px;background:linear-gradient(145deg,#7d51ee,#5b2fd0);color:#fff;display:grid;place-items:center;font-size:22px;font-weight:800}.inbox9-brand strong{font-size:23px}.inbox9-brand strong span{color:#6d43e8}.inbox9-header-actions{display:flex;align-items:center;gap:10px}.inbox9-add-funds{height:48px;border:1px solid #c9b8ff;background:#fbf9ff;color:#6d43e8;border-radius:13px;padding:0 14px;display:flex;align-items:center;gap:8px;font-size:13px}.inbox9-icon-button{width:42px;height:42px;border:0;background:transparent;color:#73798a;font-size:22px}.inbox9-mobile-main{min-height:0;flex:1;overflow:auto;padding-bottom:86px}.inbox9-mobile-content{width:min(1120px,100%);margin:0 auto;padding:20px 24px 28px}.inbox9-hide,.inbox9-mobile-content>.marketplace-hero,.inbox9-mobile-content>.hero-strip{display:none!important}.inbox9-apps-content .market-country-strip,.inbox9-apps-content .market-controls,.inbox9-apps-content .market-recent{display:none!important}.inbox9-apps-content .customer-service-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:22px 10px}.inbox9-apps-content .customer-service-card{border:0!important;background:transparent!important;box-shadow:none!important;border-radius:0!important}.inbox9-apps-content .customer-service-main{display:flex;width:100%;min-height:0!important;padding:0!important;border:0!important;background:transparent!important;flex-direction:column;align-items:center!important;text-align:center;gap:7px}.inbox9-apps-content .marketplace-service-logo{height:66px;width:66px;border-radius:18px;background:#f7f8fb;border:1px solid #e7eaf0;box-shadow:0 5px 14px rgba(15,23,42,.07);font-size:17px}.inbox9-apps-content .marketplace-service-logo small,.inbox9-apps-content .marketplace-service-copy .service-category,.inbox9-apps-content .marketplace-service-copy small,.inbox9-apps-content .marketplace-service-meta,.inbox9-apps-content .marketplace-service-chevron,.inbox9-apps-content .customer-service-bottom,.inbox9-apps-content .service-details-panel{display:none!important}.inbox9-apps-content .marketplace-service-copy{display:flex;align-items:center;padding:0!important;min-width:0;width:100%}.inbox9-apps-content .marketplace-service-copy strong{font-size:11px;line-height:1.2;color:#4c586d;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}.inbox9-buy-content .market-result-count,.inbox9-buy-content .market-freshness,.inbox9-buy-content .market-recent,.inbox9-buy-content .market-country-strip,.inbox9-buy-content .market-controls{display:none!important}.inbox9-buy-content .customer-service-grid{display:grid;grid-template-columns:1fr;gap:9px}.inbox9-buy-content .marketplace-service-card{border:1px solid #ececf2!important;background:#fff!important;border-radius:15px!important;box-shadow:none!important}.inbox9-buy-content .marketplace-service-main{min-height:78px;padding:13px 14px!important}.inbox9-buy-content .marketplace-service-facts{display:none}.inbox9-buy-content .marketplace-service-logo{width:42px;height:42px;border-radius:13px}.inbox9-buy-content .marketplace-service-copy strong{font-size:13px}.inbox9-bottom-nav{position:absolute;left:0;right:0;bottom:0;height:76px;background:rgba(255,255,255,.97);border-top:1px solid #ececf2;display:grid;grid-template-columns:repeat(4,1fr);padding:6px 8px max(6px,env(safe-area-inset-bottom));backdrop-filter:blur(14px)}.inbox9-bottom-tab{border:0;background:transparent;color:#9aa0ae;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px}.inbox9-bottom-tab span{font-size:23px;line-height:1}.inbox9-bottom-tab small{font-size:10px;font-weight:600}.inbox9-bottom-tab.active{color:#6d43e8}.inbox9-bottom-tab.active span{font-weight:800}@media(min-width:700px){.inbox9-mobile-content{padding:28px 40px 40px}.inbox9-apps-content .customer-service-grid{grid-template-columns:repeat(6,minmax(0,1fr));gap:28px 18px}.inbox9-apps-content .marketplace-service-logo{width:74px;height:74px}.inbox9-bottom-nav{left:50%;right:auto;transform:translateX(-50%);width:min(620px,100%);border:1px solid #ececf2;border-bottom:0;border-radius:18px 18px 0 0}}@media(max-width:620px){.inbox9-mobile-header{height:78px;padding:0 16px}.inbox9-mobile-content{padding:17px 14px 24px}.inbox9-add-funds{height:44px;padding:0 11px}.inbox9-brand-mark{width:36px;height:36px}.inbox9-brand strong{font-size:21px}.inbox9-apps-content .customer-service-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:20px 8px}.inbox9-apps-content .marketplace-service-logo{width:63px;height:63px;border-radius:18px}.inbox9-apps-content .marketplace-service-copy strong{font-size:10px}.inbox9-bottom-nav{height:76px}.inbox9-bottom-tab span{font-size:22px}}`;
+    document.head.appendChild(css);
+    const TABS=[['apps','Apps','▦'],['buy','Buy','ϟ'],['active','Active','◌'],['account','Account','◉']];
+    const page=()=>String(location.hash||'').replace(/^#/,'').toLowerCase()||'buy';
+    const go=id=>{const node=document.querySelector(`[data-page="${id}"]`);if(node)node.click();};
+    const render=()=>{const shell=document.querySelector('.app-shell');if(!shell||document.querySelector('.auth-shell'))return;shell.classList.add('inbox9-modern-shell');let root=document.getElementById('inbox9-mobile-shell');if(!root){root=document.createElement('div');root.id='inbox9-mobile-shell';root.innerHTML=`<header class="inbox9-mobile-header"><button class="inbox9-brand" type="button" data-i9-home><span class="inbox9-brand-mark">ϟ</span><strong>INBOX<span>9</span></strong></button><div class="inbox9-header-actions"><button class="inbox9-add-funds" type="button" data-page="wallet">▱ <strong>Add Funds</strong></button><button class="inbox9-icon-button" type="button" data-i9-notifications aria-label="Notifications">♧</button></div></header><main class="inbox9-mobile-main"><div class="inbox9-mobile-content"></div></main><nav class="inbox9-bottom-nav" aria-label="Customer navigation">${TABS.map(([id,label,g])=>`<button type="button" class="inbox9-bottom-tab" data-i9-tab="${id}"><span>${g}</span><small>${label}</small></button>`).join('')}</nav>`;app.appendChild(root);}const host=root.querySelector('.inbox9-mobile-content');const content=document.querySelector('#content');if(content&&host&&content.parentElement!==host)host.appendChild(content);if(document.body.dataset.i9Apps==null)document.body.dataset.i9Apps=page()==='buy'?'true':'false';const apps=document.body.dataset.i9Apps==='true';content?.classList.toggle('inbox9-apps-content',apps);content?.classList.toggle('inbox9-buy-content',!apps&&page()==='buy');document.querySelector('.marketplace-hero')?.classList.add('inbox9-hide');document.querySelectorAll('.market-country-strip,.market-controls,.market-recent').forEach(n=>n.classList.add('inbox9-hide'));root.querySelectorAll('[data-i9-tab]').forEach(n=>{const id=n.dataset.i9Tab;n.classList.toggle('active',id===page()||(id==='apps'&&page()==='buy'&&apps));});};
+    if(document.body.dataset.i9Wired!=='true'){document.body.dataset.i9Wired='true';document.addEventListener('click',e=>{const tab=e.target.closest('[data-i9-tab]');if(tab){const id=tab.dataset.i9Tab;if(id==='apps'){document.body.dataset.i9Apps='true';go('buy');}else{document.body.dataset.i9Apps='false';go(id);}setTimeout(render,0);return;}if(e.target.closest('[data-i9-home]')){document.body.dataset.i9Apps='true';go('buy');setTimeout(render,0);}if(e.target.closest('[data-i9-notifications]'))document.querySelector('[data-action="notifications"]')?.click();},true);}render();new MutationObserver(()=>{clearTimeout(window.__i9RenderTimer);window.__i9RenderTimer=setTimeout(render,0);}).observe(app,{childList:true,subtree:true});
   };
-
-  const timeout = window.setTimeout(() => {
-    if (!started) showError('The application is taking too long to start. Please reload the page.');
-  }, 10000);
-
-  window.addEventListener('error', (event) => {
-    if (!started) {
-      const message = event?.error?.message || event?.message || 'The application could not be started.';
-      showError(message);
-    }
-  });
-
-  window.addEventListener('unhandledrejection', (event) => {
-    if (!started) showError(event?.reason?.message || 'The application could not be started.');
-  });
-
-  const script = document.createElement('script');
-  script.src = appScript;
-  script.type = 'module';
-  script.onload = () => {
-    started = true;
-    settled = true;
-    window.clearTimeout(timeout);
-    app?.setAttribute('aria-busy', 'false');
-    const shell = document.createElement('script');
-    shell.src = '/customer/mobile-shell.js';
-    shell.defer = true;
-    document.head.appendChild(shell);
-  };
-  script.onerror = () => {
-    window.clearTimeout(timeout);
-    showError('The application bundle could not be loaded. Please reload the page.');
-  };
-  document.head.appendChild(script);
+  const timeout=window.setTimeout(()=>{if(!started)showError('The application is taking too long to start. Please reload the page.');},10000);
+  window.addEventListener('error',event=>{if(!started)showError(event?.error?.message||event?.message||'The application could not be started.');});
+  window.addEventListener('unhandledrejection',event=>{if(!started)showError(event?.reason?.message||'The application could not be started.');});
+  const script=document.createElement('script');script.src=appScript;script.type='module';script.onload=()=>{started=true;settled=true;window.clearTimeout(timeout);app?.setAttribute('aria-busy','false');mountCustomerShell();};script.onerror=()=>{window.clearTimeout(timeout);showError('The application bundle could not be loaded. Please reload the page.');};document.head.appendChild(script);
 })();
