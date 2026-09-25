@@ -6,6 +6,7 @@ export type Service = {
   currency: string;
   pricePaise: number;
   availability?: string;
+  catalogPosition?: number;
   stock?: number;
   purchasable: boolean;
 };
