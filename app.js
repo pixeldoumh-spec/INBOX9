@@ -1605,9 +1605,9 @@ function hero() {
         <button class="ghost-btn" type="button" data-page="wallet">Add funds <span>+</span></button>
       </div>
     </div>
-    <div class="marketplace-hero-side">
-      <div class="hero-live"><span class="live-dot"></span><strong>Live catalog</strong><span>SERVER-SYNCED</span></div>
-      <div class="marketplace-hero-stats">
+    <div class="marketplace-hero-side hero-dashboard">
+      <div class="hero-live"><span class="live-dot"></span><strong>Account ready</strong><span>CATALOG SYNCED</span></div>
+      <div class="marketplace-hero-stats hero-stat-grid">
         <div class="marketplace-hero-stat"><span>Catalog</span><strong>${state.services.length.toLocaleString()}</strong><small>services listed</small></div>
         <div class="marketplace-hero-stat"><span>Buyable now</span><strong>${availableCount.toLocaleString()}</strong><small>verified routes</small></div>
         <div class="marketplace-hero-stat"><span>Active</span><strong>${activeCount}</strong><small>${activeCount === 1 ? 'activation' : 'activations'}</small></div>
