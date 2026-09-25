@@ -1684,25 +1684,50 @@ function content() {
 
 
 
+const SERVICE_LOGO_DOMAINS = {
+  Telegram: 'telegram.org', WhatsApp: 'whatsapp.com', Instagram: 'instagram.com', Facebook: 'facebook.com',
+  TikTok: 'tiktok.com', Google: 'google.com', Twitter: 'x.com', X: 'x.com', Discord: 'discord.com',
+  Microsoft: 'microsoft.com', Amazon: 'amazon.com', Netflix: 'netflix.com', Spotify: 'spotify.com',
+  Uber: 'uber.com', PayPal: 'paypal.com', LinkedIn: 'linkedin.com', Snapchat: 'snapchat.com',
+  Twitch: 'twitch.tv', Steam: 'steampowered.com', WeChat: 'wechat.com', Viber: 'viber.com',
+  LINE: 'line.me', eBay: 'ebay.com', Shopify: 'shopify.com', Wise: 'wise.com', Klarna: 'klarna.com',
+  OKX: 'okx.com', Bybit: 'bybit.com', Temu: 'temu.com', DoorDash: 'doordash.com', Bolt: 'bolt.eu',
+  Wolt: 'wolt.com', Lazada: 'lazada.com', Tinder: 'tinder.com', Badoo: 'badoo.com', Airbnb: 'airbnb.com',
+  Signal: 'signal.org', Apple: 'apple.com', Grab: 'grab.com', Gojek: 'gojek.com', Deliveroo: 'deliveroo.com',
+  Glovo: 'glovoapp.com', Coinbase: 'coinbase.com', Binance: 'binance.com', Revolut: 'revolut.com',
+  Reddit: 'reddit.com', Roblox: 'roblox.com', 'Epic Games': 'epicgames.com', Discord: 'discord.com'
+};
+
+function serviceLogoDomain(name) {
+  const raw = String(name || '').trim();
+  if (SERVICE_LOGO_DOMAINS[raw]) return SERVICE_LOGO_DOMAINS[raw];
+  const key = raw.toLowerCase().replace(/[^a-z0-9]/g, '');
+  const entry = Object.entries(SERVICE_LOGO_DOMAINS).find(([label]) => label.toLowerCase().replace(/[^a-z0-9]/g, '') === key);
+  return entry?.[1] || '';
+}
+
+function serviceLogoMarkup(service, initials) {
+  const domain = serviceLogoDomain(service?.name);
+  if (!domain) {
+    return '<span class="service-logo-fallback">' + esc(initials) + '</span>';
+  }
+  return '<img class="service-logo-image" src="https://www.google.com/s2/favicons?domain=' + encodeURIComponent(domain) + '&sz=128" alt="" loading="lazy" onerror="this.hidden=true;this.nextElementSibling.hidden=false">' +
+    '<span class="service-logo-fallback" hidden>' + esc(initials) + '</span>';
+}
+
 function serviceCard(service) {
   const insufficient = state.balancePaise < Number(service.pricePaise || 0);
   const purchasable = service.purchasable !== false;
-  const actionLabel = !purchasable ? 'Unavailable' : insufficient ? 'Top up' : 'Buy number';
   const expanded = state.expandedServiceId === service.id;
-  const priceLabel = money(service.pricePaise);
-  const balanceDelta = Number(service.pricePaise || 0) - state.balancePaise;
-  const balanceReady = !insufficient;
-  const walletLabel = balanceReady ? 'Wallet ready' : 'Add ' + money(Math.max(0, balanceDelta));
   const initials = String(service.name || 'IN').trim().split(/\\s+/).slice(0, 2).map((part) => part.charAt(0)).join('').toUpperCase().slice(0, 2) || 'IN';
-  const availabilityLabel = purchasable ? 'Available to buy' : 'Currently unavailable';
   return '<article class="market-service-group customer-service-card marketplace-service-card ' + (!purchasable ? ' unavailable' : '') + (expanded ? ' expanded' : '') + '">' +
     '<button class="service-group-header customer-service-main marketplace-service-main" type="button" data-toggle-service="' + esc(service.id) + '" aria-expanded="' + String(expanded) + '" aria-controls="details-' + esc(service.id) + '">' +
-      '<span class="service-icon service-brand-icon marketplace-service-logo"><span>' + esc(initials) + '</span><small>' + iconFor(service.category) + '</small></span>' +
+      '<span class="service-icon service-brand-icon marketplace-service-logo">' + serviceLogoMarkup(service, initials) + '</span>' +
       '<span class="service-group-copy marketplace-service-copy"><span class="service-category">' + esc(service.category) + '</span><strong>' + esc(service.name) + '</strong><small>India (+91) · Provider-defined validity</small></span>' +
-      '<span class="service-group-meta marketplace-service-meta"><span class="marketplace-availability ' + (purchasable ? 'available' : 'unavailable') + '"><i></i>' + esc(availabilityLabel) + '</span><span class="service-price">' + priceLabel + '</span></span>' +
+      '<span class="service-group-meta marketplace-service-meta"><span class="marketplace-availability ' + (purchasable ? 'available' : 'unavailable') + '"><i></i> ' + (purchasable ? 'Ready' : 'Unavailable') + '</span><span class="service-price">' + money(service.pricePaise) + '</span></span>' +
       '<span class="service-group-chevron marketplace-service-chevron" aria-hidden="true">⌄</span>' +
     '</button>' +
-    '<div class="customer-service-bottom marketplace-service-bottom"><div class="customer-service-facts marketplace-service-facts"><span class="customer-service-fact"><b>+91</b> India</span><span class="customer-service-fact"><b>Varies</b> OTP delivery</span><span class="customer-service-fact"><b>Secure</b> checkout</span></div><div class="customer-service-action"><span class="wallet-ready-chip ' + (purchasable ? (balanceReady ? 'ready' : 'needs-funds') : 'needs-funds') + '">' + esc(purchasable ? walletLabel : 'Route not active') + '</span><button class="buy-btn customer-buy" type="button" data-buy-service="' + esc(service.id) + '"' + (!purchasable ? ' disabled' : '') + '>' + actionLabel + '</button></div></div>' +
+    '<div class="customer-service-bottom marketplace-service-bottom"><div class="customer-service-facts marketplace-service-facts"><span class="customer-service-fact"><b>+91</b> India</span><span class="customer-service-fact"><b>Varies</b> OTP delivery</span><span class="customer-service-fact"><b>Secure</b> checkout</span></div><div class="customer-service-action"><button class="buy-btn customer-buy" type="button" data-buy-service="' + esc(service.id) + '"' + (!purchasable ? ' disabled' : '') + '>' + (purchasable ? 'Get' : 'Unavailable') + '</button></div></div>' +
     (expanded ? serviceDetailsMarkup() : '') +
   '</article>';
 }
