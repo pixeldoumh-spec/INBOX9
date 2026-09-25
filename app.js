@@ -408,6 +408,7 @@ async function refreshNotifications(){if(!state.user)return null;state.notificat
 async function markNotificationRead(id){if(!id)return;try{await api('/api/notifications/'+encodeURIComponent(id),{method:'PATCH',headers:{'content-type':'application/json'},body:JSON.stringify({read:true})});}catch(error){toast(error.message);}}
 async function markAllNotificationsRead(){try{await api('/api/notifications/read-all',{method:'POST'});state.notifications=state.notifications.map(i=>({...i,read:true}));state.notificationsOpen=false;render();}catch(error){toast(error.message);}}
 function openNotifications(){state.notificationsOpen=!state.notificationsOpen;if(state.notificationsOpen)void refreshNotifications().then(()=>render());else render();}
+function closeNotifications(){if(!state.notificationsOpen)return;state.notificationsOpen=false;render();}
 
 function notificationPanel() {
   const visibleNotifications = state.notifications.filter((item) => !notificationIsPopupSuppressed(item));
@@ -420,9 +421,9 @@ function notificationPanel() {
           '<span class="notification-icon">•</span><span class="notification-copy"><strong>' + esc(item.title) + '</strong><small>' + esc(item.body) + '</small><em>' + age + '</em></span></button>';
       }).join('')
     : '<div class="notification-empty"><span>✓</span><strong>All caught up</strong><small>Important wallet and activation updates will appear here.</small></div>';
-  return '<div class="notification-wrap ' + (unread ? 'has-unread' : '') + '"><button class="icon-btn notification-btn" type="button" aria-label="' + (unread ? 'Notifications, ' + unread + ' unread' : 'Notifications') + '" aria-expanded="' + String(state.notificationsOpen) + '" data-action="notifications"><span class="notification-bell" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"></path></svg></span><span class="notification-status-light" aria-hidden="true"></span>' +
+  return '<div class="notification-wrap ' + (unread ? 'has-unread' : '') + '"><button class="icon-btn notification-btn" type="button" aria-label="' + (unread ? 'Notifications, ' + unread + ' unread' : 'Notifications') + '" aria-expanded="' + String(state.notificationsOpen) + '" aria-controls="customer-notification-panel" data-action="notifications"><span class="notification-bell" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"></path></svg></span><span class="notification-status-light" aria-hidden="true"></span>' +
     (unread ? '<b class="notification-badge">' + unread + '</b>' : '') + '</button>' +
-    (state.notificationsOpen ? '<div class="notification-panel" role="dialog" aria-label="Notifications"><div class="notification-panel-head"><div><span class="kicker">UPDATES</span><strong>Notifications</strong></div><button class="ghost-btn" type="button" data-action="notifications-read" ' + (unread ? '' : 'disabled') + '>Mark read</button></div><div class="notification-list">' + rows + '</div></div>' : '') +
+    (state.notificationsOpen ? '<div id="customer-notification-panel" class="notification-panel" role="dialog" aria-label="Notifications"><div class="notification-panel-head"><div><span class="kicker">UPDATES</span><strong>Notifications</strong></div><button class="ghost-btn" type="button" data-action="notifications-read" ' + (unread ? '' : 'disabled') + '>Mark read</button></div><div class="notification-list">' + rows + '</div></div>' : '') +
     '</div>';
 }
 
@@ -2145,6 +2146,12 @@ function bindMarketplaceEvents() {
     }
   });
 }
+document.addEventListener('click', (event) => {
+  if (!state.notificationsOpen) return;
+  const target = event.target;
+  if (target instanceof Element && target.closest('.notification-wrap')) return;
+  closeNotifications();
+});
 document.addEventListener('keydown', (event) => {
   const dialog = activeDialog();
   if (dialog) {
@@ -2172,6 +2179,16 @@ document.addEventListener('keydown', (event) => {
       return;
     }
     return;
+  }
+  if (event.key === 'Escape') {
+    if (state.notificationsOpen) {
+      closeNotifications();
+      return;
+    }
+    if (state.mobileMenu) {
+      closeMenu();
+      return;
+    }
   }
   if (event.key === '/' &&
       !['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName) &&
