@@ -35,3 +35,5 @@ jobs:
         run: node --test tests/service-logo-manifest.test.js
       - name: PWA installability regression test
         run: node --test tests/pwa-assets.test.js
+      - name: Mobile launcher layout regression test
+        run: node --test tests/mobile-ui-phase1.test.js
