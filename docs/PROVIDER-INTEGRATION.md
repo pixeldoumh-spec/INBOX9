@@ -75,3 +75,29 @@ NumberOTP supports a Global Webhook for instant OTP delivery and signs webhook p
 ## VirtualSMS canary readiness
 
 The adapter is installed but not routed in production. Use `npm run virtualsms:preflight` only after a VirtualSMS API key is provisioned. The preflight performs authenticated balance/country checks and does not purchase a number. The customer purchase path additionally requires `VIRTUALSMS_RESELLER_AUTHORIZED=true`, `VIRTUALSMS_CANARY_ENABLED=true`, an explicit service allowlist, and explicit service-code mapping. VirtualSMS's terms require prior written authorization for resale. citeturn254301search0turn254301search2
+
+## VirtualSMS provider-readiness workflow
+
+The repository includes a manual GitHub Actions workflow at `.github/workflows/virtualsms-preflight.yml`. It is intentionally **not scheduled** and it does not expose a purchase action.
+
+The workflow has two safe modes:
+
+- `inventory`: verifies the API credential can authenticate, the balance/countries endpoints respond, India (+91) is listed, and the provider service catalog is readable.
+- `canary-ready`: performs all inventory checks and additionally verifies the recorded resale-authorization flag, canary flag, non-empty service allowlist, and that every allowlisted INBOX9 service maps to a service actually returned by the authenticated provider catalog.
+
+Optional workflow input `service_id` validates one specific INBOX9 service against its explicit provider mapping.
+
+Configure these GitHub Actions secrets only outside the repository:
+
+```text
+VIRTUALSMS_API_KEY
+VIRTUALSMS_BASE_URL                 # optional
+VIRTUALSMS_RESELLER_AUTHORIZED      # "true" only after written authorization exists
+VIRTUALSMS_CANARY_ENABLED           # "true" only when the operator is intentionally enabling canary configuration
+VIRTUALSMS_ALLOWED_SERVICE_IDS_JSON
+VIRTUALSMS_SERVICE_MAP_JSON
+```
+
+The workflow always sets `VIRTUALSMS_PREFLIGHT_ONLY=true`. The provider adapter independently hard-blocks `POST /api/v1/customer/purchase` whenever that flag is true. Therefore, even an account with funds and otherwise valid canary configuration cannot allocate a number through the readiness workflow.
+
+No provider credentials or authorization material are committed to GitHub source files. The workflow prints only configuration-presence indicators and non-secret readiness results.
