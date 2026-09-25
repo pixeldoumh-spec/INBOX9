@@ -32,6 +32,8 @@ export const syntheticProvider = createProviderAdapter({
     const mockOtpAt = createdAt + syntheticOtpTiming(serviceKey, index, providerActivationId);
     return normalizeProviderActivation({
       providerActivationId,
+      serviceId: service.id,
+      serviceName: service.name,
       number: generateSyntheticIndianNumber(serviceKey, index, CAPACITY),
       status: 'Active',
       otp: null,
