@@ -1959,6 +1959,7 @@ function handleCustomerVisibilityRefresh() {
 
 function bindEvents() {
   document.getElementById('auth-form')?.addEventListener('submit', submitAuth);
+  document.getElementById('service-search')?.addEventListener('input', (event) => scheduleMarketSearch(event.target?.value || ''));
   document.querySelectorAll('[data-auth-mode]').forEach((node) => node.addEventListener('click', () => { state.authMode = node.dataset.authMode; state.bootstrapError = ''; render(); }));
   document.querySelectorAll('[data-action="retry-bootstrap"]').forEach((node) => node.addEventListener('click', () => void retryBootstrap()));
   document.querySelectorAll('[data-action="logout"]').forEach((node) => node.addEventListener('click', logout));
