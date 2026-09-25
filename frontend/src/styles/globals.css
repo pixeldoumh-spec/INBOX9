@@ -51,7 +51,6 @@ button:disabled { cursor: default; opacity: .58; }
 .bottom-nav { position:fixed; left:50%; bottom:0; z-index:40; transform:translateX(-50%); width:min(100%,720px); display:grid; grid-template-columns:repeat(4,1fr); min-height:72px; padding:8px 10px calc(8px + env(safe-area-inset-bottom)); background:rgba(255,255,255,.98); border-top:1px solid var(--line); box-shadow:0 -8px 30px rgba(33,25,45,.05); }
 .bottom-nav-item { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; color:#9c97a4; font-size:11px; font-weight:700; }
 .bottom-nav-item > svg { flex:0 0 auto; width:21px; height:21px; }
-.bottom-nav-item:nth-child(2) > svg,.bottom-nav-item:nth-child(4) > svg { transform:scale(1.08); }
 .bottom-nav-item.is-active { color:var(--accent); }
 .bottom-nav-item.is-active:before { content:""; width:34px; height:4px; border-radius:8px; background:var(--accent); margin-bottom:1px; }
 
