@@ -116,11 +116,11 @@ test('PostgreSQL concurrent claims allow exactly one Reserved slot owner', { ski
       `INSERT INTO activations
        (id,user_id,service_id,service_name,country,phone_number,price_paise,currency,status,expires_at,provider_metadata)
        VALUES
-       ($1,$2,services[0].id,'WhatsApp','IN','+919000000001',950,'INR','Active',NOW() + INTERVAL '10 minutes',
+       ($1,$2,$5, $6,'IN','+919000000001',1000,'INR','Active',NOW() + INTERVAL '10 minutes',
         jsonb_build_object('engine','synthetic','slot',4999)),
-       ($3,$4,services[0].id,'WhatsApp','IN','+919000000002',950,'INR','Active',NOW() + INTERVAL '10 minutes',
+       ($3,$4,$5, $6,'IN','+919000000002',1000,'INR','Active',NOW() + INTERVAL '10 minutes',
         jsonb_build_object('engine','synthetic','slot',4999))`,
-      [activationA, userA, activationB, userB]
+      [activationA, userA, activationB, userB, serviceId, 'Master service test']
     );
   } finally {
     fixture.release();
