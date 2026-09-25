@@ -21,6 +21,9 @@ function resellerAuthorized() {
 function canaryEnabled() {
   return String(process.env.VIRTUALSMS_CANARY_ENABLED || '').trim().toLowerCase() === 'true';
 }
+function preflightOnly() {
+  return String(process.env.VIRTUALSMS_PREFLIGHT_ONLY || '').trim().toLowerCase() === 'true';
+}
 function serviceMap() {
   const raw = String(process.env.VIRTUALSMS_SERVICE_MAP_JSON || '').trim();
   if (!raw) return {};
@@ -80,8 +83,15 @@ export function validateVirtualSmsPurchaseConfig({ apiKeyValue, resellerAuthoriz
     throw error;
   }
 }
+export function validateVirtualSmsPreflightPurchaseBlock(preflightOnlyValue) {
+  if (String(preflightOnlyValue || '').trim().toLowerCase() !== 'true') return;
+  const error = new Error('VirtualSMS preflight mode forbids purchase operations');
+  error.code = 'PROVIDER_PREFLIGHT_PURCHASE_BLOCKED';
+  throw error;
+}
 
 function assertPurchaseEnabled(service) {
+  validateVirtualSmsPreflightPurchaseBlock(process.env.VIRTUALSMS_PREFLIGHT_ONLY);
   validateVirtualSmsPurchaseConfig({
     apiKeyValue: process.env.VIRTUALSMS_API_KEY,
     resellerAuthorizedValue: process.env.VIRTUALSMS_RESELLER_AUTHORIZED,
@@ -164,7 +174,16 @@ export const virtualSmsProvider = createProviderAdapter({
   capabilities:{ cancelActivation:true, safeToRetryReserve:false },
   async listServices() {
     const result = await request('/api/v1/customer/services');
-    return { provider:'virtualsms', healthy:true, services:Array.isArray(result?.services)?result.services:(Array.isArray(result?.data)?result.data:[]), checkedAt:Date.now() };
+    return {
+      provider:'virtualsms',
+      healthy:true,
+      services:Array.isArray(result?.services)
+        ? result.services
+        : (Array.isArray(result?.data?.services)
+          ? result.data.services
+          : (Array.isArray(result?.data) ? result.data : [])),
+      checkedAt:Date.now(),
+    };
   },
   async reserveNumber(service) {
     assertPurchaseEnabled(service);
@@ -205,7 +224,11 @@ export const virtualSmsProvider = createProviderAdapter({
         request('/api/v1/customer/balance'),
         request('/api/v1/customer/countries'),
       ]);
-      const list = Array.isArray(countries?.countries)?countries.countries:(Array.isArray(countries?.data)?countries.data:[]);
+      const list = Array.isArray(countries?.countries)
+        ? countries.countries
+        : (Array.isArray(countries?.data?.countries)
+          ? countries.data.countries
+          : (Array.isArray(countries?.data) ? countries.data : []));
       const india = list.find((item) => {
         const code=String(item?.iso || item?.code || item?.country || '').trim().toUpperCase();
         return code==='IN' || code==='INDIA';
