@@ -40,6 +40,7 @@ export function reserveMock(service) {
     number: `+91 00000 ${String(index).padStart(5, '0')}`,
     pricePaise: service.pricePaise,
     currency: 'INR',
+    canCancel: true,
     status: 'Active',
     otp: null,
     createdAt: now,
