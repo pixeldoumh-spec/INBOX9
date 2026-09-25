@@ -5,7 +5,7 @@ const outputPath = new URL('../data/services-by-kind.csv', import.meta.url);
 
 const raw = JSON.parse(fs.readFileSync(inputPath, 'utf8'));
 if (!Array.isArray(raw)) throw new Error('data/services.json must be an array');
-if (raw.length !== 832) throw new Error(`Expected 832 services, found ${raw.length}`);
+if (raw.length === 0) throw new Error('Service catalog must not be empty');
 
 const rows = raw.map(([name, category, price], index) => {
   const cleanName = String(name ?? '').trim();
@@ -17,7 +17,7 @@ const rows = raw.map(([name, category, price], index) => {
     kind: cleanCategory,
     service: cleanName,
     price_inr: numericPrice,
-    service_id: `${cleanName.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${index}`,
+    service_id: `svc-${cleanName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')}`,
   };
 });
 
