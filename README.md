@@ -86,4 +86,4 @@ Customer-facing screens intentionally do not expose the internal 11-server parti
 
 ### VirtualSMS canary
 
-`npm run virtualsms:preflight` checks authenticated provider access and India visibility without purchasing a number. Customer routing remains disabled until a verified provider account, written resale authorization, service mappings, and canary settings are explicitly configured.
+`npm run virtualsms:preflight` is the local purchase-blocked provider readiness check. The manual GitHub Actions workflow `.github/workflows/virtualsms-preflight.yml` provides the same verification using GitHub Actions Secrets and never permits a purchase operation. Run `inventory` first; use `canary-ready` only after written resale authorization and explicit service mappings are configured. Customer routing remains disabled until the provider account, India inventory, authorization, mappings and canary settings are verified.
