@@ -7,7 +7,6 @@ import { getMe, login, logout, register } from '../api/auth';
 import { cancelActivation, createActivation, getActivation, getActivations } from '../api/activations';
 import { getNotifications, markAllNotificationsRead, markNotificationRead } from '../api/notifications';
 import { getServices } from '../api/services';
-import { activationStateIsOngoing, activationStateIsTerminal } from '../../../api/_lib/activation-lifecycle.js';
 import { getWallet } from '../api/wallet';
 import { createRecharge } from '../api/recharges';
 import { getSessions, revokeSession, updateProfile, changePassword, issueRecoveryCode, recoverPassword, logoutAll } from '../api/account';
@@ -18,6 +17,11 @@ import { useSessionStore } from '../state/session';
 import '../styles/globals.css';
 
 type IconName='apps'|'buy'|'active'|'account'|'bell'|'wallet'|'search'|'back'|'copy'|'plus'|'clock'|'close'|'arrow'|'support'|'check';
+const ONGOING_ACTIVATION_STATUSES=new Set(['Active','CancellationPending','ExpirationPending']);
+const TERMINAL_ACTIVATION_STATUSES=new Set(['Completed','Expired','Refunded','Cancelled']);
+const activationStateIsOngoing=(status:string)=>ONGOING_ACTIVATION_STATUSES.has(String(status||''));
+const activationStateIsTerminal=(status:string)=>TERMINAL_ACTIVATION_STATUSES.has(String(status||''));
+
 const iconPaths:Record<IconName,ReactNode>={
  apps:<><rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/></>,
  buy:<><path d="M5 7h14l-1.2 12H6.2L5 7Z"/><path d="M9 7a3 3 0 0 1 6 0"/><path d="M8 11h8"/></>,
