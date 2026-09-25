@@ -9,7 +9,9 @@ const health=await check('/api/health'); const healthBody=assertJson(health.body
 if(healthBody.ok!==true||healthBody.ready!==true||healthBody.mode!=='postgres') throw new Error('/api/health is not production-ready: '+JSON.stringify({ok:healthBody.ok,ready:healthBody.ready,mode:healthBody.mode}));
 if(!health.requestId) throw new Error('/api/health did not return X-Request-Id'); results.push(health);
 const services=await check('/api/services'); const servicesBody=assertJson(services.body,'/api/services');
-if(!Array.isArray(servicesBody.services)||servicesBody.services.length!==localCatalog.length) throw new Error('/api/services catalog invariant failed: '+JSON.stringify({count:servicesBody.services?.length,expected:localCatalog.length}));
+if(!Array.isArray(servicesBody.services)||servicesBody.services.length!==90) throw new Error('/api/services catalog invariant failed: '+JSON.stringify({count:servicesBody.services?.length,expected:90}));
+if(servicesBody.services.at(-1)?.id!=='svc-diwa-play' || servicesBody.services.at(-1)?.name!=='Diwa Play') throw new Error('/api/services cutoff invariant failed: final service must be Diwa Play');
+if(localCatalog.length!==90 || localCatalog.at(-1)?.id!=='svc-diwa-play') throw new Error('local catalog contract drifted from 90-service Diwa Play cutoff');
 if(!services.requestId) throw new Error('/api/services did not return X-Request-Id'); results.push(services);
 const me=await check('/api/auth/me',401); if(!me.requestId) throw new Error('/api/auth/me did not return X-Request-Id'); results.push(me);
 const wallet=await check('/api/wallet',401); if(!wallet.requestId) throw new Error('/api/wallet did not return X-Request-Id'); results.push(wallet);
