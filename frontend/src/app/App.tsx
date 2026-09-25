@@ -7,6 +7,7 @@ import { getMe, login, logout, register } from '../api/auth';
 import { cancelActivation, createActivation, getActivation, getActivations } from '../api/activations';
 import { getNotifications, markAllNotificationsRead, markNotificationRead } from '../api/notifications';
 import { getServices } from '../api/services';
+import { activationStateIsOngoing, activationStateIsTerminal } from '../../../api/_lib/activation-lifecycle.js';
 import { getWallet } from '../api/wallet';
 import { createRecharge } from '../api/recharges';
 import { getSessions, revokeSession, updateProfile, changePassword, issueRecoveryCode, recoverPassword, logoutAll } from '../api/account';
@@ -292,8 +293,8 @@ function ActivePage(){
  const [now,setNow]=useState(Date.now());
  useEffect(()=>{const t=window.setInterval(()=>setNow(Date.now()),1000);return()=>window.clearInterval(t)},[]);
  const list=useMemo(()=>[...(q.data?.activations??[])].sort((a,b)=>(b.createdAt??0)-(a.createdAt??0)),[q.data?.activations]);
- const ongoing=useMemo(()=>list.filter(a=>['Active','CancellationPending','ExpirationPending'].includes(a.status)),[list]);
- const history=useMemo(()=>list.filter(a=>!['Active','CancellationPending','ExpirationPending'].includes(a.status)),[list]);
+ const ongoing=useMemo(()=>list.filter(a=>activationStateIsOngoing(a.status)),[list]);
+ const history=useMemo(()=>list.filter(a=>!activationStateIsOngoing(a.status)),[list]);
  const visible=tab==='ongoing'?ongoing:history;
  return <section className="page-section active-page">
   <div className="catalog-heading"><div><h1>Active</h1><p>{tab==='ongoing'?'Track numbers waiting for an OTP.':'Your completed, expired and cancelled activations.'}</p></div><span className="catalog-chip">{tab==='ongoing'?ongoing.length:history.length}</span></div>
@@ -354,7 +355,7 @@ function ActivationPage(){
  const a=q.data;
  const remaining=a.expiresAt?Math.max(0,a.expiresAt-now):0;
  const countdown=`${Math.floor(remaining/60000)}:${String(Math.floor((remaining%60000)/1000)).padStart(2,'0')}`;
- const terminal=['Completed','Expired','Refunded','Cancelled'].includes(a.status);
+ const terminal=activationStateIsTerminal(a.status);
  const cancellationPending=a.status==='CancellationPending';
  const expirationPending=a.status==='ExpirationPending';
  async function doCopy(kind:'number'|'otp',value:string){
