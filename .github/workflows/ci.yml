@@ -62,7 +62,7 @@ jobs:
             echo "Applying $migration"
             psql "$TEST_DATABASE_URL" --set ON_ERROR_STOP=1 --file "$migration"
           done
-          services=$(psql "$TEST_DATABASE_URL" -Atc "SELECT COUNT(*) FROM services")
+          services=$(psql "$TEST_DATABASE_URL" -Atc "SELECT COUNT(*) FROM services WHERE active=TRUE")
           expected_services=$(node --input-type=module -e "import {services} from \"./api/_lib/catalog.js\"; console.log(services.length)")
           routes=$(psql "$TEST_DATABASE_URL" -Atc "SELECT COUNT(*) FROM service_provider_routes r JOIN providers p ON p.id=r.provider_id WHERE r.active=TRUE AND p.active=TRUE AND p.adapter_key='synthetic'")
           validated=$(psql "$TEST_DATABASE_URL" -Atc "SELECT COUNT(*) FROM pg_constraint WHERE conname='activations_user_required' AND conrelid='public.activations'::regclass AND convalidated")
