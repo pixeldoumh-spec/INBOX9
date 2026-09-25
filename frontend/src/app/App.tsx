@@ -33,13 +33,23 @@ const iconPaths:Record<IconName,ReactNode>={
 function Icon({name,size=20}:{name:IconName;size?:number}){return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{iconPaths[name]}</svg>}
 
 const logoMask='111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111100010001111111101111111111111111111110001000010000000000000001000010010111001101010000000001000110010010101000';
+const logoMask='111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111100010001111111101111111111111111111110001000010000000000000001000010010111001101010000000001000110010010101000';
 function ServiceLogo({serviceId,name,size='md',position}:{serviceId:string;name:string;size?:'sm'|'md'|'lg';position?:number}){
  const d=size==='lg'?104:size==='sm'?52:68;
- const [failed,setFailed]=useState(false);
- const initials=name.trim().split(/\s+/).slice(0,2).map(x=>x[0]).join('').toUpperCase()||'I9';
- return <div className={`service-logo service-logo-${size}`} style={{width:d,height:d}}>
-   {!failed?<img src={`/service-icons/${serviceId}.png`} alt="" loading="lazy" decoding="async" onError={()=>setFailed(true)}/>:<><span>{initials}</span><Icon name="apps" size={size==='lg'?28:size==='sm'?17:21}/></>}
- </div>}
+ const base=48;
+ const index=(position??0)-1;
+ const has=Boolean(position&&index>=0&&index<logoMask.length&&logoMask[index]==='1');
+ const x=(Math.max(0,index)%12)*base;
+ const y=Math.floor(Math.max(0,index)/12)*base;
+ const scale=d/base;
+ const initials=name.trim().split(/\\s+/).slice(0,2).map(x=>x[0]).join('').toUpperCase()||'I9';
+ const style:CSSProperties=has
+   ? {width:d,height:d,backgroundImage:'url(/service-icons-sprite.webp)',backgroundSize:`${12*base*scale}px ${18*base*scale}px`,backgroundPosition:`${-x*scale}px ${-y*scale}px`,backgroundRepeat:'no-repeat'}
+   : {width:d,height:d};
+ return <div className={`service-logo service-logo-${size}${has?'':' service-logo-fallback'}`} data-service-id={serviceId} style={style}>
+   {has?null:<><span>{initials}</span><Icon name="apps" size={size==='lg'?28:size==='sm'?17:21}/></>}
+ </div>;
+}
 
 function SearchField({value,onChange}:{value:string;onChange:(v:string)=>void}){return <label className="search-field"><Icon name="search" size={22}/><input value={value} onChange={e=>onChange(e.target.value)} placeholder="Search services..." aria-label="Search services"/>{value?<button type="button" onClick={()=>onChange('')} aria-label="Clear search"><Icon name="close" size={18}/></button>:null}</label>}
 function BottomNav(){const items=[['/apps','Apps','apps'],['/buy','Buy','buy'],['/active','Active','active'],['/account','Account','account']] as const; return <nav className="bottom-nav">{items.map(([to,label,icon])=><NavLink key={to} to={to} className={({isActive})=>`bottom-nav-item${isActive?' is-active':''}`}><Icon name={icon}/><span>{label}</span></NavLink>)}</nav>}
