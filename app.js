@@ -912,11 +912,49 @@ function purchaseReviewModal() {
   if (!data.service) return '';
   const insufficient = state.balancePaise < data.pricePaise;
   const activating = flow.step === 'activation' || flow.submitting;
-  const error = flow.error ? `<div class="purchase-error">${esc(flow.error)}</div>` + (flow.errorCode === 'NETWORK_ERROR' ? '<div class="purchase-recovery-actions"><button class="secondary-btn" type="button" data-purchase-check-active>Check Active</button><button class="secondary-btn" type="button" data-purchase-retry>Retry request</button></div>' : '') : '';
-  if (activating) return `<div class="purchase-overlay" role="presentation"><div class="purchase-backdrop"></div><section class="purchase-sheet purchase-sheet-loading" role="dialog" aria-modal="true" aria-labelledby="purchase-title" tabindex="-1"><div class="purchase-sheet-top"><div><span class="kicker">STEP 3 OF 3</span><h2 id="purchase-title">Getting your number</h2></div></div><div class="purchase-steps" aria-label="Purchase progress"><span class="purchase-step done"><b>1</b> Service</span><span class="purchase-step done"><b>2</b> Review</span><span class="purchase-step current"><b>3</b> Track</span></div><div class="purchase-activation-state"><div class="purchase-loader" aria-hidden="true"></div><span class="service-category">ACTIVATION</span><h3>Reserving your number…</h3><p>We’re preparing your number now. Your active number will appear shortly.</p></div></section></div>`;
-  return `<div class="purchase-overlay" role="presentation"><button class="purchase-backdrop" type="button" aria-label="Close purchase review" data-purchase-close></button><section class="purchase-sheet" role="dialog" aria-modal="true" aria-labelledby="purchase-title" tabindex="-1"><div class="purchase-sheet-top"><div><span class="kicker">STEP 2 OF 3</span><h2 id="purchase-title">Review your number</h2></div><button class="icon-btn" type="button" aria-label="Close" data-purchase-close>×</button></div><div class="purchase-steps" aria-label="Purchase progress"><span class="purchase-step done"><b>1</b> Service</span><span class="purchase-step current"><b>2</b> Review</span><span class="purchase-step"><b>3</b> Track</span></div><div class="purchase-service-card"><div class="service-icon large">${iconFor(data.service.category)}</div><div class="purchase-service-copy"><span class="service-category">${esc(data.service.category)}</span><strong>${esc(data.service.name)}</strong><span>Number format: +91 · Provider-defined activation and OTP timing</span></div></div><div class="purchase-detail-grid"><div><span>Number format</span><strong>+91</strong><small>Marketplace format</small></div><div><span>Price</span><strong>${money(data.pricePaise)}</strong><small>One activation</small></div><div><span>Number validity</span><strong>Varies</strong><small>Provider-defined validity</small></div><div><span>Wallet balance</span><strong>${money(state.balancePaise)}</strong><small>Available to use now</small></div><div><span>After purchase</span><strong>${insufficient ? "—" : money(Math.max(0, data.afterBalancePaise))}</strong><small>${insufficient ? "Add funds required" : "Estimated remaining balance"}</small></div></div><div class="purchase-trust"><span>✓</span><div><strong>Activation tracking</strong><small>After confirmation, your number appears in Active. OTP delivery timing varies by service; status updates are shown there.</small></div></div>${error}${insufficient ? `<div class="purchase-actions"><button class="secondary-btn" type="button" data-purchase-close>Back</button><button class="primary-btn" type="button" data-purchase-wallet>Add funds</button></div>` : `<div class="purchase-actions"><button class="secondary-btn" type="button" data-purchase-close>Back</button><button class="primary-btn purchase-confirm-btn" type="button" data-purchase-confirm>Get number <span>→</span></button></div>`}</section></div>`;
-}
+  const service = data.service;
+  const initials = String(service.name || 'IN').trim().split(/\s+/).slice(0, 2).map((part) => part.charAt(0)).join('').toUpperCase().slice(0, 2) || 'IN';
+  const error = flow.error
+    ? '<div class="purchase-error">' + esc(flow.error) + '</div>' +
+      (flow.errorCode === 'NETWORK_ERROR'
+        ? '<div class="purchase-recovery-actions"><button class="secondary-btn" type="button" data-purchase-check-active>Check Active</button><button class="secondary-btn" type="button" data-purchase-retry>Retry request</button></div>'
+        : '')
+    : '';
 
+  if (activating) return '<div class="purchase-overlay" role="presentation"><div class="purchase-backdrop"></div><section class="purchase-sheet purchase-sheet-loading inbox9-service-detail-sheet" role="dialog" aria-modal="true" aria-labelledby="purchase-title" tabindex="-1"><div class="purchase-sheet-top"><div><span class="kicker">STEP 3 OF 3</span><h2 id="purchase-title">Getting your number</h2></div></div><div class="purchase-steps" aria-label="Purchase progress"><span class="purchase-step done"><b>1</b> Service</span><span class="purchase-step done"><b>2</b> Details</span><span class="purchase-step current"><b>3</b> Track</span></div><div class="purchase-activation-state"><div class="purchase-loader" aria-hidden="true"></div><span class="service-category">ACTIVATION</span><h3>Reserving your number…</h3><p>We’re preparing your number now. Your active number will appear shortly.</p></div></section></div>';
+
+  return '<div class="purchase-overlay inbox9-service-detail-overlay" role="presentation">' +
+    '<button class="purchase-backdrop" type="button" aria-label="Close service details" data-purchase-close></button>' +
+    '<section class="purchase-sheet inbox9-service-detail-sheet" role="dialog" aria-modal="true" aria-labelledby="purchase-title" tabindex="-1">' +
+      '<div class="purchase-sheet-top inbox9-service-detail-top">' +
+        '<button class="icon-btn inbox9-service-back" type="button" aria-label="Back to services" data-purchase-close>‹</button>' +
+        '<div><span class="kicker">SERVICE</span><h2 id="purchase-title">Number details</h2></div>' +
+        '<button class="icon-btn" type="button" aria-label="Close" data-purchase-close>×</button>' +
+      '</div>' +
+      '<div class="purchase-steps" aria-label="Purchase progress"><span class="purchase-step current"><b>1</b> Service</span><span class="purchase-step"><b>2</b> Confirm</span><span class="purchase-step"><b>3</b> Track</span></div>' +
+      '<div class="inbox9-service-detail-hero">' +
+        '<div class="inbox9-service-detail-icon">' + serviceLogoGlyph(service, initials) + '</div>' +
+        '<div class="inbox9-service-detail-name"><span class="service-category">' + esc(service.category || 'Service') + '</span><h3>' + esc(service.name) + '</h3><span>India (+91) · Virtual number</span></div>' +
+        '<span class="inbox9-service-ready"><i></i>' + (service.purchasable === false ? 'Unavailable' : 'Ready to order') + '</span>' +
+      '</div>' +
+      '<div class="inbox9-service-price-row"><div><span>From</span><strong>' + money(data.pricePaise) + '</strong><small>per activation</small></div><div><span>Country</span><strong>🇮🇳 +91</strong><small>India</small></div></div>' +
+      '<div class="inbox9-service-detail-grid">' +
+        '<div><span>Number type</span><strong>SMS verification</strong><small>One activation</small></div>' +
+        '<div><span>Validity</span><strong>Provider defined</strong><small>Shown at activation</small></div>' +
+        '<div><span>OTP delivery</span><strong>Service dependent</strong><small>Tracked in Active</small></div>' +
+        '<div><span>Wallet</span><strong>' + money(state.balancePaise) + '</strong><small>' + (insufficient ? 'Add funds to continue' : 'Available balance') + '</small></div>' +
+      '</div>' +
+      '<div class="inbox9-service-how"><span class="inbox9-service-how-icon">✓</span><div><strong>How it works</strong><p>Get a +91 number, use it on ' + esc(service.name) + ', then watch the OTP arrive in <b>Active</b>. The provider controls final number availability and OTP timing.</p></div></div>' +
+      error +
+      '<div class="purchase-actions inbox9-service-actions">' +
+        '<button class="secondary-btn" type="button" data-purchase-close>Back to apps</button>' +
+        (insufficient
+          ? '<button class="primary-btn" type="button" data-purchase-wallet>Add funds <span>→</span></button>'
+          : '<button class="primary-btn purchase-confirm-btn" type="button" data-purchase-confirm>Get number <span>→</span></button>') +
+      '</div>' +
+    '</section>' +
+  '</div>';
+}
 async function confirmPurchase() {
   const data = purchaseFlowData();
   if (!data.service) return;
@@ -1726,7 +1764,7 @@ function serviceCard(service) {
   const walletLabel = balanceReady ? 'Wallet ready' : 'Add ' + money(Math.max(0, balanceDelta));
   const initials = String(service.name || 'IN').trim().split(/\\s+/).slice(0, 2).map((part) => part.charAt(0)).join('').toUpperCase().slice(0, 2) || 'IN';
   return '<article class="market-service-group customer-service-card marketplace-service-card ' + (!purchasable ? ' unavailable' : '') + (expanded ? ' expanded' : '') + '">' +
-    '<button class="service-group-header customer-service-main marketplace-service-main" type="button" data-toggle-service="' + esc(service.id) + '" aria-expanded="' + String(expanded) + '" aria-controls="details-' + esc(service.id) + '">' +
+    '<button class="service-group-header customer-service-main marketplace-service-main" type="button" data-select-service="' + esc(service.id) + '" aria-label="View ' + esc(service.name) + ' details">' +
       '<span class="service-icon service-brand-icon marketplace-service-logo">' + serviceLogoGlyph(service, initials) + '</span>' +
       '<span class="service-group-copy marketplace-service-copy"><span class="service-category">' + esc(service.category) + '</span><strong>' + esc(service.name) + '</strong><small>India (+91) · Provider-defined validity</small></span>' +
       '<span class="service-group-meta marketplace-service-meta"><span class="marketplace-availability ' + (purchasable ? 'available' : 'unavailable') + '"><i></i> ' + (purchasable ? 'Ready' : 'Unavailable') + '</span><span class="service-price">' + money(service.pricePaise) + '</span></span>' +
@@ -2123,6 +2161,13 @@ function bindMarketplaceEvents() {
       void refreshCatalog({ silent: false });
       return;
     }
+    const selectService = event.target.closest("[data-select-service]");
+    if (selectService && root.contains(selectService)) {
+      if (selectService.disabled) return;
+      openPurchaseReview(selectService.dataset.selectService);
+      return;
+    }
+
     const toggleService = event.target.closest("[data-toggle-service]");
     if (toggleService && root.contains(toggleService)) {
       toggleServiceDetails(toggleService.dataset.toggleService);
