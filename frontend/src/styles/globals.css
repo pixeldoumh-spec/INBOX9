@@ -251,3 +251,25 @@ button:disabled { cursor: default; opacity: .58; }
 .activation-validity{display:inline-flex;align-items:center;gap:4px;margin-top:6px;padding:4px 7px;border-radius:8px;background:#f3effd;color:#7252b7;font-size:9px;font-weight:800}
 .activation-history-meta{margin-top:6px;color:#a19aa7;font-size:9px}
 @media (min-width:640px){.active-tabs{max-width:480px}}
+
+/* Wallet 2.0 */
+.wallet-overview{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:11px;padding:20px;border:1px solid #ded6ef;border-radius:22px;background:linear-gradient(135deg,#fbf9ff,#fff);box-shadow:0 10px 28px rgba(33,25,45,.06)}
+.wallet-overview-main span{display:block;color:var(--muted);font-size:11px;font-weight:800}
+.wallet-overview-main strong{display:block;margin-top:5px;font-size:36px;letter-spacing:-.06em}
+.wallet-overview-main small{display:block;margin-top:5px;color:#97909f;font-size:10px}
+.wallet-buy-button{width:auto;min-height:44px;padding:0 13px;white-space:nowrap}
+.wallet-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin:0 0 12px}
+.wallet-step{display:flex;align-items:flex-start;gap:8px;padding:11px 9px;border:1px solid var(--line);border-radius:15px;background:#fff}
+.wallet-step>span{width:23px;height:23px;border-radius:8px;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent);font-size:10px;font-weight:900;flex:0 0 auto}
+.wallet-step strong{display:block;font-size:10px}.wallet-step small{display:block;margin-top:3px;color:#9b95a2;font-size:8px;line-height:1.3}
+.wallet-recharge-card{margin-top:0}.wallet-upi-destination{grid-template-columns:1fr auto}.wallet-upi-destination .copy-button{grid-column:auto;justify-self:end}
+.money-input{display:flex;align-items:center;border:1px solid #ddd8e5;border-radius:13px;background:#fff;overflow:hidden}.money-input>span{padding-left:12px;color:#948c9e;font-size:14px;font-weight:800}.money-input input{border:0!important;border-radius:0!important;box-shadow:none!important;padding-left:7px!important}
+.wallet-section-heading{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;margin:20px 0 10px}.wallet-section-heading h2{margin:0;font-size:15px;letter-spacing:-.03em}.wallet-section-heading span{display:block;margin-top:3px;color:#9c95a3;font-size:9px}
+.wallet-pending-pill{margin-top:0!important;padding:6px 9px;border-radius:999px;background:#f3effd;color:var(--accent)!important;font-weight:900}
+.wallet-filter-tabs{display:flex;gap:6px;padding:4px;margin-bottom:9px;border:1px solid #e2dce9;border-radius:14px;background:#f6f3f8}.wallet-filter-tab{flex:1;min-height:39px;border-radius:10px;color:#827a89;font-size:10px;font-weight:800}.wallet-filter-tab.is-selected{background:#fff;color:var(--accent);box-shadow:0 3px 10px rgba(33,25,45,.07)}
+.wallet-recharge-list{gap:7px}.wallet-recharge-row{align-items:center;padding:12px 13px}.wallet-recharge-row.is-open{border-color:#cdbcf3;background:#fbf9ff}
+.wallet-status-pill{border-radius:999px;padding:6px 9px!important;font-size:9px!important;text-transform:none!important}.wallet-status-success{background:#eaf8f0!important;color:#188052!important}.wallet-status-pending{background:#f3effd!important;color:#7252b7!important}.wallet-status-review{background:#fff4dd!important;color:#8a6514!important}.wallet-status-danger{background:#f9e9eb!important;color:#b44652!important}
+.wallet-detail-card{margin-bottom:10px;padding:14px;border:1px solid #dcd2ed;border-radius:18px;background:#fbf9ff}.wallet-detail-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}.wallet-detail-head h3{margin:5px 0 0;font-size:22px;letter-spacing:-.04em}.wallet-detail-close{background:#fff}
+.wallet-detail-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:9px;margin-top:12px}.wallet-detail-grid>div{padding:10px;border-radius:12px;background:#fff;border:1px solid #ebe5f4}.wallet-detail-grid span{display:block;color:#9a93a1;font-size:8px;text-transform:uppercase;letter-spacing:.09em;font-weight:900}.wallet-detail-grid strong{display:block;margin-top:4px;font-size:10px;overflow-wrap:anywhere}.wallet-status-text{font-weight:900}.wallet-detail-wide{grid-column:1/-1}.wallet-activity-row{align-items:center}
+@media (max-width:520px){.wallet-overview{align-items:stretch;flex-direction:column}.wallet-buy-button{width:100%}.wallet-steps{grid-template-columns:1fr}.wallet-step{align-items:center}}
+@media (min-width:700px){.wallet-overview{padding:24px}.wallet-steps{max-width:820px}.wallet-recharge-card{max-width:820px}.wallet-detail-card{max-width:820px}}

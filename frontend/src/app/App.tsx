@@ -279,27 +279,74 @@ function ActivationPage(){
 }
 function WalletPage(){
  const q=useQuery({queryKey:['wallet'],queryFn:getWallet,refetchInterval:15000});
- const [amount,setAmount]=useState('500');const [utr,setUtr]=useState('');const [error,setError]=useState<string|null>(null);const [sent,setSent]=useState(false);const [upiCopied,setUpiCopied]=useState(false);const [filter,setFilter]=useState('all');const [detail,setDetail]=useState<string|null>(null);
- const recharge=useMutation({mutationFn:()=>createRecharge(Number(amount),utr.trim()),onSuccess:async()=>{setError(null);setSent(true);setUtr('');await q.refetch()},onError:(e)=>setError(e instanceof Error?e.message:'Recharge could not be submitted')});
- const ledger=(q.data?.ledger??[]).filter(x=>filter==='all'||x.type===filter);const recharges=q.data?.recharges??[];
- async function copyUpi(){if(!q.data?.upiId)return;try{await navigator.clipboard.writeText(q.data.upiId);setUpiCopied(true);window.setTimeout(()=>setUpiCopied(false),1400)}catch{setError('Copy is not available in this browser.')}}
- return <section className="page-section"><div className="catalog-heading"><div><h1>Wallet</h1><p>Balance, recharge status and transaction history.</p></div><span className="catalog-chip">{q.isPending?'Loading':'INR'}</span></div>
-  <div className="wallet-header"><div><span>Available balance</span><strong>₹{((q.data?.balancePaise??0)/100).toFixed(2)}</strong></div><Link className="outline-button compact-button" to="/buy">Buy services</Link></div>
-  {q.isError?<div className="error-card">Could not load wallet. Reconnect and try again.</div>:null}
-  <div className="recharge-card"><div className="section-heading"><h2>Add funds</h2></div>
-   {q.data?.rechargeEnabled?<><div className="upi-destination"><span>Pay to UPI</span><strong>{q.data.upiId}</strong><button className="copy-button" type="button" onClick={()=>void copyUpi()}><Icon name="copy" size={16}/>{upiCopied?'Copied':'Copy UPI ID'}</button></div>
-   <form className="recharge-form" onSubmit={e=>{e.preventDefault();setSent(false);setError(null);void recharge.mutate()}}>
-    <div className="quick-amounts">{[100,250,500,1000,2500,5000].map(v=><button key={v} type="button" className={amount===String(v)?'amount-chip is-selected':'amount-chip'} onClick={()=>setAmount(String(v))}>₹{v}</button>)}</div>
-    <label className="field"><span>Amount (₹100–₹5,000)</span><input type="number" min="100" max="5000" step="1" value={amount} onChange={e=>setAmount(e.target.value)} required/></label>
-    <label className="field"><span>UTR / transaction reference</span><input value={utr} onChange={e=>setUtr(e.target.value)} placeholder="UTR from your UPI payment" minLength={4} maxLength={64} required/></label>
-    {error?<div className="form-error" role="alert">{error}</div>:null}{sent&&!error?<div className="success-card"><Icon name="check" size={18}/><span>Recharge submitted. Wallet credit waits for payment verification.</span></div>:null}
-    <button className="primary-button primary-button-large" disabled={recharge.isPending}>{recharge.isPending?'Submitting...':'Submit recharge for verification'}<Icon name="arrow" size={18}/></button>
-   </form></>:<div className="info-card"><Icon name="clock" size={20}/><div><strong>Recharge is not enabled on this deployment.</strong><p>No payment destination is shown until UPI recharge is configured.</p></div></div>}
+ const [amount,setAmount]=useState('500');const [utr,setUtr]=useState('');const [error,setError]=useState<string|null>(null);
+ const [sent,setSent]=useState(false);const [upiCopied,setUpiCopied]=useState(false);const [filter,setFilter]=useState<'all'|'credit'|'debit'>('all');const [detail,setDetail]=useState<string|null>(null);
+ const recharge=useMutation({
+  mutationFn:()=>createRecharge(Number(amount),utr.trim()),
+  onSuccess:async()=>{setError(null);setSent(true);setUtr('');await q.refetch()},
+  onError:(e)=>setError(e instanceof Error?e.message:'Recharge could not be submitted')
+ });
+ const ledger=q.data?.ledger??[];const recharges=q.data?.recharges??[];
+ const filteredLedger=ledger.filter(x=>filter==='all'||x.type===filter);
+ const pendingRecharges=recharges.filter(r=>['pending','submitted','review','under_review','processing'].includes(String(r.status).toLowerCase())).length;
+ const statusMeta=(status:string)=>{
+  const value=status.replace(/_/g,' ').toLowerCase();
+  if(['verified','approved','credited','completed','success','successful'].includes(value))return {label:'Verified',tone:'success'};
+  if(['rejected','failed','declined','cancelled','canceled'].includes(value))return {label:'Rejected',tone:'danger'};
+  if(['flagged','manual review','under review'].includes(value))return {label:'Review',tone:'review'};
+  return {label:value||'Pending',tone:'pending'};
+ };
+ const selectedRecharge=detail?recharges.find(r=>r.id===detail):null;
+ async function copyUpi(){
+  if(!q.data?.upiId)return;
+  try{await navigator.clipboard.writeText(q.data.upiId);setUpiCopied(true);window.setTimeout(()=>setUpiCopied(false),1400)}
+  catch{setError('Copy is not available in this browser.')}
+ }
+ function selectRecharge(id:string){setDetail(previous=>previous===id?null:id)}
+ function resetRechargeForm(){setSent(false);setError(null);setUtr('')}
+ return <section className="page-section wallet-page">
+  <div className="catalog-heading">
+   <div><h1>Wallet</h1><p>Manage your balance, add funds manually, and review every wallet movement.</p></div>
+   <span className="catalog-chip">INR</span>
   </div>
-  <div className="section-heading"><div className="section-heading-row"><h2>Recharge history</h2></div></div>
-  {recharges.length?<div className="ledger-list">{recharges.map(r=><button className="ledger-row ledger-row-button" type="button" key={r.id} onClick={()=>setDetail(detail===r.id?null:r.id)}><div><strong>₹{(r.amountPaise/100).toFixed(2)} recharge</strong><span>{new Date(r.submittedAt).toLocaleString()}</span><span className="recharge-status">Status: {r.status}</span>{detail===r.id?<em className="ledger-detail">UTR: {r.utr}{r.rejectionReason?' · '+r.rejectionReason:''}</em>:null}</div><b>{r.status}</b></button>)}</div>:<div className="empty-state compact-empty"><h3>No recharge requests</h3><p>Submitted UPI recharge requests will appear here.</p></div>}
-  <div className="section-heading"><div className="section-heading-row"><h2>Wallet transactions</h2><select className="filter-select" value={filter} onChange={e=>setFilter(e.target.value)}><option value="all">All</option><option value="credit">Credits</option><option value="debit">Debits</option></select></div></div>
-  {ledger.length?<div className="ledger-list">{ledger.slice(0,50).map(i=><div className="ledger-row" key={i.id}><div><strong>{i.description||'Wallet transaction'}</strong><span>{new Date(i.createdAt ?? Date.now()).toLocaleString()} · {i.referenceType||'ledger'}</span></div><b className={i.type==='debit'?'ledger-debit':'ledger-credit'}>{i.type==='debit'?'−':'+'}₹{((i.amountPaise ?? 0)/100).toFixed(2)}</b></div>)}</div>:<div className="empty-state compact-empty"><h3>No transactions</h3><p>Wallet activity will appear here.</p></div>}
+  <div className="wallet-overview">
+   <div className="wallet-overview-main"><span>Available balance</span><strong>₹{((q.data?.balancePaise??0)/100).toFixed(2)}</strong><small>{q.isPending?'Refreshing wallet…':q.isError?'Balance unavailable':`${pendingRecharges} pending recharge${pendingRecharges===1?'':'s'}`}</small></div>
+   <Link className="primary-button wallet-buy-button" to="/buy">Buy services <Icon name="arrow" size={17}/></Link>
+  </div>
+  {q.isError?<div className="error-card">Could not load wallet. Reconnect and try again.</div>:null}
+  <div className="wallet-steps">
+   <div className="wallet-step"><span>1</span><div><strong>Choose amount</strong><small>₹100–₹5,000 per request</small></div></div>
+   <div className="wallet-step"><span>2</span><div><strong>Pay by UPI</strong><small>Use the configured INBOX9 UPI ID</small></div></div>
+   <div className="wallet-step"><span>3</span><div><strong>Submit UTR</strong><small>Wallet credit follows verification</small></div></div>
+  </div>
+  <div className="recharge-card wallet-recharge-card">
+   <div className="section-heading"><div><h2>Add funds</h2><span className="section-subtle">Manual recharge with a UTR reference</span></div></div>
+   {q.data?.rechargeEnabled?<><div className="upi-destination wallet-upi-destination"><div><span>Pay to UPI</span><strong>{q.data.upiId}</strong></div><button className="copy-button" type="button" onClick={()=>void copyUpi()}><Icon name="copy" size={16}/>{upiCopied?'Copied':'Copy UPI ID'}</button></div>
+    <form className="recharge-form" onSubmit={e=>{e.preventDefault();resetRechargeForm();void recharge.mutate()}}>
+     <div className="quick-amounts">{[100,250,500,1000,2500,5000].map(v=><button key={v} type="button" className={amount===String(v)?'amount-chip is-selected':'amount-chip'} onClick={()=>{setAmount(String(v));setSent(false);setError(null)}}>₹{v}</button>)}</div>
+     <label className="field"><span>Amount</span><div className="money-input"><span>₹</span><input type="number" min="100" max="5000" step="1" value={amount} onChange={e=>{setAmount(e.target.value);setSent(false);setError(null)}} required/></div></label>
+     <label className="field"><span>UTR / transaction reference</span><input value={utr} onChange={e=>{setUtr(e.target.value);setSent(false)}} placeholder="Enter the UTR from your UPI payment" minLength={4} maxLength={64} required/></label>
+     {error?<div className="form-error" role="alert">{error}</div>:null}
+     {sent&&!error?<div className="success-card"><Icon name="check" size={18}/><span>Recharge submitted. We’ll credit the wallet after payment verification.</span></div>:null}
+     <button className="primary-button primary-button-large" disabled={recharge.isPending}>{recharge.isPending?'Submitting…':'Submit recharge'}<Icon name="arrow" size={18}/></button>
+    </form></>:<div className="info-card"><Icon name="clock" size={20}/><div><strong>Manual recharge is not enabled.</strong><p>No payment destination is shown until UPI recharge is configured for this deployment.</p></div></div>}
+  </div>
+  <div className="wallet-section-heading"><div><h2>Recharge history</h2><span>{recharges.length?`${recharges.length} request${recharges.length===1?'':'s'}`:'No recharge requests yet'}</span></div>{pendingRecharges?<span className="wallet-pending-pill">{pendingRecharges} pending</span>:null}</div>
+  {selectedRecharge?<div className="wallet-detail-card"><div className="wallet-detail-head"><div><span className="card-label">Recharge detail</span><h3>₹{(selectedRecharge.amountPaise/100).toFixed(2)}</h3></div><button className="sheet-close wallet-detail-close" type="button" aria-label="Close recharge details" onClick={()=>setDetail(null)}><Icon name="close" size={18}/></button></div>
+   <div className="wallet-detail-grid">
+    <div><span>Status</span><strong className={'wallet-status-text wallet-status-'+statusMeta(selectedRecharge.status).tone}>{statusMeta(selectedRecharge.status).label}</strong></div>
+    <div><span>Submitted</span><strong>{new Date(selectedRecharge.submittedAt).toLocaleString()}</strong></div>
+    <div><span>UTR</span><strong>{selectedRecharge.utr}</strong></div>
+    {selectedRecharge.reviewedAt?<div><span>Reviewed</span><strong>{new Date(selectedRecharge.reviewedAt).toLocaleString()}</strong></div>:null}
+    {selectedRecharge.rejectionReason?<div className="wallet-detail-wide"><span>Reason</span><strong>{selectedRecharge.rejectionReason}</strong></div>:null}
+   </div>
+  </div>:null}
+  {recharges.length?<div className="ledger-list wallet-recharge-list">{recharges.map(r=>{const meta=statusMeta(r.status);return <button className={'ledger-row ledger-row-button wallet-recharge-row'+(detail===r.id?' is-open':'')} type="button" key={r.id} onClick={()=>selectRecharge(r.id)}><div><strong>₹{(r.amountPaise/100).toFixed(2)} recharge</strong><span>{new Date(r.submittedAt).toLocaleString()}</span></div><b className={'wallet-status-pill wallet-status-'+meta.tone}>{meta.label}</b></button>})}</div>
+  :<div className="empty-state compact-empty"><h3>No recharge requests</h3><p>Submitted UPI recharge requests will appear here.</p></div>}
+  <div className="wallet-section-heading"><div><h2>Wallet activity</h2><span>Credits and debits from your account</span></div></div>
+  <div className="wallet-filter-tabs" role="tablist" aria-label="Wallet activity filter">{([['all','All'],['credit','Credits'],['debit','Debits']] as const).map(([value,label])=><button type="button" role="tab" aria-selected={filter===value} className={filter===value?'wallet-filter-tab is-selected':'wallet-filter-tab'} onClick={()=>setFilter(value)} key={value}>{label}</button>)}</div>
+  {filteredLedger.length?<div className="ledger-list">{filteredLedger.slice(0,50).map(i=><div className="ledger-row wallet-activity-row" key={i.id}><div><strong>{i.description||'Wallet transaction'}</strong><span>{new Date(i.createdAt ?? Date.now()).toLocaleString()} · {i.referenceType||'ledger'}</span></div><b className={i.type==='debit'?'ledger-debit':'ledger-credit'}>{i.type==='debit'?'−':'+'}₹{((i.amountPaise ?? 0)/100).toFixed(2)}</b></div>)}</div>
+  :<div className="empty-state compact-empty"><h3>No {filter==='all'?'wallet activity':filter==='credit'?'credit':'debit'} transactions</h3><p>Transactions matching this filter will appear here.</p></div>}
  </section>
 }
 function NotificationsPage(){
