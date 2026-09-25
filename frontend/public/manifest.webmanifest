@@ -1,11 +1,28 @@
 {
+  "id": "/apps",
   "name": "INBOX9",
   "short_name": "INBOX9",
   "start_url": "/apps",
   "scope": "/",
   "display": "standalone",
+  "orientation": "portrait",
   "background_color": "#ffffff",
   "theme_color": "#ffffff",
   "description": "INBOX9 India verification services",
-  "icons": []
+  "lang": "en-IN",
+  "categories": ["business", "utilities"],
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
 }

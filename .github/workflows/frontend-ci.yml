@@ -33,3 +33,5 @@ jobs:
         run: npm run build
       - name: Service logo manifest regression test
         run: node --test tests/service-logo-manifest.test.js
+      - name: PWA installability regression test
+        run: node --test tests/pwa-assets.test.js
