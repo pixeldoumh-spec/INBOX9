@@ -1942,6 +1942,7 @@ function handlePageShow(event) {
 }
 
 function handlePageHide(event) {
+  if (state.user) writeSessionHint(state.user);
   // Prevent a hard reload from leaving the previous authenticated page visible
   // while the browser fetches the next document. Keep BFCache restores intact.
   if (event.persisted) return;
@@ -2220,16 +2221,11 @@ document.addEventListener('keydown', (event) => {
   }
 });
 
-window.addEventListener('pagehide', () => {
-  if (state.user) writeSessionHint(state.user);
-});
-
 window.addEventListener('hashchange', handleBrowserNavigation);
 window.addEventListener('popstate', handleBrowserNavigation);
 window.addEventListener('pageshow', handlePageShow);
 document.addEventListener('visibilitychange', handleCustomerVisibilityRefresh);
 window.addEventListener('focus', handleCustomerVisibilityRefresh);
-window.addEventListener('pageshow', handlePageShow);
 window.addEventListener('pagehide', handlePageHide);
 window.addEventListener('online', handleConnectivityChange);
 window.addEventListener('offline', handleConnectivityChange);
