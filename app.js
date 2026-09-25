@@ -940,9 +940,10 @@ function purchaseReviewModal() {
       '<div class="inbox9-service-price-row"><div><span>Price</span><strong>' + money(data.pricePaise) + '</strong><small>One activation</small></div><div><span>Number format</span><strong>+91</strong><small>India marketplace</small></div></div>' +
       '<div class="inbox9-service-detail-grid">' +
         '<div><span>Number type</span><strong>SMS verification</strong><small>One activation</small></div>' +
-        '<div><span>Validity</span><strong>Provider defined</strong><small>Shown at activation</small></div>' +
-        '<div><span>OTP delivery</span><strong>Service dependent</strong><small>Tracked in Active</small></div>' +
-        '<div><span>Wallet</span><strong>' + money(state.balancePaise) + '</strong><small>' + (insufficient ? 'Add funds to continue' : 'Available balance') + '</small></div>' +
+        '<div><span>Number validity</span><strong>Provider-defined</strong><small>Provider-defined validity</small></div>' +
+        '<div><span>OTP delivery</span><strong>Service dependent</strong><small>OTP delivery timing varies by service</small></div>' +
+        '<div><span>Wallet balance</span><strong>' + money(state.balancePaise) + '</strong><small>' + (insufficient ? 'Add funds to continue' : 'Available balance') + '</small></div>' +
+        '<div><span>After purchase</span><strong>' + (insufficient ? "—" : money(data.afterBalancePaise)) + '</strong><small>' + (insufficient ? 'Add funds required' : 'Estimated remaining balance') + '</small></div>' +
       '</div>' +
       '<div class="inbox9-service-how"><span class="inbox9-service-how-icon">✓</span><div><strong>Activation tracking</strong><p>Get a +91 number, use it on ' + esc(service.name) + ', then watch the OTP arrive in <b>Active</b>. OTP delivery timing varies by service; status updates are shown there.</p></div></div>' +
       error +
