@@ -59,7 +59,68 @@ function BottomNav(){const items=[['/apps','Apps','apps'],['/buy','Buy','buy'],[
 function TopHeader(){const user=useSessionStore(s=>s.user); const notes=useQuery({queryKey:['notifications'],queryFn:getNotifications,staleTime:20_000,refetchInterval:30_000}); const wallet=useQuery({queryKey:['wallet'],queryFn:getWallet,enabled:Boolean(user),staleTime:10_000}); const unread=notes.data?.notifications.filter(n=>!n.read).length??0; return <header className="top-header"><Link className="brand" to="/apps"><span className="brand-mark">I9</span><span>INBOX9</span></Link><div className="header-actions"><Link className="wallet-pill" to="/wallet"><Icon name="wallet" size={18}/><span>₹{((wallet.data?.balancePaise??0)/100).toFixed(2)}</span><span className="wallet-add"><Icon name="plus" size={14}/></span></Link><Link className="notification-button" to="/notifications" aria-label="Notifications"><Icon name="bell" size={20}/>{unread?<span className="notification-badge">{unread>99?'99+':unread}</span>:<span className="notification-dot"/>}</Link><Link className="profile-button" to="/account"><span>{(user?.displayName||user?.email||'I').slice(0,1).toUpperCase()}</span></Link></div></header>}
 function AppShell(){const bootstrap=useSessionStore(s=>s.bootstrap);const user=useSessionStore(s=>s.user);const location=useLocation();const [online,setOnline]=useState(navigator.onLine);const queryClient=useQueryClient();useEffect(()=>{const on=()=>setOnline(true),off=()=>setOnline(false);window.addEventListener('online',on);window.addEventListener('offline',off);return()=>{window.removeEventListener('online',on);window.removeEventListener('offline',off)}},[]);useEffect(()=>{if(online)void queryClient.invalidateQueries({type:'active'})},[online,queryClient]);if(bootstrap==='idle'||bootstrap==='loading')return <div className="splash"><div className="splash-mark">I9</div><span>Loading INBOX9...</span></div>;if(!user)return <Navigate to={`/login?next=${encodeURIComponent(location.pathname+location.search)}`} replace/>;return <div className="app-shell"><TopHeader/>{!online?<div className="offline-banner" role="status">You’re offline. Changes will sync when connection returns.</div>:null}<main className="page-content"><Outlet/></main><BottomNav/></div>}
 function SessionBootstrap(){const setUser=useSessionStore(s=>s.setUser);const setBootstrap=useSessionStore(s=>s.setBootstrap);useEffect(()=>{let live=true;setBootstrap('loading');void getMe().then(r=>{if(!live)return;setUser(r.authenticated?r.user??null:null);setBootstrap(r.authenticated?'ready':'signed-out')}).catch(()=>{if(!live)return;setUser(null);setBootstrap('signed-out')});return()=>{live=false}},[setUser,setBootstrap]);return null}
-function Catalog({mode='apps'}:{mode?:'apps'|'buy'}){const q=useQuery({queryKey:['services'],queryFn:getServices,staleTime:60_000});const [search,setSearch]=useState('');const list=useMemo(()=>{const all=q.data?.services??[];const needle=search.trim().toLowerCase();return needle?all.filter(s=>`${s.name} ${s.category}`.toLowerCase().includes(needle)):all},[q.data?.services,search]);const title=mode==='buy'?'Buy a number':'Apps';return <section className="page-section"><div className="catalog-heading"><div><h1>{title}</h1><p>{q.isPending?'Loading services...':`${q.data?.services.length??0} services available`}</p></div>{mode==='buy'?<span className="catalog-chip">India · INR</span>:null}</div><SearchField value={search} onChange={setSearch}/>{q.isError?<div className="error-card">Service catalog is temporarily unavailable.</div>:null}{q.isPending?<div className="service-grid-placeholder">{Array.from({length:16},(_,i)=><div className="tile-skeleton" key={i}/>)}</div>:list.length?<div className="service-grid">{list.map(s=><Link className="service-tile" key={s.id} to={`/apps/service/${encodeURIComponent(s.id)}${mode==='buy'?'?buy=1':''}`}><ServiceLogo serviceId={s.id} name={s.name} position={s.catalogPosition}/><span className="service-name">{s.name}</span></Link>)}</div>:<div className="empty-state"><div className="empty-icon">⌕</div><h3>No services found</h3><p>Try another search.</p></div>}</section>}
+function NotificationStrip(){
+ const q=useQuery({queryKey:['notifications'],queryFn:getNotifications,staleTime:20_000,refetchInterval:30_000});
+ const items=q.data?.notifications??[];
+ const unread=items.filter(n=>!n.read).length;
+ const latest=items[0];
+ return <Link className="notification-strip" to="/notifications" aria-label="Open notifications">
+  <span className="notification-glow"><span className="notification-strip-count">{unread>99?'99+':unread||'0'}</span></span>
+  <span className="notification-strip-copy"><strong>{unread?'You have new updates':'Notifications'}</strong><span>{latest?.title||'Account, recharge and activation updates appear here.'}</span></span>
+  <Icon name="arrow" size={18}/>
+ </Link>
+}
+function Catalog({mode='apps'}:{mode?:'apps'|'buy'}){
+ const q=useQuery({queryKey:['services'],queryFn:getServices,staleTime:60_000});
+ const wallet=useQuery({queryKey:['wallet'],queryFn:getWallet,enabled:mode==='buy',staleTime:10_000});
+ const [search,setSearch]=useState('');
+ const [category,setCategory]=useState('all');
+ const [recentIds,setRecentIds]=useState<string[]>([]);
+ useEffect(()=>{
+  try{
+   const raw=localStorage.getItem('inbox9_recent_services');
+   const parsed=raw?JSON.parse(raw):[];
+   if(Array.isArray(parsed))setRecentIds(parsed.filter((id):id is string=>typeof id==='string').slice(0,8));
+  }catch{}
+ },[]);
+ const all=q.data?.services??[];
+ const categories=useMemo(()=>{
+  const counts=new Map<string,number>();
+  for(const item of all){const c=(item.category||'Other').trim()||'Other';counts.set(c,(counts.get(c)||0)+1);}
+  return [...counts.entries()].sort((a,b)=>b[1]-a[1]).map(([value,count])=>({value,count}));
+ },[all]);
+ const list=useMemo(()=>{
+  const needle=search.trim().toLowerCase();
+  return all.filter(item=>{
+   const matchesSearch=!needle||`${item.name} ${item.category}`.toLowerCase().includes(needle);
+   const matchesCategory=category==='all'||(item.category||'Other')===category;
+   return matchesSearch&&matchesCategory;
+  });
+ },[all,search,category]);
+ const recentServices=useMemo(()=>recentIds.map(id=>all.find(item=>item.id===id)).filter(Boolean),[all,recentIds]);
+ function remember(id:string){
+  setRecentIds(previous=>{
+   const next=[id,...previous.filter(item=>item!==id)].slice(0,8);
+   try{localStorage.setItem('inbox9_recent_services',JSON.stringify(next));}catch{}
+   return next;
+  });
+ }
+ const title=mode==='buy'?'Buy':'Apps';
+ const helper=q.isPending?'Loading services...':search||category!=='all'?`${list.length} of ${all.length} services`:`${all.length} services available`;
+ return <section className={`page-section catalog-page ${mode==='buy'?'catalog-buy':'catalog-apps'}`}>
+  <div className="catalog-heading"><div><h1>{title}</h1><p>{mode==='buy'?'Pick a service and start an activation.':'Discover services and keep your recent apps close.'} {helper}</p></div>{mode==='buy'?<span className="catalog-chip">₹{((wallet.data?.balancePaise??0)/100).toFixed(2)}</span>:null}</div>
+  {mode==='buy'?<div className="buy-wallet-strip"><div><span>Wallet balance</span><strong>₹{((wallet.data?.balancePaise??0)/100).toFixed(2)}</strong></div><Link className="outline-button compact-button" to="/wallet">Add funds</Link></div>:null}
+  <SearchField value={search} onChange={setSearch}/>
+  <div className="category-scroll" aria-label="Service categories">
+   <button type="button" className={category==='all'?'category-chip is-selected':'category-chip'} onClick={()=>setCategory('all')}>All</button>
+   {categories.map(item=><button type="button" className={category===item.value?'category-chip is-selected':'category-chip'} key={item.value} onClick={()=>setCategory(item.value)}>{item.value}<span>{item.count}</span></button>)}
+  </div>
+  {mode==='apps'&&!search.trim()&&category==='all'&&recentServices.length?<div className="recent-section"><div className="section-heading-row"><div><h2>Recent</h2><span className="section-subtle">Your latest services</span></div></div><div className="recent-row">{recentServices.map(item=><Link className="recent-tile" key={item!.id} to={`/apps/service/${encodeURIComponent(item!.id)}`} onClick={()=>remember(item!.id)}><ServiceLogo serviceId={item!.id} name={item!.name} size="sm" position={item!.catalogPosition}/><span>{item!.name}</span></Link>)}</div></div>:null}
+  {q.isError?<div className="error-card">Service catalog is temporarily unavailable.</div>:null}
+  {q.isPending?<div className="service-grid-placeholder">{Array.from({length:16},(_,i)=><div className="tile-skeleton" key={i}/>)}</div>:list.length?<div className="service-grid">{list.map(item=><Link className="service-tile" key={item.id} to={`/apps/service/${encodeURIComponent(item.id)}${mode==='buy'?'?buy=1':''}`} onClick={()=>remember(item.id)}><ServiceLogo serviceId={item.id} name={item.name} position={item.catalogPosition}/><span className="service-name">{item.name}</span></Link>)}</div>:<div className="empty-state"><div className="empty-icon">⌕</div><h3>No services found</h3><p>{search||category!=='all'?'Try another search or category.':'No services are available right now.'}</p>{search||category!=='all'?<button type="button" className="outline-button compact-button" onClick={()=>{setSearch('');setCategory('all')}}>Reset filters</button>:null}</div>}
+  {mode==='apps'?<NotificationStrip/>:null}
+ </section>
+}
 function AppsPage(){return <Catalog/>} function BuyPage(){return <Catalog mode="buy"/>}
 function activationErrorMessage(reason:unknown){
  if(reason instanceof ApiRequestError){
@@ -83,6 +144,7 @@ function ServicePage(){
  const navigate=useNavigate();
  const client=useQueryClient();
  const [pending,setPending]=useState(false);
+ const [confirmOpen,setConfirmOpen]=useState(false);
  const [error,setError]=useState<string|null>(null);
  const services=useQuery({queryKey:['services'],queryFn:getServices,staleTime:60_000});
  const wallet=useQuery({queryKey:['wallet'],queryFn:getWallet,staleTime:10_000});
@@ -102,6 +164,7 @@ function ServicePage(){
     client.invalidateQueries({queryKey:['wallet']}),
     client.invalidateQueries({queryKey:['activations']})
    ]);
+   setConfirmOpen(false);
    navigate(`/active/${encodeURIComponent(act.id)}`);
   }catch(reason){setError(activationErrorMessage(reason));}
   finally{setPending(false);}
@@ -118,7 +181,8 @@ function ServicePage(){
   {insufficient?<div className="info-card"><Icon name="wallet" size={20}/><div><strong>Not enough wallet balance.</strong><p>You need ₹{((selected.pricePaise-balancePaise)/100).toFixed(2)} more to buy this number.</p><Link className="text-button compact-button" to="/wallet">Add funds <Icon name="arrow" size={16}/></Link></div></div>:null}
   {error?<div className="form-error" role="alert">{error}</div>:null}
   {wallet.isError?<div className="error-card" role="alert">Wallet balance could not be verified. Please retry.</div>:null}
-  <button className="primary-button primary-button-large" onClick={()=>void buy()} disabled={!selected.purchasable||pending||insufficient||wallet.isPending||wallet.isError}>{pending?'Starting...':`Buy number · ₹${price.toFixed(2)}`}<Icon name="arrow" size={19}/></button>
+  <button className="primary-button primary-button-large" onClick={()=>setConfirmOpen(true)} disabled={!selected.purchasable||pending||insufficient||wallet.isPending||wallet.isError}>{pending?'Starting...':`Buy number · ₹${price.toFixed(2)}`}<Icon name="arrow" size={19}/></button>
+  {confirmOpen?<div className="sheet-backdrop" role="presentation" onClick={()=>setConfirmOpen(false)}><section className="purchase-sheet" role="dialog" aria-modal="true" aria-labelledby="purchase-sheet-title" onClick={e=>e.stopPropagation()}><div className="sheet-handle"/><button className="sheet-close" type="button" aria-label="Close" onClick={()=>setConfirmOpen(false)}><Icon name="close" size={19}/></button><span className="card-label">Confirm purchase</span><h2 id="purchase-sheet-title">{selected.name}</h2><p className="sheet-copy">This starts an activation and charges your wallet.</p><div className="sheet-summary"><div><span>Service</span><strong>{selected.name}</strong></div><div><span>Price</span><strong>₹{price.toFixed(2)}</strong></div><div><span>Wallet after purchase</span><strong>₹{((balancePaise-selected.pricePaise)/100).toFixed(2)}</strong></div></div>{error?<div className="form-error" role="alert">{error}</div>:null}<button className="primary-button primary-button-large" type="button" onClick={()=>void buy()} disabled={pending}>{pending?'Starting activation...':'Confirm & buy'}<Icon name="arrow" size={18}/></button><button className="text-button" type="button" onClick={()=>setConfirmOpen(false)} disabled={pending}>Keep browsing</button></section></div>:null}
   <div className="trust-row"><span><Icon name="check" size={16}/> Secure session</span><span><Icon name="check" size={16}/> India · +91</span><span><Icon name="clock" size={16}/> Live status updates</span></div>
  </section>
 }
@@ -173,15 +237,15 @@ function ActivationPage(){
 }
 function WalletPage(){
  const q=useQuery({queryKey:['wallet'],queryFn:getWallet,refetchInterval:15000});
- const [amount,setAmount]=useState('500');const [utr,setUtr]=useState('');const [error,setError]=useState<string|null>(null);const [sent,setSent]=useState(false);const [filter,setFilter]=useState('all');const [detail,setDetail]=useState<string|null>(null);
+ const [amount,setAmount]=useState('500');const [utr,setUtr]=useState('');const [error,setError]=useState<string|null>(null);const [sent,setSent]=useState(false);const [upiCopied,setUpiCopied]=useState(false);const [filter,setFilter]=useState('all');const [detail,setDetail]=useState<string|null>(null);
  const recharge=useMutation({mutationFn:()=>createRecharge(Number(amount),utr.trim()),onSuccess:async()=>{setError(null);setSent(true);setUtr('');await q.refetch()},onError:(e)=>setError(e instanceof Error?e.message:'Recharge could not be submitted')});
  const ledger=(q.data?.ledger??[]).filter(x=>filter==='all'||x.type===filter);const recharges=q.data?.recharges??[];
- async function copyUpi(){if(!q.data?.upiId)return;try{await navigator.clipboard.writeText(q.data.upiId);setSent(true)}catch{setError('Copy is not available in this browser.')}}
+ async function copyUpi(){if(!q.data?.upiId)return;try{await navigator.clipboard.writeText(q.data.upiId);setUpiCopied(true);window.setTimeout(()=>setUpiCopied(false),1400)}catch{setError('Copy is not available in this browser.')}}
  return <section className="page-section"><div className="catalog-heading"><div><h1>Wallet</h1><p>Balance, recharge status and transaction history.</p></div><span className="catalog-chip">{q.isPending?'Loading':'INR'}</span></div>
   <div className="wallet-header"><div><span>Available balance</span><strong>₹{((q.data?.balancePaise??0)/100).toFixed(2)}</strong></div><Link className="outline-button compact-button" to="/buy">Buy services</Link></div>
   {q.isError?<div className="error-card">Could not load wallet. Reconnect and try again.</div>:null}
   <div className="recharge-card"><div className="section-heading"><h2>Add funds</h2></div>
-   {q.data?.rechargeEnabled?<><div className="upi-destination"><span>Pay to UPI</span><strong>{q.data.upiId}</strong><button className="copy-button" type="button" onClick={()=>void copyUpi()}><Icon name="copy" size={16}/>Copy UPI ID</button></div>
+   {q.data?.rechargeEnabled?<><div className="upi-destination"><span>Pay to UPI</span><strong>{q.data.upiId}</strong><button className="copy-button" type="button" onClick={()=>void copyUpi()}><Icon name="copy" size={16}/>{upiCopied?'Copied':'Copy UPI ID'}</button></div>
    <form className="recharge-form" onSubmit={e=>{e.preventDefault();setSent(false);setError(null);void recharge.mutate()}}>
     <div className="quick-amounts">{[100,250,500,1000,2500,5000].map(v=><button key={v} type="button" className={amount===String(v)?'amount-chip is-selected':'amount-chip'} onClick={()=>setAmount(String(v))}>₹{v}</button>)}</div>
     <label className="field"><span>Amount (₹100–₹5,000)</span><input type="number" min="100" max="5000" step="1" value={amount} onChange={e=>setAmount(e.target.value)} required/></label>
