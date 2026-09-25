@@ -1,4 +1,5 @@
 name: INBOX9 CI
+# Release gate: every application commit must execute the repository CI path.
 
 on:
   push:

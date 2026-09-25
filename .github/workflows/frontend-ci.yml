@@ -31,3 +31,5 @@ jobs:
       - name: Typecheck and production build
         working-directory: frontend
         run: npm run build
+      - name: Service logo manifest regression test
+        run: node --test tests/service-logo-manifest.test.js
