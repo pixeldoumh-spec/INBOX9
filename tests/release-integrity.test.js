@@ -1,3 +1,7 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs/promises';
+
 test('production source has no hardcoded payment destination or QR asset', async () => {
   const [walletRepo, exampleEnv, stagingEnv, server] = await Promise.all([
     fs.readFile(new URL('../api/_lib/wallet-repository.js', import.meta.url), 'utf8'),
