@@ -1,0 +1,34 @@
+name: Export 832 services by kind
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'data/services.json'
+      - 'scripts/export-services-by-kind.mjs'
+      - '.github/workflows/export-services-by-kind.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate and sort service catalog
+        run: node scripts/export-services-by-kind.mjs
+
+      - name: Commit sorted catalog
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/services-by-kind.csv
+          if git diff --cached --quiet; then
+            echo "No catalog changes."
+            exit 0
+          fi
+          git commit -m "chore: export 832 services sorted by kind"
+          git push
