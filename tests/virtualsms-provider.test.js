@@ -5,16 +5,16 @@ const KEYS=['VIRTUALSMS_API_KEY','VIRTUALSMS_RESELLER_AUTHORIZED','VIRTUALSMS_CA
 const save=()=>Object.fromEntries(KEYS.map(k=>[k,process.env[k]]));
 const restore=(e)=>KEYS.forEach(k=>e[k]===undefined?delete process.env[k]:(process.env[k]=e[k]));
 
-test('VirtualSMS adapter fails closed without credentials',async()=>{
+test('VirtualSMS adapter fails closed without credentials',{concurrency:false},async()=>{
   const prev=save();
   try {
-    delete process.env.VIRTUALSMS_API_KEY;
+    process.env.VIRTUALSMS_API_KEY='';
     const {virtualSmsProvider}=await import('../api/_lib/virtualsms-provider.js?guard='+Date.now());
     await assert.rejects(()=>virtualSmsProvider.reserveNumber({id:'whatsapp-0',name:'WhatsApp'}),e=>e.code==='PROVIDER_CREDENTIALS_MISSING');
   } finally { restore(prev); }
 });
 
-test('VirtualSMS purchase requires written authorization and canary allowlist',async()=>{
+test('VirtualSMS purchase requires written authorization and canary allowlist',{concurrency:false},async()=>{
   const prev=save();
   try {
     process.env.VIRTUALSMS_API_KEY='test-key';
@@ -27,7 +27,7 @@ test('VirtualSMS purchase requires written authorization and canary allowlist',a
   } finally { restore(prev); }
 });
 
-test('VirtualSMS normalizes purchase and SMS responses',async()=>{
+test('VirtualSMS normalizes purchase and SMS responses',{concurrency:false},async()=>{
   const prev=save(), originalFetch=globalThis.fetch;
   try {
     process.env.VIRTUALSMS_API_KEY='test-key';
