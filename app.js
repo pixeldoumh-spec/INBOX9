@@ -1966,6 +1966,10 @@ function bindEvents() {
   document.querySelectorAll('[data-action="close-security"]').forEach((node) => node.addEventListener('click', closeSecurity));
   document.querySelectorAll('[data-action="logout-all"]').forEach((node) => node.addEventListener('click', logoutAll));
   document.querySelectorAll('[data-action="notifications"]').forEach((node) => node.addEventListener('click', openNotifications));
+  document.querySelectorAll('[data-action="focus-service-search"]').forEach((node) => node.addEventListener('click', () => {
+    document.getElementById('marketplace-services')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    window.setTimeout(() => document.getElementById('service-search')?.focus({ preventScroll: true }), 350);
+  }));
   document.querySelectorAll('[data-action="notifications-read"]').forEach((node)=>node.addEventListener('click',()=>void markAllNotificationsRead()));
   document.querySelectorAll('[data-notification-page]').forEach((node)=>node.addEventListener('click',()=>{const id=node.dataset.notificationId,page=node.dataset.notificationPage;void markNotificationRead(id).finally(()=>{state.notifications=state.notifications.map(item=>item.id===id?{...item,read:true}:item);state.notificationsOpen=false;if(page)setPage(page);else render();});}));
   document.getElementById('change-password-form')?.addEventListener('submit', submitChangePassword);
