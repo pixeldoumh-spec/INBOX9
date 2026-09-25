@@ -1,6 +1,6 @@
 # INBOX9 Frontend Architecture — v1
 
-Status: Phase 3 service + activation flow completed.
+Status: Phase 4 wallet, notifications, support, account + resilience completed.
 
 ## Source basis
 
@@ -55,6 +55,18 @@ The service and activation path is now implemented end-to-end at the customer-ap
 12. Terminal states are rendered separately: Completed, Expired, Refunded, Cancelled.
 13. Provider and internal IDs remain behind the API boundary.
 
+## Phase 4 customer-account contract
+
+The account layer is now connected to the existing backend contracts:
+
+- Wallet balance remains PostgreSQL-authoritative.
+- UPI recharge submission accepts INR 100–5,000 plus a customer UTR and keeps the request pending until server-side payment verification.
+- Recharge history and wallet ledger are visible with credit/debit filtering.
+- Notifications remain persistent, support mark-all-read, and deep-link to related account/activation surfaces.
+- Support provides ticket creation, activation/recharge references, threaded message history, and customer replies.
+- Account provides display-name updates, password change, one-time recovery-code generation, password recovery, session listing/revocation, sign-out, and sign-out-everywhere.
+- Offline/reconnect state is surfaced in the app shell and server-backed queries are refreshed after reconnection.
+
 ## Production boundary
 
 The customer UI is ready for a real provider route, but the repository currently fails closed for production purchases when the approved real-provider credentials, mappings, authorization, and canary controls are not configured. No synthetic number/OTP lifecycle is presented as production telecom inventory.
@@ -83,5 +95,5 @@ Phase 0 — Architecture freeze: completed.
 Phase 1 — Frontend foundation: completed.
 Phase 2 — Apps launcher: completed.
 Phase 3 — Service and activation: completed.
-Phase 4 — Wallet, notifications, support, account: next.
-Phase 5 — Production certification.
+Phase 4 — Wallet, notifications, support, account: completed.
+Phase 5 — Production certification: next.
