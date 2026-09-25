@@ -40,24 +40,26 @@ import { SERVICE_LOGO_MANIFEST, SERVICE_LOGO_SPRITE } from './serviceLogoManifes
 
 function ServiceLogo({serviceId,name,size='md'}:{serviceId:string;name:string;size?:'sm'|'md'|'lg'}){
  const d=size==='lg'?104:size==='sm'?52:72;
+ const inner=Math.max(0,d-2);
  const {tileSize,columns,rows,path}=SERVICE_LOGO_SPRITE;
  const logo=SERVICE_LOGO_MANIFEST[serviceId];
  const index=logo?.spriteIndex ?? -1;
  const has=Boolean(logo&&index>=0&&index<columns*rows);
- const x=(Math.max(0,index)%columns)*tileSize;
- const y=Math.floor(Math.max(0,index)/columns)*tileSize;
- const scale=d/tileSize;
+ const column=Math.max(0,index)%columns;
+ const row=Math.floor(Math.max(0,index)/columns);
  const initials=name.trim().split(/\\s+/).slice(0,2).map(x=>x[0]).join('').toUpperCase()||'I9';
- const style:CSSProperties=has
-   ? {width:d,height:d,backgroundImage:`url(${path})`,backgroundSize:`${columns*tileSize*scale}px ${rows*tileSize*scale}px`,backgroundPosition:`${-x*scale}px ${-y*scale}px`,backgroundRepeat:'no-repeat'}
-   : {width:d,height:d};
- return <div className={`service-logo service-logo-${size}${has?'':' service-logo-fallback'}`} data-service-id={serviceId} data-logo-source={has?'sprite':'fallback'} style={style}>
-   {has?null:<><span>{initials}</span><Icon name="apps" size={size==='lg'?28:size==='sm'?17:21}/></>}
+ const artStyle:CSSProperties=has
+   ? {backgroundImage:`url(${path})`,backgroundSize:`${columns*inner}px ${rows*inner}px`,backgroundPosition:`${-column*inner}px ${-row*inner}px`,backgroundRepeat:'no-repeat'}
+   : {};
+ return <div className={`service-logo service-logo-${size}${has?'':' service-logo-fallback'}`} data-service-id={serviceId} data-logo-source={has?'sprite':'fallback'} style={{width:d,height:d}}>
+   <div className="service-logo-art" style={artStyle}>
+     {has?null:<div className="service-logo-fallback-content"><span>{initials}</span><Icon name="apps" size={size==='lg'?28:size==='sm'?17:21}/></div>}
+   </div>
  </div>;
 }
 
 function SearchField({value,onChange}:{value:string;onChange:(v:string)=>void}){return <label className="search-field"><Icon name="search" size={22}/><input value={value} onChange={e=>onChange(e.target.value)} placeholder="Search services..." aria-label="Search services"/>{value?<button type="button" onClick={()=>onChange('')} aria-label="Clear search"><Icon name="close" size={18}/></button>:null}</label>}
-function BottomNav(){const items=[['/apps','Apps','apps'],['/buy','Buy','buy'],['/active','Active','active'],['/account','Account','account']] as const; return <nav className="bottom-nav">{items.map(([to,label,icon])=><NavLink key={to} to={to} className={({isActive})=>`bottom-nav-item${isActive?' is-active':''}`}><Icon name={icon}/><span>{label}</span></NavLink>)}</nav>}
+function BottomNav(){const items=[['/apps','Apps','apps'],['/buy','Buy','buy'],['/active','Active','active'],['/account','Account','account']] as const; return <nav className="bottom-nav">{items.map(([to,label,icon])=><NavLink key={to} to={to} className={({isActive})=>`bottom-nav-item${isActive?' is-active':''}`}><Icon name={icon} size={21}/><span>{label}</span></NavLink>)}</nav>}
 function TopHeader(){const user=useSessionStore(s=>s.user); const notes=useQuery({queryKey:['notifications'],queryFn:getNotifications,staleTime:20_000,refetchInterval:30_000}); const wallet=useQuery({queryKey:['wallet'],queryFn:getWallet,enabled:Boolean(user),staleTime:10_000}); const unread=notes.data?.notifications.filter(n=>!n.read).length??0; return <header className="top-header"><Link className="brand" to="/apps"><span className="brand-mark">I9</span><span>INBOX9</span></Link><div className="header-actions"><Link className="wallet-pill" to="/wallet"><Icon name="wallet" size={18}/><span>₹{((wallet.data?.balancePaise??0)/100).toFixed(2)}</span><span className="wallet-add"><Icon name="plus" size={14}/></span></Link><Link className="notification-button" to="/notifications" aria-label="Notifications"><Icon name="bell" size={20}/>{unread?<span className="notification-badge">{unread>99?'99+':unread}</span>:<span className="notification-dot"/>}</Link><Link className="profile-button" to="/account"><span>{(user?.displayName||user?.email||'I').slice(0,1).toUpperCase()}</span></Link></div></header>}
 function AppShell(){
  const bootstrap=useSessionStore(s=>s.bootstrap);const user=useSessionStore(s=>s.user);const location=useLocation();
