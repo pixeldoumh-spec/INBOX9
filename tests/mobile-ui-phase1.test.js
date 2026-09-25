@@ -26,3 +26,13 @@ test('phase 2 keeps launcher tiles inside narrow mobile columns',()=>{
   assert.match(css,/\.catalog-apps \.service-logo-md\s*\{[\s\S]*?height:auto\s*!important/);
   assert.match(css,/@media \(max-width:380px\)\{[\s\S]*?\.catalog-apps \.service-logo-md\s*\{[\s\S]*?width:min\(64px,100%\)\s*!important/);
 });
+
+test('phase 2.1 normalizes the shared logo frame and bottom-nav optical icon sizing',()=>{
+  assert.match(app,/className="service-logo-art"/);
+  assert.match(app,/const inner=Math\.max\(0,d-2\)/);
+  assert.match(app,/backgroundSize:\`\$\{columns\*inner\}px \$\{rows\*inner\}px\`/);
+  assert.match(css,/\.service-logo\s*\{[\s\S]*?position:relative/);
+  assert.match(css,/\.service-logo-art\s*\{[\s\S]*?inset:1px/);
+  assert.match(css,/\.bottom-nav-item > svg\s*\{[\s\S]*?width:21px;\s*height:21px/);
+  assert.match(css,/\.bottom-nav-item:nth-child\(2\) > svg,.bottom-nav-item:nth-child\(4\) > svg\s*\{[\s\S]*?scale\(1\.08\)/);
+});
