@@ -928,7 +928,7 @@ function purchaseReviewModal() {
     '<section class="purchase-sheet inbox9-service-detail-sheet" role="dialog" aria-modal="true" aria-labelledby="purchase-title" tabindex="-1">' +
       '<div class="purchase-sheet-top inbox9-service-detail-top">' +
         '<button class="icon-btn inbox9-service-back" type="button" aria-label="Back to services" data-purchase-close>‹</button>' +
-        '<div><span class="kicker">SERVICE</span><h2 id="purchase-title">Number details</h2></div>' +
+        '<div><span class="kicker">Number details</span><h2 id="purchase-title">Review your number</h2></div>' +
         '<button class="icon-btn" type="button" aria-label="Close" data-purchase-close>×</button>' +
       '</div>' +
       '<div class="purchase-steps" aria-label="Purchase progress"><span class="purchase-step current"><b>1</b> Service</span><span class="purchase-step"><b>2</b> Confirm</span><span class="purchase-step"><b>3</b> Track</span></div>' +
