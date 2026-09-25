@@ -900,8 +900,15 @@ function openPurchaseReview(serviceId) {
 
 function closePurchaseReview() {
   if (state.purchaseFlow.submitting) return;
+  const returnToService = state.page === 'service' && state.selectedServiceId;
+  const serviceId = state.selectedServiceId;
   resetPurchaseFlow();
-  renderBuyCatalog();
+  if (returnToService) {
+    state.selectedServiceId = serviceId;
+    render();
+  } else {
+    renderBuyCatalog();
+  }
   restoreDialogFocus();
 }
 
@@ -1589,7 +1596,7 @@ function render() {
     return;
   }
   if (state.page === 'admin' && state.user?.role !== 'admin') state.page = 'buy';
-  const current = appNav().find(([id]) => id === state.page)?.[1] || 'Buy Number';
+  const current = state.page === 'service' ? 'Service Details' : (appNav().find(([id]) => id === state.page)?.[1] || 'Buy Number');
   document.getElementById('app').innerHTML = `
     <div class="app-shell">
       <aside class="sidebar ${state.mobileMenu ? 'open' : ''}" aria-label="Primary navigation">
@@ -1711,6 +1718,7 @@ function supportRecoveryCards(){return '<div class="support-recovery-grid"><butt
 function supportPage(){const tickets=Array.isArray(state.supportTickets)?state.supportTickets:[],form=state.supportForm||{};const activeOptions=state.active.map(i=>'<option value="'+esc(i.id)+'">'+esc(i.service)+' · '+esc(i.number)+'</option>').join('');const rechargeOptions=state.recharges.map(i=>'<option value="'+esc(i.id)+'">'+money(i.amountPaise)+' · '+esc(i.status)+' · UTR '+esc(i.utr)+'</option>').join('');return'<div class="support-page"><div class="section-head with-action"><div><span class="kicker">CUSTOMER CARE</span><h2>Help & Support</h2><p class="section-subcopy">Threaded conversations, historical references, and replies.</p></div><button class="refresh-btn" type="button" data-action="refresh-support">'+(state.supportLoading?'Refreshing…':'Refresh')+'</button></div>'+(state.supportError?'<div class="panel active-sync-error" role="alert"><span>'+esc(state.supportError)+'</span><button class="refresh-btn" type="button" data-action="refresh-support">Retry</button></div>':'')+'<section class="support-form-panel panel"><div class="panel-head"><div><h3>Report an issue</h3><span>Link an activation or recharge when possible.</span></div><span class="status-chip">SECURE THREAD</span></div><form id="support-form" class="support-form"><div class="support-form-grid"><label>Issue type<select name="category">'+SUPPORT_CATEGORIES.map(([id,label])=>'<option value="'+id+'" '+(form.category===id?'selected':'')+'>'+label+'</option>').join('')+'</select></label><label>Subject<input name="subject" maxlength="120" value="'+esc(form.subject||'')+'" required></label></div><label>Message<textarea name="message" maxlength="2000" rows="5" required>'+esc(form.message||'')+'</textarea></label><div class="support-form-grid"><label>Activation reference<select name="activationId"><option value="">Not linked</option>'+activeOptions+'</select></label><label>Recharge reference<select name="rechargeId"><option value="">Not linked</option>'+rechargeOptions+'</select></label></div><div class="support-form-actions"><span>Never share passwords, OTPs, or card PINs here.</span><button class="primary-btn" type="submit" '+(state.supportSubmitting?'disabled':'')+'>'+(state.supportSubmitting?'Sending…':'Create support ticket')+'</button></div></form></section>'+supportRecoveryCards()+(tickets.length?'<section class="support-tickets"><div class="section-head recent-section-head"><div><span class="kicker">YOUR TICKETS</span><h3>Support threads</h3></div><span class="result-note">'+tickets.length+' shown</span></div><div class="support-ticket-list">'+tickets.map(supportTicketCard).join('')+'</div></section>':'<div class="panel support-empty"><div class="empty-icon">?</div><h3>No support threads</h3><p>Create a thread when you need help.</p></div>')+'</div>';}
 function content() {
   if (state.loading) return `<div class="service-grid customer-service-grid catalog-initial-loading">${catalogLoadingMarkup()}</div>`;
+  if (state.page === 'service') return serviceDetailPage();
   if (state.page === 'active') return activePage();
   if (state.page === 'orders') return ordersPage();
   if (state.page === 'wallet') return walletPage();
@@ -1787,9 +1795,11 @@ function renderBuyCatalog() {
   const root = document.getElementById("content");
   if (!root || state.page !== "buy") return;
   const list = filteredMarketServices();
+  const drawer = root.querySelector(".inbox9-app-drawer-grid");
   const grid = root.querySelector(".service-grid");
   const result = root.querySelector(".market-result-count");
   const purchaseRoot = root.querySelector(".purchase-flow-root");
+  if (drawer) drawer.innerHTML = serviceAppDrawerMarkup(mobileAppsActive() ? mobileAppServices() : []);
   if (grid) grid.innerHTML = marketListMarkup(list);
   if (purchaseRoot) purchaseRoot.innerHTML = purchaseReviewModal();
   if (result) result.textContent = marketResultText(list.length, Math.min(state.marketVisibleCount, list.length));
@@ -1798,6 +1808,94 @@ function renderBuyCatalog() {
     node.classList.toggle("selected", node.dataset.category === state.category);
     node.setAttribute("aria-pressed", String(node.dataset.category === state.category));
   });
+}
+
+function mobileAppsActive() {
+  return document.body?.dataset?.i9Apps === 'true';
+}
+
+function mobileAppServices() {
+  const query = normalizeSearchText(state.search);
+  return (state.services || [])
+    .filter((service) => !query || normalizeSearchText(service.name).includes(query))
+    .slice()
+    .sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), undefined, { sensitivity: 'base', numeric: true }));
+}
+
+function serviceAppDrawerMarkup(list) {
+  const items = Array.isArray(list) ? list : [];
+  if (!items.length) {
+    return '<div class="inbox9-app-empty"><strong>No matching services</strong><span>Try another service name.</span></div>';
+  }
+  let previousLetter = '';
+  return items.map((service) => {
+    const name = String(service.name || 'Service');
+    const letter = /^[A-Za-z]/.test(name) ? name.charAt(0).toUpperCase() : '#';
+    const anchor = letter !== previousLetter ? ' data-app-letter="' + esc(letter) + '"' : '';
+    previousLetter = letter;
+    const initials = name.trim().split(/\s+/).slice(0, 2).map((part) => part.charAt(0)).join('').toUpperCase().slice(0, 2) || 'IN';
+    return '<button class="inbox9-app-tile" type="button" data-select-service="' + esc(service.id) + '" aria-label="' + esc('Open ' + name) + '"' + anchor + '>' +
+      '<span class="inbox9-app-icon">' + serviceLogoGlyph(service, initials) + '</span>' +
+      '<strong>' + esc(name) + '</strong>' +
+    '</button>';
+  }).join('');
+}
+
+function mobileAppIndexMarkup() {
+  return '<nav class="inbox9-app-index" aria-label="Alphabetical service index">' +
+    'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').map((letter) => '<button type="button" data-app-index="' + letter + '">' + letter + '</button>').join('') +
+    '<button type="button" data-app-index="#">#</button>' +
+  '</nav>';
+}
+
+function openServicePage(serviceId) {
+  const service = state.services.find((item) => item.id === serviceId);
+  if (!service) return;
+  state.selectedServiceId = serviceId;
+  state.purchaseFlow.step = 'service';
+  state.purchaseFlow.serviceId = serviceId;
+  state.purchaseFlow.serverId = null;
+  state.purchaseFlow.submitting = false;
+  state.purchaseFlow.error = '';
+  state.purchaseFlow.errorCode = '';
+  setPage('service', { serviceId });
+}
+
+function serviceDetailPage() {
+  const service = state.services.find((item) => item.id === state.selectedServiceId);
+  if (!service) {
+    state.page = 'buy';
+    state.selectedServiceId = null;
+    return buyPage();
+  }
+  const pricePaise = Number(service.pricePaise || 0);
+  const insufficient = state.balancePaise < pricePaise;
+  const purchasable = service.purchasable !== false;
+  const initials = String(service.name || 'IN').trim().split(/\s+/).slice(0, 2).map((part) => part.charAt(0)).join('').toUpperCase().slice(0, 2) || 'IN';
+  const action = !purchasable
+    ? '<button class="primary-btn" type="button" disabled>Unavailable</button>'
+    : insufficient
+      ? '<button class="primary-btn" type="button" data-page="wallet">Add funds <span>→</span></button>'
+      : '<button class="primary-btn" type="button" data-get-number="' + esc(service.id) + '">Get number <span>→</span></button>';
+  return '<section class="inbox9-service-page">' +
+    '<div class="inbox9-service-page-head"><button class="inbox9-service-back-page" type="button" data-page="buy" aria-label="Back to all apps">‹</button><div><span>SERVICE</span><h2>' + esc(service.name) + '</h2></div><span class="inbox9-service-page-price">' + money(pricePaise) + '</span></div>' +
+    '<div class="inbox9-service-page-hero"><div class="inbox9-service-page-icon">' + serviceLogoGlyph(service, initials) + '</div><div><span>' + esc(service.category || 'Service') + '</span><h1>' + esc(service.name) + '</h1><p>India (+91) · Virtual number</p></div><b class="' + (purchasable ? 'ready' : 'unavailable') + '">' + (purchasable ? 'Ready' : 'Unavailable') + '</b></div>' +
+    '<div class="inbox9-service-info-grid">' +
+      '<div><span>NUMBER</span><strong>+91</strong><small>India marketplace</small></div>' +
+      '<div><span>TYPE</span><strong>SMS verification</strong><small>One activation</small></div>' +
+      '<div><span>VALIDITY</span><strong>Provider-defined</strong><small>Shown during activation</small></div>' +
+      '<div><span>OTP</span><strong>Service dependent</strong><small>Timing varies by service</small></div>' +
+    '</div>' +
+    '<section class="inbox9-otp-system"><div class="inbox9-section-title"><span>OTP SYSTEM</span><h3>How your verification works</h3></div>' +
+      '<div class="inbox9-otp-step"><b>1</b><div><strong>Get a number</strong><span>A +91 number is reserved for this service.</span></div></div>' +
+      '<div class="inbox9-otp-line"></div>' +
+      '<div class="inbox9-otp-step"><b>2</b><div><strong>Use it on ' + esc(service.name) + '</strong><span>Enter the number where you need verification.</span></div></div>' +
+      '<div class="inbox9-otp-line"></div>' +
+      '<div class="inbox9-otp-step"><b>3</b><div><strong>Receive OTP</strong><span>Watch Active for the incoming verification code.</span></div></div>' +
+    '</section>' +
+    '<section class="inbox9-service-wallet"><div><span>WALLET BALANCE</span><strong>' + money(state.balancePaise) + '</strong><small>' + (insufficient ? 'Add funds before ordering' : 'Available for this activation') + '</small></div><div><span>AFTER PURCHASE</span><strong>' + (insufficient ? '—' : money(Math.max(0, state.balancePaise - pricePaise))) + '</strong><small>Estimated remaining balance</small></div></section>' +
+    '<div class="inbox9-service-page-actions">' + action + '</div>' +
+  '</section>';
 }
 
 function buyPage() {
@@ -1809,7 +1907,11 @@ function buyPage() {
   const recentBlock = recentServices.length
     ? `<section class="market-recent" aria-label="Recently used services"><div class="market-recent-head"><div><span class="kicker">QUICK START</span><h3>Recently used</h3></div><span class="result-note">From your latest activations</span></div><div class="recent-service-chips">${recentServices.map((service) => `<button class="recent-service-chip" type="button" data-buy-recent-service="${esc(service.id)}"><span class="service-icon">${iconFor(service.category)}</span><span><strong>${esc(service.name)}</strong><small>${esc(service.category)} · ${money(service.pricePaise)}</small></span><b>→</b></button>`).join('')}</div></section>`
     : '';
-  return `<div class="market-page" id="marketplace-services">
+  const mobileDrawer = '<section class="inbox9-app-drawer" aria-label="All services">' +
+    '<div class="inbox9-app-drawer-head"><h2>All apps</h2><button type="button" data-page="account">Manage</button></div>' +
+    '<div class="inbox9-app-drawer-list"><div class="inbox9-app-drawer-grid">' + serviceAppDrawerMarkup(mobileAppsActive() ? mobileAppServices() : []) + '</div>' + mobileAppIndexMarkup() + '</div>' +
+  '</section>';
+    return mobileDrawer + `<div class="market-page" id="marketplace-services">
     ${recentBlock}
     <div class="section-head market-section-head">
       <div><span class="kicker">MARKETPLACE / +91</span><h2>Choose a service</h2><p class="section-subcopy">Pick the service you need. Choose a service, review the price, and start your activation.</p></div>
@@ -2166,6 +2268,18 @@ function bindMarketplaceEvents() {
     if (selectService && root.contains(selectService)) {
       if (selectService.disabled) return;
       openPurchaseReview(selectService.dataset.selectService);
+      return;
+    }
+
+    const mobileSelectService = event.target.closest("[data-select-service]");
+    if (mobileSelectService && root.contains(mobileSelectService)) {
+      openServicePage(mobileSelectService.dataset.selectService);
+      return;
+    }
+
+    const getNumber = event.target.closest("[data-get-number]");
+    if (getNumber && root.contains(getNumber)) {
+      openPurchaseReview(getNumber.dataset.getNumber);
       return;
     }
 
