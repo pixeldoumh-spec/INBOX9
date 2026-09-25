@@ -642,10 +642,8 @@ function toggleServiceDetails(serviceId) {
 
 async function bootstrapSession() {
   state.bootstrapError = '';
-  const hadAuthenticatedShell = Boolean(state.user);
   state.loading = true;
-  // Keep the authenticated shell mounted during session verification.
-  if (!hadAuthenticatedShell) render();
+  showStartupSplash();
   try {
     const session = await api('/api/auth/me');
     state.user = session.user;
@@ -664,6 +662,7 @@ async function bootstrapSession() {
     return false;
   } finally {
     state.loading = false;
+    document.getElementById('app')?.setAttribute('aria-busy', 'false');
     render();
   }
 }
@@ -1526,8 +1525,15 @@ function bootstrapErrorPage() {
   return '<div class="auth-shell"><div class="auth-card"><div class="brand-row auth-brand"><div class="brand-mark">ϟ</div><div><div class="brand-name">INBOX9</div><div class="brand-sub">OTP MARKETPLACE</div></div></div><span class="kicker">CONNECTION CHECK</span><h1>We could not load INBOX9</h1><p class="auth-copy">' + message + '</p><button class="primary-btn auth-submit" type="button" data-action="retry-bootstrap">Retry</button><div class="auth-note">Your account data remains on the server. A temporary connection problem does not sign you out.</div></div></div>';
 }
 
-function sessionBootstrapPage() {
-  return '<div class="auth-shell"><div class="auth-card auth-card-loading"><div class="brand-row auth-brand"><div class="brand-mark">ϟ</div><div><div class="brand-name">INBOX9</div><div class="brand-sub">OTP MARKETPLACE</div></div></div><span class="kicker">SECURE SESSION</span><h1>Restoring your session</h1><p class="auth-copy">Checking your secure session. Your account is not being signed out.</p><div class="boot-loader" role="status" aria-label="Restoring session"><div class="boot-spinner" aria-hidden="true"></div><div class="boot-loader-text">Loading your marketplace…</div></div><div class="auth-note">Please wait a moment while INBOX9 restores your account.</div></div></div>';
+function startupSplashPage() {
+  return '<div class="boot-loader" role="status" aria-label="Loading INBOX9"><div class="boot-loader-inner"><div class="boot-brand"><span class="boot-brand-mark" aria-hidden="true">ϟ</span><span><strong class="boot-brand-name">INBOX9</strong><span class="boot-brand-sub">OTP MARKETPLACE</span></span></div></div></div>';
+}
+
+function showStartupSplash() {
+  const app = document.getElementById('app');
+  if (!app) return;
+  app.setAttribute('aria-busy', 'true');
+  app.innerHTML = startupSplashPage();
 }
 
 function securityModal() {
@@ -1537,9 +1543,7 @@ function securityModal() {
 function render() {
   if (!state.user) {
     syncOverlayScrollLock();
-    document.getElementById('app').innerHTML = state.loading
-      ? sessionBootstrapPage()
-      : (state.bootstrapError ? bootstrapErrorPage() : authPage());
+    document.getElementById('app').innerHTML = state.bootstrapError ? bootstrapErrorPage() : authPage();
     bindEvents();
     return;
   }
