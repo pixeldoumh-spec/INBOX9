@@ -1589,23 +1589,30 @@ function render() {
 
 function hero() {
   const activeCount = state.active.length;
-  return `<section class="hero-strip premium-hero">
-    <div class="hero-copy">
-      <div class="hero-eyebrow"><span class="pulse-dot"></span><span>NUMBER MARKETPLACE</span><span class="hero-eyebrow-sep">/</span><span>TRACK IN ACTIVE</span></div>
-      <h1>Get a number. Get your code. Keep moving.</h1>
-      <p>Pick a service and track the activation from one focused workspace. Number handling stays behind the scenes.</p>
-      <div class="hero-actions">
-        <button class="primary-btn hero-primary" type="button" data-page="buy">Browse services <span>→</span></button>
+  const availableCount = state.services.filter((service) => service.purchasable !== false).length;
+  return `<section class="hero-strip premium-hero marketplace-hero">
+    <div class="marketplace-hero-copy">
+      <div class="hero-eyebrow"><span class="pulse-dot"></span><span>INBOX9 MARKETPLACE</span><span class="hero-eyebrow-sep">/</span><span>INDIA +91</span></div>
+      <h1>Find a service. Get a number. Receive your OTP.</h1>
+      <p>Browse the catalog, check the current route state, and start an activation only when a verified provider route is available.</p>
+      <label class="search-box premium-search marketplace-hero-search" aria-label="Search services">
+        <span class="search-glyph">⌕</span>
+        <input id="service-search" value="${esc(state.search)}" placeholder="Search WhatsApp, Telegram, Google…" autocomplete="off" spellcheck="false">
+        <kbd>/</kbd>
+      </label>
+      <div class="marketplace-hero-actions">
+        <button class="primary-btn hero-primary" type="button" data-action="focus-service-search">Browse marketplace <span>→</span></button>
         <button class="ghost-btn" type="button" data-page="wallet">Add funds <span>+</span></button>
       </div>
     </div>
-    <div class="hero-dashboard">
-      <div class="hero-live"><span class="live-dot"></span><strong>Account ready</strong><span>SECURE SESSION</span></div>
-      <div class="hero-stat-grid">
-        <div class="hero-stat"><span>Services</span><strong>${state.services.length.toLocaleString()}</strong><small>ready to browse</small></div>
-        <div class="hero-stat"><span>Number validity</span><strong>Varies</strong><small>provider-defined validity</small></div>
-        <div class="hero-stat"><span>Active now</span><strong>${activeCount}</strong><small>${activeCount === 1 ? 'activation' : 'activations'}</small></div>
+    <div class="marketplace-hero-side">
+      <div class="hero-live"><span class="live-dot"></span><strong>Live catalog</strong><span>SERVER-SYNCED</span></div>
+      <div class="marketplace-hero-stats">
+        <div class="marketplace-hero-stat"><span>Catalog</span><strong>${state.services.length.toLocaleString()}</strong><small>services listed</small></div>
+        <div class="marketplace-hero-stat"><span>Buyable now</span><strong>${availableCount.toLocaleString()}</strong><small>verified routes</small></div>
+        <div class="marketplace-hero-stat"><span>Active</span><strong>${activeCount}</strong><small>${activeCount === 1 ? 'activation' : 'activations'}</small></div>
       </div>
+      <div class="marketplace-country-card"><span class="country-flag-badge">IN</span><div><strong>India</strong><small>+91 virtual-number routes</small></div><span class="country-live-dot"></span></div>
     </div>
   </section>`;
 }
@@ -1686,14 +1693,16 @@ function serviceCard(service) {
   const balanceDelta = Number(service.pricePaise || 0) - state.balancePaise;
   const balanceReady = !insufficient;
   const walletLabel = balanceReady ? 'Wallet ready' : 'Add ' + money(Math.max(0, balanceDelta));
-  return '<article class="market-service-group customer-service-card ' + (!purchasable ? ' unavailable' : '') + (expanded ? ' expanded' : '') + '">' +
-    '<button class="service-group-header customer-service-main" type="button" data-toggle-service="' + esc(service.id) + '" aria-expanded="' + String(expanded) + '" aria-controls="details-' + esc(service.id) + '">' +
-      '<span class="service-icon service-brand-icon">' + iconFor(service.category) + '</span>' +
-      '<span class="service-group-copy"><span class="service-category">' + esc(service.category) + '</span><strong>' + esc(service.name) + '</strong><small>+91 · Provider validity varies · OTP timing varies</small></span>' +
-      '<span class="service-group-meta"><span class="service-price">' + priceLabel + '</span></span>' +
-      '<span class="service-group-chevron" aria-hidden="true">⌄</span>' +
+  const initials = String(service.name || 'IN').trim().split(/\\s+/).slice(0, 2).map((part) => part.charAt(0)).join('').toUpperCase().slice(0, 2) || 'IN';
+  const availabilityLabel = purchasable ? 'Available to buy' : 'Currently unavailable';
+  return '<article class="market-service-group customer-service-card marketplace-service-card ' + (!purchasable ? ' unavailable' : '') + (expanded ? ' expanded' : '') + '">' +
+    '<button class="service-group-header customer-service-main marketplace-service-main" type="button" data-toggle-service="' + esc(service.id) + '" aria-expanded="' + String(expanded) + '" aria-controls="details-' + esc(service.id) + '">' +
+      '<span class="service-icon service-brand-icon marketplace-service-logo"><span>' + esc(initials) + '</span><small>' + iconFor(service.category) + '</small></span>' +
+      '<span class="service-group-copy marketplace-service-copy"><span class="service-category">' + esc(service.category) + '</span><strong>' + esc(service.name) + '</strong><small>India (+91) · Provider-defined validity</small></span>' +
+      '<span class="service-group-meta marketplace-service-meta"><span class="marketplace-availability ' + (purchasable ? 'available' : 'unavailable') + '"><i></i>' + esc(availabilityLabel) + '</span><span class="service-price">' + priceLabel + '</span></span>' +
+      '<span class="service-group-chevron marketplace-service-chevron" aria-hidden="true">⌄</span>' +
     '</button>' +
-    '<div class="customer-service-bottom"><div class="customer-service-facts"><span class="customer-service-fact"><b>Varies</b> provider validity</span><span class="customer-service-fact"><b>+91</b> number format</span><span class="customer-service-fact"><b>Varies</b> OTP delivery</span></div><div class="customer-service-action"><span class="wallet-ready-chip ' + (purchasable ? (balanceReady ? 'ready' : 'needs-funds') : 'needs-funds') + '">' + esc(purchasable ? walletLabel : 'Provider unavailable') + '</span><button class="buy-btn customer-buy" type="button" data-buy-service="' + esc(service.id) + '"' + (!purchasable ? ' disabled' : '') + '>' + actionLabel + '</button></div></div>' +
+    '<div class="customer-service-bottom marketplace-service-bottom"><div class="customer-service-facts marketplace-service-facts"><span class="customer-service-fact"><b>+91</b> India</span><span class="customer-service-fact"><b>Varies</b> OTP delivery</span><span class="customer-service-fact"><b>Secure</b> checkout</span></div><div class="customer-service-action"><span class="wallet-ready-chip ' + (purchasable ? (balanceReady ? 'ready' : 'needs-funds') : 'needs-funds') + '">' + esc(purchasable ? walletLabel : 'Route not active') + '</span><button class="buy-btn customer-buy" type="button" data-buy-service="' + esc(service.id) + '"' + (!purchasable ? ' disabled' : '') + '>' + actionLabel + '</button></div></div>' +
     (expanded ? serviceDetailsMarkup() : '') +
   '</article>';
 }
@@ -1737,11 +1746,10 @@ function buyPage() {
       <div><span class="kicker">MARKETPLACE / +91</span><h2>Choose a service</h2><p class="section-subcopy">Pick the service you need. Choose a service, review the price, and start your activation.</p></div>
       <div class="market-summary"><span class="summary-dot"></span><strong>${list.length.toLocaleString()}</strong><span>matches</span></div>
     </div>
-    <div class="market-country-strip"><div class="market-country-pill"><div><strong>+91 number format</strong><small>Supported marketplace format</small></div></div><div class="country-note">Number format is shown before activation</div></div>
-    <div class="controls market-controls">
-      <div class="toolbar market-toolbar">
-        <label class="search-box premium-search" aria-label="Search services"><span class="search-glyph">⌕</span><input id="service-search" value="${esc(state.search)}" placeholder="Search ${state.services.length.toLocaleString()} services…" autocomplete="off" spellcheck="false"><kbd>/</kbd></label>
-        <div class="category-scroll-wrap"><div class="category-scroll" role="group" aria-label="Service categories">${state.catalogCategories.map((category) => `<button class="filter-btn ${state.category === category ? "selected" : ""}" type="button" data-category="${esc(category)}" aria-pressed="${state.category === category}"><span>${esc(category)}</span><span class="filter-count">${(state.categoryCounts[category] || 0).toLocaleString()}</span></button>`).join("")}</div></div>
+    <div class="market-country-strip marketplace-country-strip"><div class="market-country-pill marketplace-country-pill"><span class="country-flag-badge">IN</span><div><strong>India (+91)</strong><small>Current marketplace country</small></div><span class="country-live-dot"></span></div><div class="country-note">Provider inventory is checked before a purchase can proceed.</div></div>
+    <div class="controls market-controls marketplace-controls">
+      <div class="toolbar market-toolbar marketplace-toolbar">
+        <div class="category-scroll-wrap marketplace-category-wrap"><div class="category-scroll" role="group" aria-label="Service categories">${state.catalogCategories.map((category) => `<button class="filter-btn ${state.category === category ? "selected" : ""}" type="button" data-category="${esc(category)}" aria-pressed="${state.category === category}"><span>${esc(category)}</span><span class="filter-count">${(state.categoryCounts[category] || 0).toLocaleString()}</span></button>`).join("")}</div></div>
       </div>
     </div>
     <div class="market-results-bar"><span class="result-note market-result-count" aria-live="polite">${esc(marketResultText(list.length, showing))}</span><span class="market-freshness ${catalogUnavailable ? 'stale' : ''}">${esc(freshness)}</span><span class="market-filter-state ${hasActiveMarketplaceFilters() ? 'active' : ''}">${hasActiveMarketplaceFilters() ? 'Filters active' : 'All services'}</span><button class="market-clear-btn" type="button" data-clear-market${hasActiveMarketplaceFilters() ? '' : ' hidden'}>Clear</button><span class="market-hint">Final activation eligibility is confirmed when you start an activation</span></div>
