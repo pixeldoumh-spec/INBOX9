@@ -1,477 +1,336 @@
-// Generated from INBOX9_service_logo_manifest_2026-09-25.json: 155 supplied service logos.
+import { SERVICE_LOGO_SPRITE_DATA_URL } from './serviceLogoSprite';
+
+// Generated from the 2026-09-25 HD logo packages; user-confirmed duplicate services excluded.
 export const SERVICE_LOGO_SPRITE = {
-  path: '/service-icons-sprite.webp',
-  tileSize: 48,
-  columns: 12,
-  rows: 18,
+  path: SERVICE_LOGO_SPRITE_DATA_URL,
+  tileSize: 96,
+  "columns": 12,
+  "rows": 9
 } as const;
 
-export const SERVICE_LOGO_MANIFEST: Record<string, { spriteIndex: number }> = 
-{
-  "svc-yono-bonus-51": {
+export const SERVICE_LOGO_MANIFEST: Record<string, { spriteIndex: number }> = {
+  "svc-joy-rummy": {
     "spriteIndex": 0
   },
-  "svc-joy-rummy": {
+  "svc-ind-rummy": {
     "spriteIndex": 1
   },
-  "svc-ind-rummy": {
+  "svc-inr-rummy": {
     "spriteIndex": 2
   },
-  "svc-inr-rummy": {
+  "svc-rumble-rummy": {
     "spriteIndex": 3
   },
-  "svc-rumble-rummy": {
+  "svc-bingo-101": {
     "spriteIndex": 4
   },
-  "svc-bingo-101": {
+  "svc-spin-101": {
     "spriteIndex": 5
   },
-  "svc-spin-101": {
+  "svc-diwa-top": {
     "spriteIndex": 6
   },
-  "svc-diwa-top": {
+  "svc-jaiho-slots": {
     "spriteIndex": 7
   },
-  "svc-jaiho-slots": {
+  "svc-rummy-91": {
     "spriteIndex": 8
   },
-  "svc-rummy-91": {
+  "svc-max-rummy": {
     "spriteIndex": 9
   },
-  "svc-max-rummy": {
+  "svc-gold-rummy": {
     "spriteIndex": 10
   },
-  "svc-gold-rummy": {
+  "svc-win-rummy": {
     "spriteIndex": 11
   },
-  "svc-win-rummy": {
+  "svc-diwa-x": {
     "spriteIndex": 12
   },
-  "svc-diwa-x": {
+  "svc-jaiho-rummy": {
     "spriteIndex": 13
   },
-  "svc-jaiho-rummy": {
+  "svc-jaiho-91": {
     "spriteIndex": 14
   },
-  "svc-jaiho-91": {
+  "svc-diwa-win": {
     "spriteIndex": 15
   },
-  "svc-diwa-win": {
+  "svc-maha-games": {
     "spriteIndex": 16
   },
-  "svc-maha-games": {
+  "svc-jaiho-777-vip": {
     "spriteIndex": 17
   },
-  "svc-jaiho-777-vip": {
+  "svc-rummy-888": {
     "spriteIndex": 18
   },
-  "svc-rummy-888": {
+  "svc-dhan-game": {
     "spriteIndex": 19
   },
-  "svc-dhan-game": {
+  "svc-diwa-game": {
     "spriteIndex": 20
   },
-  "svc-diwa-game": {
+  "svc-diwa-vip": {
     "spriteIndex": 21
   },
-  "svc-diwa-vip": {
+  "svc-ind-club": {
     "spriteIndex": 22
   },
-  "svc-ind-club": {
+  "svc-diwa-slots": {
     "spriteIndex": 23
   },
-  "svc-all-yono-games": {
+  "svc-diwa-777": {
     "spriteIndex": 24
   },
-  "svc-diwa-slots": {
+  "svc-spin-crush": {
     "spriteIndex": 25
   },
-  "svc-diwa-777": {
+  "svc-spin-winner": {
     "spriteIndex": 26
   },
-  "svc-spin-crush": {
+  "svc-spin-gold": {
     "spriteIndex": 27
   },
-  "svc-spin-winner": {
+  "svc-slots-winner": {
     "spriteIndex": 28
   },
-  "svc-spin-gold": {
+  "svc-rummy-ludo": {
     "spriteIndex": 29
   },
-  "svc-slots-winner": {
+  "svc-jaiho-spin": {
     "spriteIndex": 30
   },
-  "svc-rummy-ludo": {
+  "svc-yono-777": {
     "spriteIndex": 31
   },
-  "svc-jaiho-spin": {
+  "svc-rummy-77": {
     "spriteIndex": 32
   },
-  "svc-yono-777": {
+  "svc-777-game": {
     "spriteIndex": 33
   },
-  "svc-rummy-77": {
+  "svc-club-inr": {
     "spriteIndex": 34
   },
-  "svc-777-game": {
+  "svc-winzo-rummy": {
     "spriteIndex": 35
   },
-  "svc-club-inr": {
+  "svc-rummy-app": {
     "spriteIndex": 36
   },
-  "svc-winzo-rummy": {
+  "svc-ever-777": {
     "spriteIndex": 37
   },
-  "svc-rummy-app": {
+  "svc-inr-slots": {
     "spriteIndex": 38
   },
-  "svc-ever-777": {
+  "svc-good-slots": {
     "spriteIndex": 39
   },
-  "svc-inr-slots": {
+  "svc-boss-rummy": {
     "spriteIndex": 40
   },
-  "svc-good-slots": {
+  "svc-hindi-777": {
     "spriteIndex": 41
   },
-  "svc-boss-rummy": {
+  "svc-yn-777": {
     "spriteIndex": 42
   },
-  "svc-hindi-777": {
+  "svc-yes-spin": {
     "spriteIndex": 43
   },
-  "svc-yn-777": {
+  "svc-ok-rummy": {
     "spriteIndex": 44
   },
-  "svc-yes-spin": {
+  "svc-love-rummy": {
     "spriteIndex": 45
   },
-  "svc-ok-rummy": {
+  "svc-share-slots": {
     "spriteIndex": 46
   },
-  "svc-love-rummy": {
+  "svc-hi-rummy": {
     "spriteIndex": 47
   },
-  "svc-share-slots": {
+  "svc-jaiho-win": {
     "spriteIndex": 48
   },
-  "svc-hi-rummy": {
+  "svc-goa-spin": {
     "spriteIndex": 49
   },
-  "svc-rani-slots": {
+  "svc-slots-spin": {
     "spriteIndex": 50
   },
-  "svc-jaiho-win": {
+  "svc-mqm-bet": {
     "spriteIndex": 51
   },
-  "svc-goa-spin": {
+  "svc-saga-slots": {
     "spriteIndex": 52
   },
-  "svc-slots-spin": {
+  "svc-rummy-yono": {
     "spriteIndex": 53
   },
-  "svc-mqm-bet": {
+  "svc-abc-rummy": {
     "spriteIndex": 54
   },
-  "svc-saga-slots": {
+  "svc-jaiho-arcade": {
     "spriteIndex": 55
   },
-  "svc-rummy-yono": {
+  "svc-neta-vip": {
     "spriteIndex": 56
   },
-  "svc-abc-rummy": {
+  "svc-mwm-bet": {
     "spriteIndex": 57
   },
-  "svc-jaiho-arcade": {
+  "svc-en-365": {
     "spriteIndex": 58
   },
-  "svc-neta-vip": {
+  "svc-101z-app": {
     "spriteIndex": 59
   },
-  "svc-mwm-bet": {
+  "svc-rummy-365": {
     "spriteIndex": 60
   },
-  "svc-en-365": {
+  "svc-ind-bingo": {
     "spriteIndex": 61
   },
-  "svc-101z-app": {
+  "svc-my-777": {
     "spriteIndex": 62
   },
-  "svc-rummy-365": {
+  "svc-bet-213-slots": {
     "spriteIndex": 63
   },
-  "svc-ind-bingo": {
+  "svc-gogo-rummy": {
     "spriteIndex": 64
   },
-  "svc-my-777": {
+  "svc-789-jackpot": {
     "spriteIndex": 65
   },
-  "svc-bet-213-slots": {
+  "svc-mdm-bet": {
     "spriteIndex": 66
   },
-  "svc-gogo-rummy": {
+  "svc-spin-lucky": {
     "spriteIndex": 67
   },
-  "svc-789-jackpot": {
+  "svc-ind-slots": {
     "spriteIndex": 68
   },
-  "svc-mdm-bet": {
+  "svc-mkm-bet": {
     "spriteIndex": 69
   },
-  "svc-spin-lucky": {
+  "svc-yono-maha-games": {
     "spriteIndex": 70
   },
-  "svc-ind-slots": {
+  "svc-mbm-bet": {
     "spriteIndex": 71
   },
-  "svc-mkm-bet": {
+  "svc-jaiho-777": {
     "spriteIndex": 72
   },
-  "svc-yono-maha-games": {
+  "svc-top-rummy": {
     "spriteIndex": 73
   },
-  "svc-game-rummy": {
+  "svc-spin-777": {
     "spriteIndex": 74
   },
-  "svc-mbm-bet": {
+  "svc-567-slots": {
     "spriteIndex": 75
   },
-  "svc-jaiho-777": {
+  "svc-yono-vip": {
     "spriteIndex": 76
   },
-  "svc-top-rummy": {
+  "svc-yono-slots": {
     "spriteIndex": 77
   },
-  "svc-spin-777": {
+  "svc-yono-rummy": {
     "spriteIndex": 78
   },
-  "svc-567-slots": {
+  "svc-money-rummy": {
     "spriteIndex": 79
   },
-  "svc-yono-vip": {
+  "svc-yn-rummy": {
     "spriteIndex": 80
   },
-  "svc-yono-slots": {
+  "svc-yoyo-slots": {
     "spriteIndex": 81
   },
-  "svc-yono-arcade": {
+  "svc-svip-777": {
     "spriteIndex": 82
   },
-  "svc-yono-rummy": {
+  "svc-rummy-zip": {
     "spriteIndex": 83
   },
-  "svc-yono-all-games": {
+  "svc-diwa-lucky": {
     "spriteIndex": 84
   },
-  "svc-yono-game": {
+  "svc-diwa-ace": {
     "spriteIndex": 85
   },
-  "svc-yono-games": {
+  "svc-diwa-king": {
     "spriteIndex": 86
   },
-  "svc-yono-app": {
+  "svc-diwa-play": {
     "spriteIndex": 87
   },
-  "svc-new-yono-app": {
+  "svc-jeet-spin": {
     "spriteIndex": 88
   },
-  "svc-all-rummy-apps": {
+  "svc-teen-patti-master": {
     "spriteIndex": 89
   },
-  "svc-money-rummy": {
+  "svc-bolly-game": {
     "spriteIndex": 90
   },
-  "svc-yn-rummy": {
+  "svc-t989": {
     "spriteIndex": 91
   },
-  "svc-yoyo-slots": {
+  "svc-rummy-mate": {
     "spriteIndex": 92
   },
-  "svc-svip-777": {
+  "svc-rummy-gold": {
     "spriteIndex": 93
   },
-  "svc-rummy-zip": {
+  "svc-tycoon": {
     "spriteIndex": 94
   },
-  "svc-diwa-lucky": {
+  "svc-k9": {
     "spriteIndex": 95
   },
-  "svc-diwa-ace": {
+  "svc-mmy": {
     "spriteIndex": 96
   },
-  "svc-diwa-king": {
+  "svc-bdg-game": {
     "spriteIndex": 97
   },
-  "svc-diwa-play": {
+  "svc-new-66-lotry": {
     "spriteIndex": 98
   },
-  "svc-diwa-bet": {
+  "svc-ww9": {
     "spriteIndex": 99
   },
-  "svc-diwa-spin": {
+  "svc-goplay11": {
     "spriteIndex": 100
   },
-  "svc-diwa-rummy": {
+  "svc-win-03": {
     "spriteIndex": 101
   },
-  "svc-diwa-club": {
+  "svc-woho-game": {
     "spriteIndex": 102
   },
-  "svc-diwa-91": {
+  "svc-come11": {
     "spriteIndex": 103
   },
-  "svc-diwa-gold": {
+  "svc-kaliwins": {
     "spriteIndex": 104
   },
-  "svc-jeet-spin": {
+  "svc-rummy-holly": {
     "spriteIndex": 105
   },
-  "svc-teen-patti-master": {
-    "spriteIndex": 109
-  },
-  "svc-bolly-game": {
-    "spriteIndex": 113
-  },
-  "svc-t989": {
-    "spriteIndex": 114
-  },
-  "svc-rummy-mate": {
-    "spriteIndex": 115
-  },
-  "svc-rummy-gold": {
-    "spriteIndex": 116
-  },
-  "svc-tycoon": {
-    "spriteIndex": 117
-  },
-  "svc-k9": {
-    "spriteIndex": 118
-  },
-  "svc-mmy": {
-    "spriteIndex": 119
-  },
-  "svc-bdg-game": {
-    "spriteIndex": 120
-  },
-  "svc-ww9": {
-    "spriteIndex": 122
-  },
-  "svc-goplay11": {
-    "spriteIndex": 123
-  },
-  "svc-win-03": {
-    "spriteIndex": 124
-  },
-  "svc-woho-game": {
-    "spriteIndex": 125
-  },
-  "svc-yono-slot": {
-    "spriteIndex": 126
-  },
-  "svc-come11": {
-    "spriteIndex": 127
-  },
-  "svc-kaliwins": {
-    "spriteIndex": 128
-  },
-  "svc-rummy-holly": {
-    "spriteIndex": 129
-  },
   "svc-rummy-nabob": {
-    "spriteIndex": 130
+    "spriteIndex": 106
   },
   "svc-rummy-ola": {
-    "spriteIndex": 131
-  },
-  "svc-diva-ace": {
-    "spriteIndex": 132
-  },
-  "svc-diva-lucky": {
-    "spriteIndex": 133
-  },
-  "svc-diva-king": {
-    "spriteIndex": 134
-  },
-  "svc-diva-x": {
-    "spriteIndex": 135
-  },
-  "svc-diva-top": {
-    "spriteIndex": 136
-  },
-  "svc-divavip": {
-    "spriteIndex": 137
-  },
-  "svc-diva-game": {
-    "spriteIndex": 138
-  },
-  "svc-diva-slots": {
-    "spriteIndex": 139
-  },
-  "svc-diva-777": {
-    "spriteIndex": 140
-  },
-  "svc-jai-ho-slots": {
-    "spriteIndex": 141
-  },
-  "svc-slot-spin": {
-    "spriteIndex": 142
-  },
-  "svc-rummy-modern": {
-    "spriteIndex": 146
-  },
-  "svc-all-rummy-app": {
-    "spriteIndex": 151
-  },
-  "svc-slots-777": {
-    "spriteIndex": 167
-  },
-  "svc-yono-rummy-2026": {
-    "spriteIndex": 172
-  },
-  "svc-yono-games-list": {
-    "spriteIndex": 175
-  },
-  "svc-rummy-vip-apk": {
-    "spriteIndex": 177
-  },
-  "svc-download-rummy-ludo": {
-    "spriteIndex": 178
-  },
-  "svc-crush-spin": {
-    "spriteIndex": 179
-  },
-  "svc-best-yono-app": {
-    "spriteIndex": 182
-  },
-  "svc-best-yono": {
-    "spriteIndex": 183
-  },
-  "svc-download-yono-rummy": {
-    "spriteIndex": 185
-  },
-  "svc-3-patti-master": {
-    "spriteIndex": 187
-  },
-  "svc-yono-arcarde": {
-    "spriteIndex": 197
-  },
-  "svc-download-rummy-365": {
-    "spriteIndex": 201
-  },
-  "svc-rummy-777": {
-    "spriteIndex": 202
-  },
-  "svc-yono-yoyo-slots": {
-    "spriteIndex": 205
-  },
-  "svc-en-365-games": {
-    "spriteIndex": 208
-  },
-  "svc-diwa-slot": {
-    "spriteIndex": 210
-  },
-  "svc-all-yono-slots": {
-    "spriteIndex": 212
+    "spriteIndex": 107
   }
-}
-;
+};
