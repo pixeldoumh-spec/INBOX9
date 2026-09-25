@@ -1,8 +1,20 @@
 (() => {
   const ROOT_ID = 'inbox9-mobile-shell';
+  let cssLoaded = false;
+
   const isCustomerSurface = () => {
     const sidebar = document.querySelector('.sidebar');
     return Boolean(sidebar) && !sidebar.querySelector('[data-page="admin"]');
+  };
+
+  const loadCss = () => {
+    if (cssLoaded || document.querySelector('link[data-inbox9-mobile-shell]')) return;
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = '/customer/mobile-shell.css';
+    link.dataset.inbox9MobileShell = 'true';
+    document.head.appendChild(link);
+    cssLoaded = true;
   };
 
   const go = (page) => {
@@ -24,7 +36,10 @@
   };
 
   const mount = () => {
-    if (!isCustomerSurface() || document.getElementById(ROOT_ID)) return;
+    if (!isCustomerSurface()) return;
+    document.body.classList.add('inbox9-customer-mobile');
+    loadCss();
+    if (document.getElementById(ROOT_ID)) return;
     const nav = document.createElement('nav');
     nav.id = ROOT_ID;
     nav.className = 'mobile-bottom-nav';
@@ -45,9 +60,26 @@
     document.body.appendChild(nav);
   };
 
+  const bindServiceTiles = () => {
+    if (document.body.dataset.inbox9TileBinding === 'true') return;
+    document.body.dataset.inbox9TileBinding = 'true';
+    document.addEventListener('click', (event) => {
+      if (!document.body.classList.contains('inbox9-customer-mobile')) return;
+      const tile = event.target.closest('.customer-service-main[data-toggle-service]');
+      if (!tile) return;
+      const card = tile.closest('.customer-service-card');
+      const buy = card?.querySelector('.customer-buy:not([disabled])');
+      if (!buy) return;
+      event.preventDefault();
+      event.stopPropagation();
+      buy.click();
+    }, true);
+  };
+
   const sync = () => {
+    mount();
     const root = document.getElementById(ROOT_ID);
-    if (!root) return mount();
+    if (!root) return;
     const current = String(window.location.hash || '').replace(/^#/, '') || 'buy';
     root.querySelectorAll('[data-mobile-nav]').forEach((item) => {
       const page = item.dataset.mobileNav;
@@ -56,6 +88,7 @@
   };
 
   window.addEventListener('hashchange', sync);
-  new MutationObserver(() => { mount(); sync(); }).observe(document.getElementById('app') || document.body, { childList: true, subtree: true });
-  mount();
+  bindServiceTiles();
+  new MutationObserver(sync).observe(document.getElementById('app') || document.body, { childList: true, subtree: true });
+  sync();
 })();
