@@ -39,7 +39,7 @@ function Icon({name,size=20}:{name:IconName;size?:number}){return <svg width={si
 import { SERVICE_LOGO_MANIFEST, SERVICE_LOGO_SPRITE } from './serviceLogoManifest';
 
 function ServiceLogo({serviceId,name,size='md'}:{serviceId:string;name:string;size?:'sm'|'md'|'lg'}){
- const d=size==='lg'?104:size==='sm'?52:68;
+ const d=size==='lg'?104:size==='sm'?52:72;
  const {tileSize,columns,rows,path}=SERVICE_LOGO_SPRITE;
  const logo=SERVICE_LOGO_MANIFEST[serviceId];
  const index=logo?.spriteIndex ?? -1;
@@ -122,10 +122,10 @@ function Catalog({mode='apps'}:{mode?:'apps'|'buy'}){
   <div className="catalog-heading"><div><h1>{title}</h1><p>{mode==='buy'?'Pick a service and start an activation.':'Discover services and keep your recent apps close.'} {helper}</p></div>{mode==='buy'?<span className="catalog-chip">₹{((wallet.data?.balancePaise??0)/100).toFixed(2)}</span>:null}</div>
   {mode==='buy'?<div className="buy-wallet-strip"><div><span>Wallet balance</span><strong>₹{((wallet.data?.balancePaise??0)/100).toFixed(2)}</strong></div><Link className="outline-button compact-button" to="/wallet">Add funds</Link></div>:null}
   <SearchField value={search} onChange={setSearch}/>
-  <div className="category-scroll" aria-label="Service categories">
+  {categories.length>1?<div className="category-scroll" aria-label="Service categories">
    <button type="button" className={category==='all'?'category-chip is-selected':'category-chip'} onClick={()=>setCategory('all')}>All</button>
    {categories.map(item=><button type="button" className={category===item.value?'category-chip is-selected':'category-chip'} key={item.value} onClick={()=>setCategory(item.value)}>{item.value}<span>{item.count}</span></button>)}
-  </div>
+  </div>:null}
   {mode==='apps'&&!search.trim()&&category==='all'&&recentServices.length?<div className="recent-section"><div className="section-heading-row"><div><h2>Recent</h2><span className="section-subtle">Your latest services</span></div></div><div className="recent-row">{recentServices.map(item=><Link className="recent-tile" key={item!.id} to={`/apps/service/${encodeURIComponent(item!.id)}`} onClick={()=>remember(item!.id)}><ServiceLogo serviceId={item!.id} name={item!.name} size="sm"/><span>{item!.name}</span></Link>)}</div></div>:null}
   {q.isError?<div className="error-card">Service catalog is temporarily unavailable.</div>:null}
   {q.isPending?<div className="service-grid-placeholder">{Array.from({length:16},(_,i)=><div className="tile-skeleton" key={i}/>)}</div>:list.length?<div className="service-grid">{list.map(item=><Link className="service-tile" key={item.id} to={`/apps/service/${encodeURIComponent(item.id)}${mode==='buy'?'?buy=1':''}`} onClick={()=>remember(item.id)}><ServiceLogo serviceId={item.id} name={item.name}/><span className="service-name">{item.name}</span></Link>)}</div>:<div className="empty-state"><div className="empty-icon">⌕</div><h3>No services found</h3><p>{search||category!=='all'?'Try another search or category.':'No services are available right now.'}</p>{search||category!=='all'?<button type="button" className="outline-button compact-button" onClick={()=>{setSearch('');setCategory('all')}}>Reset filters</button>:null}</div>}
