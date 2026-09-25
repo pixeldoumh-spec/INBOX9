@@ -316,7 +316,7 @@ function applyStaticResponseHeaders(nodeRes, pathname, stats) {
 function frontendFilePath(pathname) {
   let decoded;
   try { decoded = decodeURIComponent(pathname); } catch { return null; }
-  const relative = decoded.replace(/^\\/+/, '');
+  const relative = decoded.replace(/^\/+/, '');
   const candidate = path.resolve(FRONTEND_DIST, relative || 'index.html');
   if (candidate !== FRONTEND_DIST && !candidate.startsWith(FRONTEND_DIST + path.sep)) return null;
   return { candidate, relative };
