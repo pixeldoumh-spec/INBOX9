@@ -8,6 +8,7 @@ import { cancelActivation, createActivation, getActivation, getActivations } fro
 import { getNotifications, markAllNotificationsRead } from '../api/notifications';
 import { getServices } from '../api/services';
 import { getWallet } from '../api/wallet';
+import { ApiRequestError } from '../api/client';
 import type { Notification } from '../api/types';
 import { useSessionStore } from '../state/session';
 import '../styles/globals.css';
@@ -57,10 +58,116 @@ function AppShell(){const bootstrap=useSessionStore(s=>s.bootstrap);const user=u
 function SessionBootstrap(){const setUser=useSessionStore(s=>s.setUser);const setBootstrap=useSessionStore(s=>s.setBootstrap);useEffect(()=>{let live=true;setBootstrap('loading');void getMe().then(r=>{if(!live)return;setUser(r.authenticated?r.user??null:null);setBootstrap(r.authenticated?'ready':'signed-out')}).catch(()=>{if(!live)return;setUser(null);setBootstrap('signed-out')});return()=>{live=false}},[setUser,setBootstrap]);return null}
 function Catalog({mode='apps'}:{mode?:'apps'|'buy'}){const q=useQuery({queryKey:['services'],queryFn:getServices,staleTime:60_000});const [search,setSearch]=useState('');const list=useMemo(()=>{const all=q.data?.services??[];const needle=search.trim().toLowerCase();return needle?all.filter(s=>`${s.name} ${s.category}`.toLowerCase().includes(needle)):all},[q.data?.services,search]);const title=mode==='buy'?'Buy a number':'Apps';return <section className="page-section"><div className="catalog-heading"><div><h1>{title}</h1><p>{q.isPending?'Loading services...':`${q.data?.services.length??0} services available`}</p></div>{mode==='buy'?<span className="catalog-chip">India · INR</span>:null}</div><SearchField value={search} onChange={setSearch}/>{q.isError?<div className="error-card">Service catalog is temporarily unavailable.</div>:null}{q.isPending?<div className="service-grid-placeholder">{Array.from({length:16},(_,i)=><div className="tile-skeleton" key={i}/>)}</div>:list.length?<div className="service-grid">{list.map(s=><Link className="service-tile" key={s.id} to={`/apps/service/${encodeURIComponent(s.id)}${mode==='buy'?'?buy=1':''}`}><ServiceLogo serviceId={s.id} name={s.name} position={s.catalogPosition}/><span className="service-name">{s.name}</span></Link>)}</div>:<div className="empty-state"><div className="empty-icon">⌕</div><h3>No services found</h3><p>Try another search.</p></div>}</section>}
 function AppsPage(){return <Catalog/>} function BuyPage(){return <Catalog mode="buy"/>}
-function ServicePage(){const {serviceId}=useParams();const navigate=useNavigate();const client=useQueryClient();const [pending,setPending]=useState(false);const [error,setError]=useState<string|null>(null);const services=useQuery({queryKey:['services'],queryFn:getServices,staleTime:60_000});const wallet=useQuery({queryKey:['wallet'],queryFn:getWallet,staleTime:10_000});const service=services.data?.services.find(s=>s.id===serviceId);if(services.isPending)return <section className="page-section"><div className="page-loading">Loading service...</div></section>;if(!service)return <section className="page-section"><Link className="back-link" to="/apps"><Icon name="back" size={18}/> Apps</Link><div className="error-card">Service not found.</div></section>;const selected=service;const price=selected.pricePaise/100;async function buy(){if(!selected.purchasable||pending)return;setPending(true);setError(null);try{const act=await createActivation(selected.id,`i9-${selected.id}-${crypto.randomUUID()}`);await client.invalidateQueries({queryKey:['wallet']});navigate(`/active/${encodeURIComponent(act.id)}`)}catch(reason){setError(reason instanceof Error?reason.message:'Could not create activation')}finally{setPending(false)}}return <section className="page-section service-detail"><Link className="back-link" to="/apps"><Icon name="back" size={18}/> Apps</Link><div className="service-hero"><ServiceLogo serviceId={service.id} name={service.name} size="lg" position={service.catalogPosition}/><div><h1>{service.name}</h1><p>{service.category}</p></div></div><div className="detail-grid"><div className="detail-card"><span>Price</span><strong>₹{price.toFixed(2)}</strong><small>Per activation</small></div><div className="detail-card"><span>Availability</span><strong>{service.availability||'—'}</strong><small>{service.stock==null?'Live inventory':`${service.stock} shown in catalog`}</small></div><div className="detail-card"><span>Wallet</span><strong>₹{((wallet.data?.balancePaise??0)/100).toFixed(2)}</strong><small>Current balance</small></div></div>{!service.purchasable?<div className="info-card"><Icon name="clock" size={20}/><div><strong>Buying is not enabled for this service yet.</strong><p>The catalog is connected; live provider purchasing is enabled separately.</p></div></div>:null}{error?<div className="form-error" role="alert">{error}</div>:null}<button className="primary-button primary-button-large" onClick={()=>void buy()} disabled={!service.purchasable||pending}>{pending?'Starting...':`Buy number · ₹${price.toFixed(2)}`}<Icon name="arrow" size={19}/></button><div className="trust-row"><span><Icon name="check" size={16}/> Secure session</span><span><Icon name="check" size={16}/> India · +91</span><span><Icon name="check" size={16}/> 25 min validity</span></div></section>}
+function activationErrorMessage(reason:unknown){
+ if(reason instanceof ApiRequestError){
+  switch(reason.code){
+   case 'INSUFFICIENT_BALANCE': return 'Your wallet balance is too low for this number.';
+   case 'OUT_OF_STOCK': return 'This service is temporarily out of stock. Please try again shortly.';
+   case 'SERVICE_UNAVAILABLE': return 'This service is temporarily unavailable. Please try another service.';
+   case 'REAL_PROVIDER_REQUIRED':
+   case 'PROVIDER_RESELLER_AUTHORIZATION_REQUIRED':
+   case 'PROVIDER_CANARY_DISABLED':
+   case 'VIRTUALSMS_SERVICE_MAPPING_MISSING':
+   case 'VIRTUALSMS_SERVICE_NOT_ALLOWLISTED':
+     return 'Live purchase is not enabled for this service yet.';
+   default: return reason.message;
+  }
+ }
+ return reason instanceof Error?reason.message:'Could not create activation';
+}
+function ServicePage(){
+ const {serviceId}=useParams();
+ const navigate=useNavigate();
+ const client=useQueryClient();
+ const [pending,setPending]=useState(false);
+ const [error,setError]=useState<string|null>(null);
+ const services=useQuery({queryKey:['services'],queryFn:getServices,staleTime:60_000});
+ const wallet=useQuery({queryKey:['wallet'],queryFn:getWallet,staleTime:10_000});
+ const service=services.data?.services.find(s=>s.id===serviceId);
+ if(services.isPending)return <section className="page-section"><div className="page-loading">Loading service...</div></section>;
+ if(!service)return <section className="page-section"><Link className="back-link" to="/apps"><Icon name="back" size={18}/> Apps</Link><div className="error-card">Service not found.</div></section>;
+ const selected=service;
+ const price=selected.pricePaise/100;
+ const balancePaise=wallet.data?.balancePaise??0;
+ const insufficient=wallet.isSuccess && balancePaise<selected.pricePaise;
+ async function buy(){
+  if(!selected.purchasable||pending||insufficient)return;
+  setPending(true);setError(null);
+  try{
+   const act=await createActivation(selected.id,`i9-${selected.id}-${crypto.randomUUID()}`);
+   await Promise.all([
+    client.invalidateQueries({queryKey:['wallet']}),
+    client.invalidateQueries({queryKey:['activations']})
+   ]);
+   navigate(`/active/${encodeURIComponent(act.id)}`);
+  }catch(reason){setError(activationErrorMessage(reason));}
+  finally{setPending(false);}
+ }
+ return <section className="page-section service-detail">
+  <Link className="back-link" to="/apps"><Icon name="back" size={18}/> Apps</Link>
+  <div className="service-hero"><ServiceLogo serviceId={selected.id} name={selected.name} size="lg" position={selected.catalogPosition}/><div><h1>{selected.name}</h1><p>{selected.category}</p></div></div>
+  <div className="detail-grid">
+   <div className="detail-card"><span>Price</span><strong>₹{price.toFixed(2)}</strong><small>Per activation</small></div>
+   <div className="detail-card"><span>Availability</span><strong>{selected.availability||'—'}</strong><small>{selected.stock==null?'Live inventory':`${selected.stock} shown in catalog`}</small></div>
+   <div className="detail-card"><span>Wallet</span><strong>₹{(balancePaise/100).toFixed(2)}</strong><small>{wallet.isPending?'Loading balance':'Current balance'}</small></div>
+  </div>
+  {!selected.purchasable?<div className="info-card"><Icon name="clock" size={20}/><div><strong>Buying is not enabled for this service yet.</strong><p>The catalog is connected; live provider purchasing is enabled separately.</p></div></div>:null}
+  {insufficient?<div className="info-card"><Icon name="wallet" size={20}/><div><strong>Not enough wallet balance.</strong><p>You need ₹{((selected.pricePaise-balancePaise)/100).toFixed(2)} more to buy this number.</p><Link className="text-button compact-button" to="/wallet">Add funds <Icon name="arrow" size={16}/></Link></div></div>:null}
+  {error?<div className="form-error" role="alert">{error}</div>:null}
+  {wallet.isError?<div className="error-card" role="alert">Wallet balance could not be verified. Please retry.</div>:null}
+  <button className="primary-button primary-button-large" onClick={()=>void buy()} disabled={!selected.purchasable||pending||insufficient||wallet.isPending||wallet.isError}>{pending?'Starting...':`Buy number · ₹${price.toFixed(2)}`}<Icon name="arrow" size={19}/></button>
+  <div className="trust-row"><span><Icon name="check" size={16}/> Secure session</span><span><Icon name="check" size={16}/> India · +91</span><span><Icon name="clock" size={16}/> Live status updates</span></div>
+ </section>
+}
 function statusClass(status:string){return `status-pill status-${status.toLowerCase()}`}
 function ActivePage(){const q=useQuery({queryKey:['activations'],queryFn:getActivations,refetchInterval:10_000});const catalog=useQuery({queryKey:['services'],queryFn:getServices,staleTime:60_000});const positionOf=(id:string)=>catalog.data?.services.find(s=>s.id===id)?.catalogPosition;const list=useMemo(()=>[...(q.data?.activations??[])].sort((a,b)=>(b.createdAt??0)-(a.createdAt??0)),[q.data?.activations]);return <section className="page-section"><div className="catalog-heading"><div><h1>Active</h1><p>Track your numbers and OTPs.</p></div><span className="catalog-chip">{list.length}</span></div>{q.isError?<div className="error-card">Could not load activations.</div>:null}{q.isPending?<div className="list-skeleton">{Array.from({length:4},(_,i)=><div className="row-skeleton" key={i}/>)}</div>:list.length?<div className="activation-list">{list.map(a=><Link className="activation-card" key={a.id} to={`/active/${encodeURIComponent(a.id)}`}><ServiceLogo serviceId={a.serviceId} name={a.service||a.serviceId} size="sm" position={positionOf(a.serviceId)}/><div className="activation-main"><div className="activation-title"><strong>{a.service||a.serviceId}</strong><span className={statusClass(a.status)}>{a.status}</span></div><div className="activation-meta"><span>{a.number||'Number pending'}</span><span>₹{(a.pricePaise/100).toFixed(2)}</span></div>{a.otp?<div className="mini-otp">OTP <b>{a.otp}</b></div>:null}</div><Icon name="arrow" size={18}/></Link>)}</div>:<div className="empty-state activation-empty"><div className="empty-icon"><Icon name="active" size={28}/></div><h3>No activations yet</h3><p>Choose an app and buy a number to start.</p><Link className="primary-button compact-button" to="/buy">Browse apps <Icon name="arrow" size={17}/></Link></div>}</section>}
-function ActivationPage(){const {activationId}=useParams();const catalog=useQuery({queryKey:['services'],queryFn:getServices,staleTime:60_000});const client=useQueryClient();const [copied,setCopied]=useState<'number'|'otp'|null>(null);const [now,setNow]=useState(Date.now());const q=useQuery({queryKey:['activation',activationId],queryFn:()=>getActivation(activationId!),enabled:Boolean(activationId),refetchInterval:query=>query.state.data?.status==='Active'?2_000:false});const cancel=useMutation({mutationFn:()=>cancelActivation(activationId!),onSuccess:async()=>{await client.invalidateQueries({queryKey:['activations']});await q.refetch()}});useEffect(()=>{const t=window.setInterval(()=>setNow(Date.now()),1000);return()=>window.clearInterval(t)},[]);if(q.isPending)return <section className="page-section"><div className="page-loading">Loading activation...</div></section>;if(q.isError||!q.data)return <section className="page-section"><Link className="back-link" to="/active"><Icon name="back" size={18}/> Active</Link><div className="error-card">Could not load this activation.</div></section>;const a=q.data;const remaining=a.expiresAt?Math.max(0,a.expiresAt-now):0;const text=`${Math.floor(remaining/60000)}:${String(Math.floor((remaining%60000)/1000)).padStart(2,'0')}`;const terminal=['Completed','Expired','Refunded','Cancelled'].includes(a.status);async function doCopy(kind:'number'|'otp',value:string){try{await navigator.clipboard.writeText(value);setCopied(kind);window.setTimeout(()=>setCopied(null),1200)}catch{}}return <section className="page-section activation-page"><Link className="back-link" to="/active"><Icon name="back" size={18}/> Active</Link><div className="activation-hero"><ServiceLogo serviceId={a.serviceId} name={a.service||a.serviceId} position={catalog.data?.services.find(s=>s.id===a.serviceId)?.catalogPosition}/><div><h1>{a.service||a.serviceId}</h1><div className="hero-meta"><span className={statusClass(a.status)}>{a.status}</span><span>₹{(a.pricePaise/100).toFixed(2)}</span></div></div></div><div className="number-card"><span className="card-label">Phone number</span><div className="big-number">{a.number||'Waiting for number'}</div>{a.number?<button className="copy-button" onClick={()=>void doCopy('number',a.number!)}><Icon name="copy" size={17}/>{copied==='number'?'Copied':'Copy'}</button>:null}</div><div className={`otp-card ${a.otp?'otp-ready':''}`}><div><span className="card-label">Verification code</span><div className="otp-value">{a.otp||'— — — — — —'}</div></div>{a.otp?<button className="copy-button" onClick={()=>void doCopy('otp',a.otp!)}><Icon name="copy" size={17}/>{copied==='otp'?'Copied':'Copy'}</button>:<div className="otp-wait"><span className="pulse-dot"/> Waiting for OTP</div>}</div>{!terminal?<div className="countdown-card"><Icon name="clock" size={21}/><div><strong>{remaining?text:'—'}</strong><span>time remaining</span></div></div>:null}{a.status==='Active'?<button className="secondary-danger" disabled={cancel.isPending} onClick={()=>void cancel.mutate()}><Icon name="close" size={18}/>{cancel.isPending?'Cancelling...':'Cancel & refund'}</button>:null}{a.status==='Completed'?<div className="success-card"><Icon name="check" size={19}/><span>OTP received. You can use this code now.</span></div>:null}{a.status==='Refunded'?<div className="info-card"><Icon name="check" size={20}/><div><strong>Activation refunded</strong><p>₹{((a.refundPaise??a.pricePaise)/100).toFixed(2)} returned to your wallet.</p></div></div>:null}{terminal?<Link className="outline-button" to="/buy">Buy another number <Icon name="arrow" size={17}/></Link>:null}</section>}
+function ActivationPage(){
+ const {activationId}=useParams();
+ const catalog=useQuery({queryKey:['services'],queryFn:getServices,staleTime:60_000});
+ const client=useQueryClient();
+ const [copied,setCopied]=useState<'number'|'otp'|null>(null);
+ const [now,setNow]=useState(Date.now());
+ const [cancelError,setCancelError]=useState<string|null>(null);
+ const q=useQuery({queryKey:['activation',activationId],queryFn:()=>getActivation(activationId!),enabled:Boolean(activationId),refetchInterval:query=>query.state.data?.status==='Active'?2_000:false});
+ const cancel=useMutation({
+  mutationFn:()=>cancelActivation(activationId!),
+  onSuccess:async()=>{
+   setCancelError(null);
+   await Promise.all([
+    client.invalidateQueries({queryKey:['activations']}),
+    client.invalidateQueries({queryKey:['wallet']}),
+    q.refetch()
+   ]);
+  },
+  onError:(reason)=>setCancelError(activationErrorMessage(reason))
+ });
+ useEffect(()=>{const t=window.setInterval(()=>setNow(Date.now()),1000);return()=>window.clearInterval(t)},[]);
+ if(q.isPending)return <section className="page-section"><div className="page-loading">Loading activation...</div></section>;
+ if(q.isError||!q.data)return <section className="page-section"><Link className="back-link" to="/active"><Icon name="back" size={18}/> Active</Link><div className="error-card">Could not load this activation.</div></section>;
+ const a=q.data;
+ const remaining=a.expiresAt?Math.max(0,a.expiresAt-now):0;
+ const countdown=`${Math.floor(remaining/60000)}:${String(Math.floor((remaining%60000)/1000)).padStart(2,'0')}`;
+ const terminal=['Completed','Expired','Refunded','Cancelled'].includes(a.status);
+ async function doCopy(kind:'number'|'otp',value:string){
+  try{await navigator.clipboard.writeText(value);setCopied(kind);window.setTimeout(()=>setCopied(null),1200)}
+  catch{setCancelError('Copy is not available in this browser.');}
+ }
+ const position=catalog.data?.services.find(s=>s.id===a.serviceId)?.catalogPosition;
+ return <section className="page-section activation-page">
+  <Link className="back-link" to="/active"><Icon name="back" size={18}/> Active</Link>
+  <div className="activation-hero"><ServiceLogo serviceId={a.serviceId} name={a.service||a.serviceId} position={position}/><div><h1>{a.service||a.serviceId}</h1><div className="hero-meta"><span className={statusClass(a.status)}>{a.status}</span><span>₹{(a.pricePaise/100).toFixed(2)}</span></div></div></div>
+  <div className="number-card"><span className="card-label">Phone number</span><div className="big-number">{a.number||'Waiting for number'}</div>{a.number?<button className="copy-button" onClick={()=>void doCopy('number',a.number!)}><Icon name="copy" size={17}/>{copied==='number'?'Copied':'Copy'}</button>:null}</div>
+  <div className={`otp-card ${a.otp?'otp-ready':''}`}><div><span className="card-label">Verification code</span><div className="otp-value">{a.otp||'— — — — — —'}</div></div>{a.otp?<button className="copy-button" onClick={()=>void doCopy('otp',a.otp!)}><Icon name="copy" size={17}/>{copied==='otp'?'Copied':'Copy'}</button>:<div className="otp-wait"><span className="pulse-dot"/>{q.isFetching?'Checking for OTP...':'Waiting for OTP'}</div>}</div>
+  {!terminal?<div className="countdown-card"><Icon name="clock" size={21}/><div><strong>{remaining?countdown:'Expired'}</strong><span>time remaining</span></div></div>:null}
+  {cancelError?<div className="form-error" role="alert">{cancelError}</div>:null}
+  {a.status==='Active'?<button className="secondary-danger" disabled={cancel.isPending} onClick={()=>void cancel.mutate()}><Icon name="close" size={18}/>{cancel.isPending?'Cancelling...':'Cancel & refund'}</button>:null}
+  {a.status==='Completed'?<div className="success-card"><Icon name="check" size={19}/><span>OTP received. You can use this code now.</span></div>:null}
+  {a.status==='Expired'?<div className="info-card"><Icon name="clock" size={20}/><div><strong>Activation expired</strong><p>The number is no longer active. You can start another activation.</p></div></div>:null}
+  {a.status==='Cancelled'?<div className="info-card"><Icon name="close" size={20}/><div><strong>Activation cancelled</strong><p>The activation was cancelled before completion.</p></div></div>:null}
+  {a.status==='Refunded'?<div className="info-card"><Icon name="check" size={20}/><div><strong>Activation refunded</strong><p>₹{((a.refundPaise??a.pricePaise)/100).toFixed(2)} returned to your wallet.</p></div></div>:null}
+  {terminal?<Link className="outline-button" to="/buy">Buy another number <Icon name="arrow" size={17}/></Link>:null}
+ </section>
+}
 function WalletPage(){const q=useQuery({queryKey:['wallet'],queryFn:getWallet,refetchInterval:15_000});type Ledger={id:string;type?:string;description?:string;amountPaise?:number;createdAt?:number};const ledger=((q.data as (typeof q.data & {ledger?:Ledger[]})|undefined)?.ledger??[]);return <section className="page-section"><Link className="back-link" to="/apps"><Icon name="back" size={18}/> Apps</Link><div className="wallet-header"><div><span>Wallet balance</span><strong>₹{((q.data?.balancePaise??0)/100).toFixed(2)}</strong></div><Link className="primary-button compact-button" to="/support"><Icon name="support" size={17}/> Get help</Link></div>{q.isError?<div className="error-card">Could not load wallet.</div>:null}<div className="wallet-summary-grid"><div className="detail-card"><span>Country</span><strong>{q.data?.country??'IN'}</strong></div><div className="detail-card"><span>Currency</span><strong>{q.data?.currency??'INR'}</strong></div><div className="detail-card"><span>Recharge</span><strong>{q.data?.rechargeEnabled?'Enabled':'Manual'}</strong></div></div><div className="section-heading"><h2>Recent transactions</h2></div>{ledger.length?<div className="ledger-list">{ledger.slice(0,20).map(i=><div className="ledger-row" key={i.id}><div><strong>{i.description||i.type||'Wallet transaction'}</strong><span>{i.createdAt?new Date(i.createdAt).toLocaleString():''}</span></div><b>₹{((i.amountPaise??0)/100).toFixed(2)}</b></div>)}</div>:<div className="empty-state"><div className="empty-icon"><Icon name="wallet" size={28}/></div><h3>No transactions</h3><p>Your wallet activity will appear here.</p></div>}</section>}
 function NotificationsPage(){const client=useQueryClient();const q=useQuery({queryKey:['notifications'],queryFn:getNotifications,refetchInterval:30_000});const mark=useMutation({mutationFn:markAllNotificationsRead,onSuccess:async()=>{await client.invalidateQueries({queryKey:['notifications']})}});const items=q.data?.notifications??[];const target=(n:Notification)=>n.page==='active'&&n.sourceId?`/active/${encodeURIComponent(n.sourceId)}`:n.page==='wallet'?'/wallet':n.page==='support'?'/support':'/apps';function ago(t:number){const m=Math.floor(Math.max(0,Date.now()-t)/60000);return m<1?'just now':m<60?`${m}m ago`:`${Math.floor(m/60)}h ago`}return <section className="page-section"><div className="catalog-heading"><div><Link className="back-link compact-back" to="/apps"><Icon name="back" size={18}/> Apps</Link><h1>Notifications</h1><p>Updates from your INBOX9 account.</p></div>{items.some(i=>!i.read)?<button className="text-button" disabled={mark.isPending} onClick={()=>void mark.mutate()}>Mark all read</button>:null}</div>{items.length?<div className="notification-list">{items.map(n=><Link key={n.id} className={`notification-row${n.read?'':' unread'}`} to={target(n)}><span className="notification-icon"><Icon name={n.kind==='activation'?'active':n.kind==='recharge'?'wallet':'bell'} size={19}/></span><div><div className="notification-title"><strong>{n.title}</strong><time>{ago(n.createdAt)}</time></div><p>{n.body}</p></div>{!n.read?<span className="unread-dot"/>:null}</Link>)}</div>:<div className="empty-state"><div className="empty-icon"><Icon name="bell" size={28}/></div><h3>You're all caught up</h3><p>New account and activation updates will appear here.</p></div>}</section>}
 function AccountPage(){const navigate=useNavigate();const user=useSessionStore(s=>s.user);const setUser=useSessionStore(s=>s.setUser);const setBootstrap=useSessionStore(s=>s.setBootstrap);const m=useMutation({mutationFn:logout,onSuccess:()=>{setUser(null);setBootstrap('signed-out');navigate('/login',{replace:true})}});return <section className="page-section"><div className="account-hero"><div className="account-avatar">{(user?.displayName||user?.email||'I').slice(0,1).toUpperCase()}</div><div><h1>Account</h1><p>{user?.displayName||user?.email}</p></div></div><div className="menu-card"><Link to="/wallet" className="menu-row"><span><Icon name="wallet" size={20}/><b>Wallet</b></span><Icon name="arrow" size={18}/></Link><Link to="/notifications" className="menu-row"><span><Icon name="bell" size={20}/><b>Notifications</b></span><Icon name="arrow" size={18}/></Link><Link to="/support" className="menu-row"><span><Icon name="support" size={20}/><b>Support</b></span><Icon name="arrow" size={18}/></Link></div><div className="account-security"><h2>Session</h2><p>{user?.email}</p><button className="secondary-danger" disabled={m.isPending} onClick={()=>void m.mutate()}>{m.isPending?'Signing out...':'Sign out'}</button></div></section>}
