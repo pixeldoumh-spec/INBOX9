@@ -1,94 +1,30 @@
 (() => {
+  'use strict';
   const ROOT_ID = 'inbox9-mobile-shell';
-  let cssLoaded = false;
-
-  const isCustomerSurface = () => {
-    const sidebar = document.querySelector('.sidebar');
-    return Boolean(sidebar) && !sidebar.querySelector('[data-page="admin"]');
-  };
-
-  const loadCss = () => {
-    if (cssLoaded || document.querySelector('link[data-inbox9-mobile-shell]')) return;
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = '/customer/mobile-shell.css';
-    link.dataset.inbox9MobileShell = 'true';
-    document.head.appendChild(link);
-    cssLoaded = true;
-  };
-
-  const go = (page) => {
-    const target = document.querySelector(`.sidebar [data-page="${page}"]`);
-    if (target) { target.click(); return; }
-    window.location.hash = page === 'buy' ? '' : `#${page}`;
-  };
-
-  const openBuy = () => {
-    const existing = document.querySelector('.customer-buy:not([disabled])');
-    if (existing) {
-      existing.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      existing.focus({ preventScroll: true });
-      existing.click();
-      return;
-    }
-    document.querySelector('#service-search')?.focus({ preventScroll: true });
-    document.querySelector('#marketplace-services')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  };
-
-  const mount = () => {
-    if (!isCustomerSurface()) return;
-    document.body.classList.add('inbox9-customer-mobile');
-    loadCss();
-    if (document.getElementById(ROOT_ID)) return;
-    const nav = document.createElement('nav');
-    nav.id = ROOT_ID;
-    nav.className = 'mobile-bottom-nav';
-    nav.setAttribute('aria-label', 'Primary navigation');
-    nav.innerHTML = `
-      <button type="button" class="mobile-nav-item" data-mobile-nav="apps" aria-label="Apps"><span class="mobile-nav-icon" aria-hidden="true">▦</span><span>Apps</span></button>
-      <button type="button" class="mobile-nav-item" data-mobile-nav="buy" aria-label="Buy"><span class="mobile-nav-icon" aria-hidden="true">＋</span><span>Buy</span></button>
-      <button type="button" class="mobile-nav-item" data-mobile-nav="active" aria-label="Active"><span class="mobile-nav-icon" aria-hidden="true">◉</span><span>Active</span></button>
-      <button type="button" class="mobile-nav-item" data-mobile-nav="account" aria-label="Account"><span class="mobile-nav-icon" aria-hidden="true">◎</span><span>Account</span></button>`;
-    nav.addEventListener('click', (event) => {
-      const item = event.target.closest('[data-mobile-nav]');
-      if (!item) return;
-      const page = item.dataset.mobileNav;
-      if (page === 'apps') go('buy');
-      else if (page === 'buy') openBuy();
-      else go(page);
-    });
-    document.body.appendChild(nav);
-  };
-
-  const bindServiceTiles = () => {
-    if (document.body.dataset.inbox9TileBinding === 'true') return;
-    document.body.dataset.inbox9TileBinding = 'true';
-    document.addEventListener('click', (event) => {
-      if (!document.body.classList.contains('inbox9-customer-mobile')) return;
-      const tile = event.target.closest('.customer-service-main[data-toggle-service]');
-      if (!tile) return;
-      const card = tile.closest('.customer-service-card');
-      const buy = card?.querySelector('.customer-buy:not([disabled])');
-      if (!buy) return;
-      event.preventDefault();
-      event.stopPropagation();
-      buy.click();
-    }, true);
-  };
-
-  const sync = () => {
-    mount();
-    const root = document.getElementById(ROOT_ID);
-    if (!root) return;
-    const current = String(window.location.hash || '').replace(/^#/, '') || 'buy';
-    root.querySelectorAll('[data-mobile-nav]').forEach((item) => {
-      const page = item.dataset.mobileNav;
-      item.classList.toggle('active', (page === 'apps' && current === 'buy') || page === current);
-    });
-  };
-
-  window.addEventListener('hashchange', sync);
-  bindServiceTiles();
-  new MutationObserver(sync).observe(document.getElementById('app') || document.body, { childList: true, subtree: true });
-  sync();
+  const STYLE_ID = 'inbox9-mobile-shell-style';
+  const TABS = [['apps','Apps','▦'],['buy','Buy','ϟ'],['active','Active','◌'],['account','Account','◉']];
+  const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const isCustomer = () => Boolean(document.querySelector('.app-shell')) && !document.querySelector('.auth-shell');
+  const app = () => document.getElementById('app');
+  function installStyle(){ if(document.getElementById(STYLE_ID))return; const link=document.createElement('link'); link.id=STYLE_ID; link.rel='stylesheet'; link.href='/customer/mobile-shell.css'; document.head.appendChild(link); }
+  function currentPage(){ return String(location.hash||'').replace('#','').toLowerCase() || 'buy'; }
+  function go(page){ const existing=document.querySelector(`[data-page="${page}"]`); if(existing){existing.click();return;} if(page==='apps')document.querySelector('[data-page="buy"]')?.click(); }
+  function serviceTiles(){
+    const cards=[...document.querySelectorAll('.market-service-group')];
+    if(!cards.length)return '<div class="inbox9-app-empty">Loading services…</div>';
+    return cards.map(card=>{const name=card.querySelector('.marketplace-service-copy strong,.service-group-copy strong')?.textContent?.trim()||'Service';const category=card.querySelector('.service-category')?.textContent?.trim()||'';const buy=card.querySelector('[data-buy-service]');const id=buy?.dataset?.buyService||'';const letters=name.split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0]).join('').toUpperCase();const available=!buy?.disabled&&!card.classList.contains('unavailable');return `<button class="inbox9-app-tile ${available?'':'is-unavailable'}" type="button" data-inbox9-service="${escapeHtml(id)}" aria-label="${escapeHtml(name)}${available?'':', unavailable'}"><span class="inbox9-app-icon"><span>${escapeHtml(letters||'IN')}</span></span><strong>${escapeHtml(name)}</strong><small>${escapeHtml(category||'+91')}</small></button>`;}).join('');
+  }
+  function header(){return `<header class="inbox9-mobile-header"><button class="inbox9-brand" type="button" data-inbox9-home aria-label="INBOX9 home"><span class="inbox9-brand-mark">ϟ</span><strong>INBOX<span>9</span></strong></button><div class="inbox9-header-actions"><button class="inbox9-add-funds" type="button" data-page="wallet"><span>▱</span><strong>Add Funds</strong></button><button class="inbox9-icon-button" type="button" aria-label="Notifications" data-inbox9-notifications>♧</button></div></header>`;}
+  function search(){return `<label class="inbox9-service-search"><span>⌕</span><input id="inbox9-service-search" placeholder="Search services..." autocomplete="off" spellcheck="false" aria-label="Search services"></label>`;}
+  function bottomNav(){const page=currentPage();return `<nav class="inbox9-bottom-nav" aria-label="Customer navigation">${TABS.map(([id,label,glyph])=>{const active=id===page||(id==='apps'&&page==='buy'&&document.body.dataset.inbox9Apps==='true');return `<button type="button" class="inbox9-bottom-tab ${active?'active':''}" data-inbox9-tab="${id}" aria-current="${active?'page':'false'}"><span>${glyph}</span><small>${label}</small>${id==='active'?'<b class="inbox9-active-count" hidden></b>':''}</button>`;}).join('')}</nav>`;}
+  function appsView(){document.body.dataset.inbox9Apps='true';const content=document.querySelector('#content');if(!content)return;if(content.querySelector('.inbox9-apps-page')){updateBottomCount();return;}const cards=[...content.querySelectorAll('.market-service-group')];const grid=`<section class="inbox9-apps-page"><div class="inbox9-page-intro"><div><span class="inbox9-kicker">VIRTUAL NUMBERS</span><h1>Choose a service</h1><p>${cards.length?`${cards.length} services available in the current catalog`:'Browse available services'}</p></div></div>${search()}<div class="inbox9-app-grid" id="inbox9-app-grid">${serviceTiles()}</div></section>`;content.innerHTML=grid;}
+  function buyView(){document.body.dataset.inbox9Apps='false';const content=document.querySelector('#content');if(!content)return;if(content.querySelector('.market-service-group')||content.querySelector('.market-empty')){}else return;content.classList.add('inbox9-buy-content');document.querySelector('.marketplace-hero')?.classList.add('inbox9-hide');document.querySelectorAll('.market-country-strip,.market-controls,.market-recent').forEach(el=>el.classList.add('inbox9-hide'));const oldSearch=content.querySelector('#service-search');if(oldSearch){oldSearch.closest('label')?.classList.add('inbox9-buy-search');oldSearch.placeholder='Search services...';}}
+  function accountView(){document.body.dataset.inbox9Apps='false';document.querySelector('#content')?.classList.add('inbox9-account-view');}
+  function activeView(){document.body.dataset.inbox9Apps='false';document.querySelector('#content')?.classList.add('inbox9-active-view');}
+  function updateBottomCount(){const n=document.querySelectorAll('.active-card').length;const badge=document.querySelector('.inbox9-active-count');if(!badge)return;badge.hidden=n===0;badge.textContent=n>99?'99+':String(n);}
+  function mount(){installStyle();if(!isCustomer())return;const shell=document.querySelector('.app-shell');if(!shell)return;shell.classList.add('inbox9-modern-shell');let root=document.getElementById(ROOT_ID);if(!root){root=document.createElement('div');root.id=ROOT_ID;root.innerHTML=`${header()}<main class="inbox9-mobile-main"><div class="inbox9-mobile-content"></div></main>${bottomNav()}`;app()?.appendChild(root);wire(root);}if(document.body.dataset.inbox9Apps==null)document.body.dataset.inbox9Apps=currentPage()==='buy'?'true':'false';const host=root.querySelector('.inbox9-mobile-content');const content=document.querySelector('#content');if(content&&host&&content.parentElement!==host)host.appendChild(content);root.querySelector('.inbox9-mobile-content')?.classList.toggle('apps-mode',currentPage()==='buy'&&document.body.dataset.inbox9Apps==='true');if(document.body.dataset.inbox9Apps==='true')appsView();else if(currentPage()==='active')activeView();else if(currentPage()==='account')accountView();else buyView();updateBottomCount();}
+  function wire(root){root.addEventListener('click',event=>{const tab=event.target.closest('[data-inbox9-tab]');if(tab){const id=tab.dataset.inbox9Tab;if(id==='apps'){go('buy');document.body.dataset.inbox9Apps='true';setTimeout(mount,0);}else{document.body.dataset.inbox9Apps='false';go(id);}return;}const tile=event.target.closest('[data-inbox9-service]');if(tile){const id=tile.dataset.inbox9Service;const buy=document.querySelector(`[data-buy-service="${CSS.escape(id)}"]`);if(buy&&!buy.disabled)buy.click();return;}if(event.target.closest('[data-inbox9-home]')){document.body.dataset.inbox9Apps='true';go('buy');setTimeout(mount,0);}if(event.target.closest('[data-inbox9-notifications]'))document.querySelector('[data-action="notifications"]')?.click();});root.addEventListener('input',event=>{if(event.target?.id!=='inbox9-service-search')return;const source=document.querySelector('#service-search');if(source){source.value=event.target.value;source.dispatchEvent(new Event('input',{bubbles:true}));}});}
+  const observer=new MutationObserver(()=>{if(!isCustomer())return;clearTimeout(window.__inbox9ShellTimer);window.__inbox9ShellTimer=setTimeout(mount,0);});
+  function start(){installStyle();observer.observe(app()||document.body,{childList:true,subtree:true});mount();}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
 })();
