@@ -34,6 +34,29 @@ export type Wallet = {
   currency?: string;
   country?: string;
   persistent: boolean;
+  rechargeEnabled?: boolean;
+  upiId?: string | null;
+  ledger?: Array<{
+    id: string;
+    type?: string;
+    description?: string;
+    amountPaise?: number;
+    createdAt?: number;
+  }>;
+};
+
+export type Notification = {
+  id: string;
+  kind?: string;
+  sourceType?: string;
+  sourceId?: string;
+  eventKey?: string;
+  title: string;
+  body: string;
+  page?: string | null;
+  tone?: string;
+  read?: boolean;
+  createdAt: number;
 };
 
 export type Activation = {
