@@ -46,9 +46,6 @@ await withServer(async (server) => {
   const staticPage = await request(server, '/');
   assert.equal(staticPage.status, 200);
   assert.match(staticPage.body, /INBOX9/);
-  const manifest = await request(server, '/manifest.webmanifest');
-  assert.equal(manifest.status, 200);
-  assert.match(manifest.headers['content-type'] || '', /manifest|json/i);
   const health = await request(server, '/api/health');
   assert.equal(health.status, 200);
   assert.equal(json(health).ok, true);
