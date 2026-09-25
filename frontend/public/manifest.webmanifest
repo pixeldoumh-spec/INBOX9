@@ -1,0 +1,9 @@
+{
+  "name": "INBOX9",
+  "short_name": "INBOX9",
+  "start_url": "/apps",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "description": "INBOX9 India verification services"
+}
