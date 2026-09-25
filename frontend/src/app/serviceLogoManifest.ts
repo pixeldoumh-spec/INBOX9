@@ -1,4 +1,4 @@
-export const SERVICE_LOGO_SPRITE = {
+// Generated from INBOX9_service_logo_manifest_2026-09-25.json: 155 supplied service logos.\nexport const SERVICE_LOGO_SPRITE = {
   path: '/service-icons-sprite.webp',
   tileSize: 48,
   columns: 12,
