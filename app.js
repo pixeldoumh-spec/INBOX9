@@ -1684,35 +1684,37 @@ function content() {
 
 
 
-const SERVICE_LOGO_DOMAINS = {
-  Telegram: 'telegram.org', WhatsApp: 'whatsapp.com', Instagram: 'instagram.com', Facebook: 'facebook.com',
-  TikTok: 'tiktok.com', Google: 'google.com', Twitter: 'x.com', X: 'x.com', Discord: 'discord.com',
-  Microsoft: 'microsoft.com', Amazon: 'amazon.com', Netflix: 'netflix.com', Spotify: 'spotify.com',
-  Uber: 'uber.com', PayPal: 'paypal.com', LinkedIn: 'linkedin.com', Snapchat: 'snapchat.com',
-  Twitch: 'twitch.tv', Steam: 'steampowered.com', WeChat: 'wechat.com', Viber: 'viber.com',
-  LINE: 'line.me', eBay: 'ebay.com', Shopify: 'shopify.com', Wise: 'wise.com', Klarna: 'klarna.com',
-  OKX: 'okx.com', Bybit: 'bybit.com', Temu: 'temu.com', DoorDash: 'doordash.com', Bolt: 'bolt.eu',
-  Wolt: 'wolt.com', Lazada: 'lazada.com', Tinder: 'tinder.com', Badoo: 'badoo.com', Airbnb: 'airbnb.com',
-  Signal: 'signal.org', Apple: 'apple.com', Grab: 'grab.com', Gojek: 'gojek.com', Deliveroo: 'deliveroo.com',
-  Glovo: 'glovoapp.com', Coinbase: 'coinbase.com', Binance: 'binance.com', Revolut: 'revolut.com',
-  Reddit: 'reddit.com', Roblox: 'roblox.com', 'Epic Games': 'epicgames.com', Discord: 'discord.com'
+const SERVICE_LOGO_GLYPHS = {
+  Telegram: '➤', WhatsApp: '◔', Instagram: '◎', Facebook: 'f',
+  TikTok: '♪', Google: 'G', Twitter: '𝕏', X: '𝕏', Discord: '☁',
+  Microsoft: '⊞', Amazon: 'a', Netflix: 'N', Spotify: '●',
+  Uber: 'U', PayPal: 'P', LinkedIn: 'in', Snapchat: '✻',
+  Twitch: '▣', Steam: '◉', WeChat: '●', Viber: '◔', LINE: 'LINE',
+  eBay: 'ebay', Shopify: 'S', Wise: 'W', Klarna: 'K', OKX: 'OKX',
+  Bybit: 'B', Temu: 'T', DoorDash: 'D', Bolt: 'B', Wolt: 'W',
+  Lazada: 'L', Tinder: 'T', Badoo: 'B', Airbnb: 'A', Signal: 'S',
+  Apple: '●', Grab: 'G', Gojek: 'G', Deliveroo: 'D', Glovo: 'G',
+  Coinbase: 'C', Binance: 'B', Revolut: 'R', Reddit: 'r', Roblox: 'R'
 };
 
-function serviceLogoDomain(name) {
-  const raw = String(name || '').trim();
-  if (SERVICE_LOGO_DOMAINS[raw]) return SERVICE_LOGO_DOMAINS[raw];
-  const key = raw.toLowerCase().replace(/[^a-z0-9]/g, '');
-  const entry = Object.entries(SERVICE_LOGO_DOMAINS).find(([label]) => label.toLowerCase().replace(/[^a-z0-9]/g, '') === key);
-  return entry?.[1] || '';
-}
+const SERVICE_LOGO_TONES = {
+  Telegram: 'blue', WhatsApp: 'green', Instagram: 'instagram', Facebook: 'facebook',
+  TikTok: 'black', Google: 'google', Twitter: 'black', X: 'black', Discord: 'discord',
+  Microsoft: 'microsoft', Amazon: 'amazon', Netflix: 'black', Spotify: 'green',
+  Uber: 'black', PayPal: 'paypal', LinkedIn: 'linkedin', Snapchat: 'yellow',
+  Twitch: 'twitch', Steam: 'steam', WeChat: 'green', Viber: 'viber', LINE: 'green',
+  eBay: 'ebay', Shopify: 'shopify', Wise: 'green', Klarna: 'pink', OKX: 'black',
+  Bybit: 'orange', Temu: 'green', DoorDash: 'red', Bolt: 'green', Wolt: 'blue',
+  Lazada: 'purple', Tinder: 'red', Badoo: 'orange', Airbnb: 'red', Signal: 'blue',
+  Apple: 'black', Grab: 'green', Gojek: 'green', Deliveroo: 'green', Glovo: 'orange',
+  Coinbase: 'blue', Binance: 'yellow', Revolut: 'black', Reddit: 'orange', Roblox: 'blue'
+};
 
-function serviceLogoMarkup(service, initials) {
-  const domain = serviceLogoDomain(service?.name);
-  if (!domain) {
-    return '<span class="service-logo-fallback">' + esc(initials) + '</span>';
-  }
-  return '<img class="service-logo-image" src="https://www.google.com/s2/favicons?domain=' + encodeURIComponent(domain) + '&sz=128" alt="" loading="lazy" onerror="this.hidden=true;this.nextElementSibling.hidden=false">' +
-    '<span class="service-logo-fallback" hidden>' + esc(initials) + '</span>';
+function serviceLogoGlyph(service, initials) {
+  const name = String(service?.name || '').trim();
+  const glyph = SERVICE_LOGO_GLYPHS[name] || initials;
+  const tone = SERVICE_LOGO_TONES[name] || 'neutral';
+  return '<span class="service-logo-glyph tone-' + tone + '" aria-hidden="true">' + esc(glyph) + '</span>';
 }
 
 function serviceCard(service) {
@@ -1725,7 +1727,7 @@ function serviceCard(service) {
   const initials = String(service.name || 'IN').trim().split(/\\s+/).slice(0, 2).map((part) => part.charAt(0)).join('').toUpperCase().slice(0, 2) || 'IN';
   return '<article class="market-service-group customer-service-card marketplace-service-card ' + (!purchasable ? ' unavailable' : '') + (expanded ? ' expanded' : '') + '">' +
     '<button class="service-group-header customer-service-main marketplace-service-main" type="button" data-toggle-service="' + esc(service.id) + '" aria-expanded="' + String(expanded) + '" aria-controls="details-' + esc(service.id) + '">' +
-      '<span class="service-icon service-brand-icon marketplace-service-logo">' + serviceLogoMarkup(service, initials) + '</span>' +
+      '<span class="service-icon service-brand-icon marketplace-service-logo">' + serviceLogoGlyph(service, initials) + '</span>' +
       '<span class="service-group-copy marketplace-service-copy"><span class="service-category">' + esc(service.category) + '</span><strong>' + esc(service.name) + '</strong><small>India (+91) · Provider-defined validity</small></span>' +
       '<span class="service-group-meta marketplace-service-meta"><span class="marketplace-availability ' + (purchasable ? 'available' : 'unavailable') + '"><i></i> ' + (purchasable ? 'Ready' : 'Unavailable') + '</span><span class="service-price">' + money(service.pricePaise) + '</span></span>' +
       '<span class="service-group-chevron marketplace-service-chevron" aria-hidden="true">⌄</span>' +
