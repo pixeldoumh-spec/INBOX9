@@ -213,9 +213,9 @@ test('browse services scrolls to the marketplace when already on buy page', asyn
   assert.match(app, /scrollIntoView\(\{ behavior: 'smooth', block: 'start' \}\)/);
 });
 
-test('hero dashboard uses number validity instead of allocation or code timing', async () => {
+test('hero dashboard uses provider-defined validity instead of allocation or code timing', async () => {
   const app = await read('app.js');
-  assert.match(app, /<span>Number validity<\/span><strong>25 min<\/strong>/);
+  assert.match(app, /<span>Number validity<\/span><strong>Varies<\/strong><small>provider-defined validity<\/small>/);
   assert.doesNotMatch(app, /<span>Allocation<\/span>/);
   assert.doesNotMatch(app, /<span>Code timing<\/span>/);
   assert.doesNotMatch(app, /server selected at purchase/);
