@@ -78,6 +78,7 @@ export function createCustomerState() {
     accountRecoveryCode: '',
     accountRecoveryBusy: false,
     expandedServiceId: null,
+    selectedServiceId: null,
     marketVisibleCount: MARKET_PAGE_SIZE,
     categoryCounts: {},
     catalogCategories: ['All'],
