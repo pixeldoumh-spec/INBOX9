@@ -55,9 +55,21 @@ const DEFAULT_PORT = Number(process.env.PORT || 4173);
 const MAX_BODY_BYTES = 32_000;
 const MAX_PAYMENT_SETTINGS_BODY_BYTES = 512_000;
 
-const staticFiles = new Map([
-  ['/', ['index.html', 'text/html; charset=utf-8']],
-  ['/index.html', ['index.html', 'text/html; charset=utf-8']]
+const FRONTEND_DIST = path.join(__dirname, 'frontend', 'dist');
+const FRONTEND_INDEX = path.join(FRONTEND_DIST, 'index.html');
+const MIME_TYPES = new Map([
+  ['.html', 'text/html; charset=utf-8'],
+  ['.js', 'application/javascript; charset=utf-8'],
+  ['.mjs', 'application/javascript; charset=utf-8'],
+  ['.css', 'text/css; charset=utf-8'],
+  ['.json', 'application/json; charset=utf-8'],
+  ['.webmanifest', 'application/manifest+json; charset=utf-8'],
+  ['.png', 'image/png'],
+  ['.jpg', 'image/jpeg'],
+  ['.jpeg', 'image/jpeg'],
+  ['.svg', 'image/svg+xml'],
+  ['.webp', 'image/webp'],
+  ['.ico', 'image/x-icon']
 ]);
 
 class RuntimeResponse {
@@ -301,27 +313,63 @@ function applyStaticResponseHeaders(nodeRes, pathname, stats) {
   return headers;
 }
 
-function serveStatic(nodeRes, pathname, req) {
-  const fileInfo = staticFiles.get(pathname);
-  if (!fileInfo) return sendNodeJson(nodeRes, 404, { error: 'Not found' });
+function frontendFilePath(pathname) {
+  let decoded;
+  try { decoded = decodeURIComponent(pathname); } catch { return null; }
+  const relative = decoded.replace(/^\\/+/, '');
+  const candidate = path.resolve(FRONTEND_DIST, relative || 'index.html');
+  if (candidate !== FRONTEND_DIST && !candidate.startsWith(FRONTEND_DIST + path.sep)) return null;
+  return { candidate, relative };
+}
 
-  const file = path.join(__dirname, fileInfo[0]);
-  fs.stat(file, (statError, stats) => {
-    if (statError || !stats.isFile()) return sendNodeJson(nodeRes, 404, { error: 'Not found' });
-    const headers = applyStaticResponseHeaders(nodeRes, pathname, stats);
-    if (isStaticNotModified(req, headers.ETag, headers['Last-Modified'])) {
-      nodeRes.statusCode = 304;
-      nodeRes.removeHeader('content-type');
-      return nodeRes.end();
+function contentTypeFor(pathname) {
+  return MIME_TYPES.get(path.extname(pathname).toLowerCase()) || 'application/octet-stream';
+}
+
+function serveFrontend(nodeRes, pathname, req) {
+  const info = frontendFilePath(pathname);
+  if (!info) return sendNodeJson(nodeRes, 404, { error: 'Not found' });
+
+  fs.stat(info.candidate, (statError, stats) => {
+    let file = info.candidate;
+    let contentType = contentTypeFor(info.relative);
+    let servedPath = pathname;
+
+    if (statError || !stats.isFile()) {
+      // Vite's SPA entry handles application routes such as /apps and /active/:id.
+      if (path.extname(info.relative)) return sendNodeJson(nodeRes, 404, { error: 'Not found' });
+      file = FRONTEND_INDEX;
+      contentType = 'text/html; charset=utf-8';
+      servedPath = '/index.html';
+      fs.stat(file, (indexError, indexStats) => {
+        if (indexError || !indexStats.isFile()) return sendNodeJson(nodeRes, 503, { error: 'Frontend build unavailable' });
+        sendFrontendFile(nodeRes, file, contentType, servedPath, req, indexStats);
+      });
+      return;
     }
-    nodeRes.statusCode = 200;
-    nodeRes.setHeader('content-type', fileInfo[1]);
-    fs.createReadStream(file).on('error', (error) => {
-      captureException(error, { requestId: nodeRes.getHeader?.('x-request-id'), method: 'GET', path: pathname, statusCode: 500 });
-      if (!nodeRes.headersSent) sendNodeJson(nodeRes, 500, { error: 'Static asset unavailable' });
-      else nodeRes.destroy();
-    }).pipe(nodeRes);
+
+    sendFrontendFile(nodeRes, file, contentType, servedPath, req, stats);
   });
+}
+
+function sendFrontendFile(nodeRes, file, contentType, pathname, req, stats) {
+  const headers = applyStaticResponseHeaders(nodeRes, pathname, stats);
+  if (isStaticNotModified(req, headers.ETag, headers['Last-Modified'])) {
+    nodeRes.statusCode = 304;
+    nodeRes.removeHeader('content-type');
+    return nodeRes.end();
+  }
+  nodeRes.statusCode = 200;
+  nodeRes.setHeader('content-type', contentType);
+  if (req.method === 'HEAD') {
+    nodeRes.setHeader('content-length', stats.size);
+    return nodeRes.end();
+  }
+  fs.createReadStream(file).on('error', (error) => {
+    captureException(error, { requestId: nodeRes.getHeader?.('x-request-id'), method: 'GET', path: pathname, statusCode: 500 });
+    if (!nodeRes.headersSent) sendNodeJson(nodeRes, 500, { error: 'Static asset unavailable' });
+    else nodeRes.destroy();
+  }).pipe(nodeRes);
 }
 
 export function createServer() {
@@ -340,24 +388,7 @@ export function createServer() {
       return sendNodeJson(res, 405, { error: 'Method not allowed' });
     }
 
-    if (req.method === 'HEAD') {
-      const fileInfo = staticFiles.get(url.pathname);
-      if (!fileInfo) return sendNodeJson(res, 404, { error: 'Not found' });
-      return fs.stat(path.join(__dirname, fileInfo[0]), (error, stats) => {
-        if (error || !stats.isFile()) return sendNodeJson(res, 404, { error: 'Not found' });
-        const headers = staticCacheHeaders(url.pathname, stats);
-        for (const [key, value] of Object.entries(headers)) res.setHeader(key, value);
-        if (isStaticNotModified(req, headers.ETag, headers['Last-Modified'])) {
-          res.statusCode = 304;
-          res.removeHeader('content-type');
-          return res.end();
-        }
-        res.writeHead(200, { 'content-type': fileInfo[1], 'content-length': stats.size });
-        res.end();
-      });
-    }
-
-    return serveStatic(res, url.pathname, req);
+    return serveFrontend(res, url.pathname, req);
   });
 }
 
