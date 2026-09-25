@@ -32,6 +32,8 @@ export function normalizeProviderActivation(value) {
   }
   return {
     providerActivationId: String(value.providerActivationId),
+    serviceId: value.serviceId ?? value.metadata?.serviceId ?? null,
+    serviceName: value.serviceName ?? value.metadata?.serviceName ?? null,
     number: String(value.number),
     status: String(value.status),
     otp: value.otp == null ? null : String(value.otp),
