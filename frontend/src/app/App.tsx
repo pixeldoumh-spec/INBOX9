@@ -5,7 +5,7 @@ import { createBrowserRouter, Link, Navigate, NavLink, Outlet, useLocation, useN
 import { RouterProvider } from 'react-router-dom';
 import { getMe, login, logout, register } from '../api/auth';
 import { cancelActivation, createActivation, getActivation, getActivations } from '../api/activations';
-import { getNotifications, markAllNotificationsRead } from '../api/notifications';
+import { getNotifications, markAllNotificationsRead, markNotificationRead } from '../api/notifications';
 import { getServices } from '../api/services';
 import { getWallet } from '../api/wallet';
 import { createRecharge } from '../api/recharges';
