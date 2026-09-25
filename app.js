@@ -881,6 +881,10 @@ function purchaseFlowData() {
 function openPurchaseReview(serviceId) {
   const service = state.services.find((item) => item.id === serviceId);
   if (!service) return;
+  if (service.purchasable === false) {
+    toast('This service is currently unavailable');
+    return;
+  }
   state.dialogReturnFocus = { kind: 'purchase', serviceId };
   state.purchaseFlow = {
     step: 'review',
@@ -910,7 +914,7 @@ function purchaseReviewModal() {
   const activating = flow.step === 'activation' || flow.submitting;
   const error = flow.error ? `<div class="purchase-error">${esc(flow.error)}</div>` + (flow.errorCode === 'NETWORK_ERROR' ? '<div class="purchase-recovery-actions"><button class="secondary-btn" type="button" data-purchase-check-active>Check Active</button><button class="secondary-btn" type="button" data-purchase-retry>Retry request</button></div>' : '') : '';
   if (activating) return `<div class="purchase-overlay" role="presentation"><div class="purchase-backdrop"></div><section class="purchase-sheet purchase-sheet-loading" role="dialog" aria-modal="true" aria-labelledby="purchase-title" tabindex="-1"><div class="purchase-sheet-top"><div><span class="kicker">STEP 3 OF 3</span><h2 id="purchase-title">Getting your number</h2></div></div><div class="purchase-steps" aria-label="Purchase progress"><span class="purchase-step done"><b>1</b> Service</span><span class="purchase-step done"><b>2</b> Review</span><span class="purchase-step current"><b>3</b> Track</span></div><div class="purchase-activation-state"><div class="purchase-loader" aria-hidden="true"></div><span class="service-category">ACTIVATION</span><h3>Reserving your number…</h3><p>We’re preparing your number now. Your active number will appear shortly.</p></div></section></div>`;
-  return `<div class="purchase-overlay" role="presentation"><button class="purchase-backdrop" type="button" aria-label="Close purchase review" data-purchase-close></button><section class="purchase-sheet" role="dialog" aria-modal="true" aria-labelledby="purchase-title" tabindex="-1"><div class="purchase-sheet-top"><div><span class="kicker">STEP 2 OF 3</span><h2 id="purchase-title">Review your number</h2></div><button class="icon-btn" type="button" aria-label="Close" data-purchase-close>×</button></div><div class="purchase-steps" aria-label="Purchase progress"><span class="purchase-step done"><b>1</b> Service</span><span class="purchase-step current"><b>2</b> Review</span><span class="purchase-step"><b>3</b> Track</span></div><div class="purchase-service-card"><div class="service-icon large">${iconFor(data.service.category)}</div><div class="purchase-service-copy"><span class="service-category">${esc(data.service.category)}</span><strong>${esc(data.service.name)}</strong><span>Number format: +91 · OTP delivery timing varies by service</span></div></div><div class="purchase-detail-grid"><div><span>Number format</span><strong>+91</strong><small>Marketplace format</small></div><div><span>Price</span><strong>${money(data.pricePaise)}</strong><small>One activation</small></div><div><span>Number validity</span><strong>25 minutes</strong><small>Maximum validity</small></div><div><span>Wallet balance</span><strong>${money(state.balancePaise)}</strong><small>Available to use now</small></div><div><span>After purchase</span><strong>${insufficient ? "—" : money(Math.max(0, data.afterBalancePaise))}</strong><small>${insufficient ? "Add funds required" : "Estimated remaining balance"}</small></div></div><div class="purchase-trust"><span>✓</span><div><strong>Activation tracking</strong><small>After confirmation, your number appears in Active. OTP delivery timing varies by service; status updates are shown there.</small></div></div>${error}${insufficient ? `<div class="purchase-actions"><button class="secondary-btn" type="button" data-purchase-close>Back</button><button class="primary-btn" type="button" data-purchase-wallet>Add funds</button></div>` : `<div class="purchase-actions"><button class="secondary-btn" type="button" data-purchase-close>Back</button><button class="primary-btn purchase-confirm-btn" type="button" data-purchase-confirm>Get number <span>→</span></button></div>`}</section></div>`;
+  return `<div class="purchase-overlay" role="presentation"><button class="purchase-backdrop" type="button" aria-label="Close purchase review" data-purchase-close></button><section class="purchase-sheet" role="dialog" aria-modal="true" aria-labelledby="purchase-title" tabindex="-1"><div class="purchase-sheet-top"><div><span class="kicker">STEP 2 OF 3</span><h2 id="purchase-title">Review your number</h2></div><button class="icon-btn" type="button" aria-label="Close" data-purchase-close>×</button></div><div class="purchase-steps" aria-label="Purchase progress"><span class="purchase-step done"><b>1</b> Service</span><span class="purchase-step current"><b>2</b> Review</span><span class="purchase-step"><b>3</b> Track</span></div><div class="purchase-service-card"><div class="service-icon large">${iconFor(data.service.category)}</div><div class="purchase-service-copy"><span class="service-category">${esc(data.service.category)}</span><strong>${esc(data.service.name)}</strong><span>Number format: +91 · Provider-defined activation and OTP timing</span></div></div><div class="purchase-detail-grid"><div><span>Number format</span><strong>+91</strong><small>Marketplace format</small></div><div><span>Price</span><strong>${money(data.pricePaise)}</strong><small>One activation</small></div><div><span>Number validity</span><strong>Varies</strong><small>Provider-defined validity</small></div><div><span>Wallet balance</span><strong>${money(state.balancePaise)}</strong><small>Available to use now</small></div><div><span>After purchase</span><strong>${insufficient ? "—" : money(Math.max(0, data.afterBalancePaise))}</strong><small>${insufficient ? "Add funds required" : "Estimated remaining balance"}</small></div></div><div class="purchase-trust"><span>✓</span><div><strong>Activation tracking</strong><small>After confirmation, your number appears in Active. OTP delivery timing varies by service; status updates are shown there.</small></div></div>${error}${insufficient ? `<div class="purchase-actions"><button class="secondary-btn" type="button" data-purchase-close>Back</button><button class="primary-btn" type="button" data-purchase-wallet>Add funds</button></div>` : `<div class="purchase-actions"><button class="secondary-btn" type="button" data-purchase-close>Back</button><button class="primary-btn purchase-confirm-btn" type="button" data-purchase-confirm>Get number <span>→</span></button></div>`}</section></div>`;
 }
 
 async function confirmPurchase() {
@@ -960,8 +964,6 @@ async function buy(serviceId, serverId = null) {
     });
     delete state.pendingPurchaseKeys[purchaseKey];
     state.purchaseBusy.delete(purchaseKey);
-    const numberRevealAt = Number(activation.syntheticNumberRevealAt || activation.metadata?.numberRevealAt || 0);
-    const numberPopupDelay = numberRevealAt ? Math.max(0, numberRevealAt - Date.now()) : 0;
     queueNotificationPopup({
       title: 'Number fetched successfully',
       body: 'Your ' + activation.service + ' number ' + activation.number + ' is ready to use.',
@@ -970,7 +972,7 @@ async function buy(serviceId, serverId = null) {
       sourceType: 'activation',
       sourceId: activation.id,
       eventKey: 'status:Active',
-      delayMs: numberPopupDelay
+      delayMs: 0
     });
     state.active.unshift(activation);
     state.orders.unshift({ id: activation.id, service: activation.service, number: activation.number, pricePaise: activation.pricePaise, status: 'Active', otp: 'Waiting…', created: 'Just now' });
@@ -1677,20 +1679,21 @@ function content() {
 
 function serviceCard(service) {
   const insufficient = state.balancePaise < Number(service.pricePaise || 0);
-  const actionLabel = insufficient ? 'Top up' : 'Buy number';
+  const purchasable = service.purchasable !== false;
+  const actionLabel = !purchasable ? 'Unavailable' : insufficient ? 'Top up' : 'Buy number';
   const expanded = state.expandedServiceId === service.id;
   const priceLabel = money(service.pricePaise);
   const balanceDelta = Number(service.pricePaise || 0) - state.balancePaise;
   const balanceReady = !insufficient;
   const walletLabel = balanceReady ? 'Wallet ready' : 'Add ' + money(Math.max(0, balanceDelta));
-  return '<article class="market-service-group customer-service-card ' + (expanded ? ' expanded' : '') + '">' +
+  return '<article class="market-service-group customer-service-card ' + (!purchasable ? ' unavailable' : '') + (expanded ? ' expanded' : '') + '"> +
     '<button class="service-group-header customer-service-main" type="button" data-toggle-service="' + esc(service.id) + '" aria-expanded="' + String(expanded) + '" aria-controls="details-' + esc(service.id) + '">' +
       '<span class="service-icon service-brand-icon">' + iconFor(service.category) + '</span>' +
-      '<span class="service-group-copy"><span class="service-category">' + esc(service.category) + '</span><strong>' + esc(service.name) + '</strong><small>+91 · Up to 25 min validity · OTP timing varies</small></span>' +
+      '<span class="service-group-copy"><span class="service-category">' + esc(service.category) + '</span><strong>' + esc(service.name) + '</strong><small>+91 · Provider validity varies · OTP timing varies</small></span>' +
       '<span class="service-group-meta"><span class="service-price">' + priceLabel + '</span></span>' +
       '<span class="service-group-chevron" aria-hidden="true">⌄</span>' +
     '</button>' +
-    '<div class="customer-service-bottom"><div class="customer-service-facts"><span class="customer-service-fact"><b>25 min</b> maximum validity</span><span class="customer-service-fact"><b>+91</b> number format</span><span class="customer-service-fact"><b>Varies</b> OTP delivery</span></div><div class="customer-service-action"><span class="wallet-ready-chip ' + (balanceReady ? 'ready' : 'needs-funds') + '">' + esc(walletLabel) + '</span><button class="buy-btn customer-buy" type="button" data-buy-service="' + esc(service.id) + '">' + actionLabel + '</button></div></div>' +
+    '<div class="customer-service-bottom"><div class="customer-service-facts"><span class="customer-service-fact"><b>Varies</b> provider validity</span><span class="customer-service-fact"><b>+91</b> number format</span><span class="customer-service-fact"><b>Varies</b> OTP delivery</span></div><div class="customer-service-action"><span class="wallet-ready-chip ' + (purchasable ? (balanceReady ? 'ready' : 'needs-funds') : 'needs-funds') + '">' + esc(purchasable ? walletLabel : 'Provider unavailable') + '</span><button class="buy-btn customer-buy" type="button" data-buy-service="' + esc(service.id) + '"' + (!purchasable ? ' disabled' : '') + '>' + actionLabel + '</button></div></div>' +
     (expanded ? serviceDetailsMarkup() : '') +
   '</article>';
 }
@@ -1803,24 +1806,14 @@ function renderActiveOnly() {
 function activeCard(activation) {
   const status = String(activation.status || 'Active');
   const otp = String(activation.otp || '').trim();
-  const expiresAt = Number(activation.expiresAt || 0);
-  const createdAt = Number(activation.createdAt || 0);
-  const syntheticRevealAt = Number(activation.syntheticNumberRevealAt || activation.metadata?.numberRevealAt || 0);
-  const syntheticOtpAt = Number(activation.syntheticOtpAvailableAt || activation.mockOtpAt || 0);
-  const syntheticNumberHidden = status === 'Active' && !otp && syntheticRevealAt > Date.now();
-  const syntheticOtpWaiting = status === 'Active' && !otp && !syntheticNumberHidden && syntheticOtpAt > Date.now();
-    const cancelling = state.activeCancelId === activation.id;
+  const cancelling = state.activeCancelId === activation.id;
   const cancelBusy = state.activeCancelBusy.has(activation.id);
   const actionError = state.activeActionErrorById[activation.id] || '';
   const service = state.services.find((s) => s.id === activation.serviceId);
   const statusInfo = {
     Active: otp
       ? { label: 'Code received', tone: 'received' }
-      : syntheticNumberHidden
-        ? { label: 'Waiting for number', tone: 'waiting' }
-        : syntheticOtpWaiting
-          ? { label: 'Waiting for OTP', tone: 'waiting' }
-          : { label: 'Waiting for SMS', tone: 'waiting' },
+      : { label: 'Waiting for SMS', tone: 'waiting' },
     CancellationPending: { label: 'Cancellation in progress', tone: 'pending' },
     ExpirationPending: { label: 'Expiring', tone: 'pending' }
   }[status] || { label: status, tone: 'neutral' };
@@ -1828,22 +1821,19 @@ function activeCard(activation) {
   const cancelUi = cancelling
     ? '<div class="cancel-confirm"><span>Cancel this activation and request a refund.</span><div><button class="ghost-btn" type="button" data-cancel-dismiss>Keep number</button><button class="text-danger confirm-danger" type="button" data-cancel-confirm="' + esc(activation.id) + '">Confirm cancel</button></div></div>'
     : (canCancel ? '<button class="text-danger" type="button" data-cancel="' + esc(activation.id) + '">Cancel & refund</button>' : '<span class="cancel-disabled-note">' + (status === 'CancellationPending' ? 'Cancellation processing' : status === 'ExpirationPending' ? 'Expiration processing' : otp ? 'Code received' : 'Not cancellable') + '</span>');
-  const syntheticOtpWaitingLabel = syntheticOtpWaiting;
   const otpPanel = otp
     ? '<div class="otp-panel otp-received-panel"><div class="otp-panel-head"><span class="otp-label">VERIFICATION CODE</span><span class="code-state success">READY</span></div><div class="otp-code">' + esc(otp) + '</div><div class="otp-actions"><button class="primary-btn otp-copy-primary" type="button" data-copy="' + esc(otp.replace(/\s/g, '')) + '" data-copy-message="OTP copied">Copy code</button><span class="otp-help">Use the code shown here to complete verification.</span></div></div>'
-    : syntheticNumberHidden
-      ? '<div class="otp-panel waiting-panel"><div class="otp-panel-head"><span class="otp-label">NUMBER</span><span class="code-state waiting">WAITING</span></div><div class="waiting-note">▣ Waiting for number</div></div>'
-      : '<div class="otp-panel waiting-panel"><div class="otp-panel-head"><span class="otp-label">' + (syntheticOtpWaitingLabel ? 'OTP' : 'STATUS') + '</span><span class="code-state ' + esc(statusInfo.tone) + '">' + esc(statusInfo.label.toUpperCase()) + '</span></div><div class="waiting-note">' + (status === 'CancellationPending' ? '◷ Cancellation is being processed' : status === 'ExpirationPending' ? '◷ Finalizing this activation' : syntheticOtpWaitingLabel ? '▣ Waiting for OTP' : '▣ Waiting for the verification code') + '</div></div>';
+    : '<div class="otp-panel waiting-panel"><div class="otp-panel-head"><span class="otp-label">STATUS</span><span class="code-state ' + esc(statusInfo.tone) + '">' + esc(statusInfo.label.toUpperCase()) + '</span></div><div class="waiting-note">' + (status === 'CancellationPending' ? '◷ Cancellation is being processed' : status === 'ExpirationPending' ? '◷ Finalizing this activation' : '▣ Waiting for the verification code') + '</div></div>';
   const errorBlock = actionError ? '<div class="active-action-error" role="alert"><span>' + esc(actionError) + '</span><button class="refresh-btn" type="button" data-action="refresh-activation" data-refresh-activation="' + esc(activation.id) + '">Check status</button></div>' : '';
-  const displayNumber = syntheticNumberHidden ? 'Waiting for number' : activation.number;
-  const copyNumber = syntheticNumberHidden
-    ? '<span class="copy-btn disabled" aria-disabled="true">Preparing…</span>'
-    : '<button class="copy-btn" type="button" data-copy="' + esc(activation.number.replace(/\s/g, '')) + '" data-copy-message="Number copied">Copy number</button>';
+  const displayNumber = activation.number || 'Number pending';
+  const copyNumber = activation.number
+    ? '<button class="copy-btn" type="button" data-copy="' + esc(String(activation.number).replace(/\s/g, '')) + '" data-copy-message="Number copied">Copy number</button>'
+    : '<span class="copy-btn disabled" aria-disabled="true">Number pending</span>';
   return '<article class="active-card ' + (cancelBusy ? 'is-cancelling' : '') + ' ' + esc(statusInfo.tone) + '">' +
     '<div class="active-card-header"><div class="service-icon large">' + iconFor(service?.category) + '</div><div class="service-meta"><span class="service-category">' + esc(activation.service) + '</span><h3>' + esc(displayNumber) + '</h3></div><span class="activation-status ' + esc(statusInfo.tone) + '"><span></span>' + (cancelBusy ? 'Cancelling…' : esc(statusInfo.label)) + '</span></div>' +
     '<div class="active-context"><span>+91 number format</span><span>' + money(activation.pricePaise) + '</span><span>Order ' + esc(activation.id) + '</span>' + copyNumber + '</div>' +
     otpPanel + errorBlock +
-    '<div class="active-footer"><span><small>ACTIVATION</small><strong>' + (status === 'CancellationPending' ? 'Cancellation in progress' : status === 'ExpirationPending' ? 'Expiration in progress' : 'Number valid for up to 25 minutes') + '</strong></span>' + cancelUi + '</div>' +
+    '<div class="active-footer"><span><small>ACTIVATION</small><strong>' + (status === 'CancellationPending' ? 'Cancellation in progress' : status === 'ExpirationPending' ? 'Expiration in progress' : 'Validity is determined by the provider') + '</strong></span>' + cancelUi + '</div>' +
   '</article>';
 }
 

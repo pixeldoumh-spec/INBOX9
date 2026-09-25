@@ -2,9 +2,9 @@
 
 ## Current production mode
 
-INBOX9 currently uses the synthetic provider for fulfillment. It creates deterministic, non-routable numbers and OTPs for QA.
+The synthetic provider is an internal QA/load-testing component only. Production customer fulfillment is fail-closed unless a real upstream provider is configured and routed for the requested service.
 
-The repository now also includes a guarded NumberOTP adapter and a public India availability feed.
+The repository also includes guarded external-provider adapters, but an adapter being installed does not by itself authorize customer-facing resale.
 
 ## NumberOTP availability
 
@@ -30,15 +30,24 @@ Do not enable a production service route to `numberotp` until cancellation/recon
 
 ## Customer flow
 
-Current:
+Current production behavior:
 
 ```
 INBOX9 service catalog
         |
-        +-- synthetic fulfillment (enabled)
+        +-- real provider route -> customer purchase
         |
-        +-- NumberOTP live availability (informational)
+        +-- no real provider -> service marked unavailable
 ```
+
+Internal QA behavior:
+
+```
+non-production
+    |
+    +-- synthetic fulfillment
+```
+
 
 Future, after explicit authorization and provider-account testing:
 

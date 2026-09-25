@@ -24,12 +24,7 @@ function mapActivation(row) {
     createdAt: new Date(row.created_at).getTime(),
     expiresAt: new Date(row.expires_at).getTime(),
     ...(row.refund_paise == null ? {} : { refundPaise: row.refund_paise }),
-    ...(row.provider_id ? { providerId: row.provider_id } : {}),
-    ...(row.provider_metadata?.serverId ? { serverId: row.provider_metadata.serverId } : {}),
-    ...(String(row.provider_metadata?.engine || '').startsWith('synthetic') ? {
-      syntheticNumberRevealAt: row.provider_metadata?.numberRevealAt ? new Date(row.provider_metadata.numberRevealAt).getTime() : null,
-      syntheticOtpAvailableAt: row.mock_otp_at ? new Date(row.mock_otp_at).getTime() : null
-    } : {}),
+
   };
 }
 
@@ -59,6 +54,11 @@ export async function createActivation(service, userId, idempotency = null, opti
   }
   provider = providerRoute.rows[0];
 
+  if (process.env.NODE_ENV === 'production' && provider.adapter_key === 'synthetic') {
+    const error = new Error('Real activation provider is not configured');
+    error.code = 'REAL_PROVIDER_REQUIRED';
+    throw error;
+  }
 
   for (let attempt = 1; attempt <= SYNTHETIC_SLOT_RESERVATION_ATTEMPTS; attempt += 1) {
     try {
@@ -230,6 +230,11 @@ export async function getActivation(id, userId) {
   if (!snapshotResult.rowCount) return null;
 
   const snapshot = snapshotResult.rows[0];
+  if (process.env.NODE_ENV === 'production' && snapshot.adapter_key === 'synthetic' && snapshot.status === 'Active') {
+    const error = new Error('Real activation provider is not configured');
+    error.code = 'REAL_PROVIDER_REQUIRED';
+    throw error;
+  }
   if (!snapshot.provider_id || !snapshot.provider_activation_id || snapshot.status !== 'Active') {
     return mapActivation(snapshot);
   }

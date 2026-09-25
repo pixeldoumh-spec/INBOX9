@@ -1,6 +1,6 @@
 # INBOX9 — India OTP Marketplace
 
-India-only OTP marketplace powered by an internal synthetic number and OTP engine.
+India-focused OTP marketplace with a persistent customer platform and provider-routing architecture. Synthetic numbers/OTPs are internal QA tooling only.
 
 ## Current release
 
@@ -10,8 +10,8 @@ India-only OTP marketplace powered by an internal synthetic number and OTP engin
 - Responsive customer marketplace, active-number, orders and wallet screens.
 - Customer UI hides synthetic infrastructure such as server partitions and slot ranges.
 - One Node runtime (`server.js`) serves the browser and mounts the existing API modules.
-- Single internal synthetic fulfillment engine for numbers and OTP lifecycle, with durable per-service slot reservations and internal server partitioning.
-- Active synthetic slots are reserved transactionally in PostgreSQL; duplicate slot claims are rejected and retried, and terminal activation states release the reservation.
+- Provider gateway with normalized fulfillment lifecycle, timeouts, error normalization and health checks.
+- Synthetic inventory remains isolated for non-production QA; production customer activation fails closed when no real provider route is available.
 - Security headers, integer paise pricing, payload limits and accessibility improvements.
 - 25-track engineering review documented in `docs/25-AGENT-REVIEW.md`.
 
@@ -49,9 +49,10 @@ Browser UI
    PostgreSQL (persistent staging/production)
            │
            ▼
-   Internal Synthetic Engine
-           │
-           └── synthetic number/OTP lifecycle
+     Provider router
+       │        │
+       ▼        ▼
+   Real provider  QA synthetic engine
 ```
 
 Production is explicitly configured as `postgres`. Persistent customer traffic uses PostgreSQL as the source of truth. Synthetic mode is reserved for non-production QA and never grants a starting wallet balance or exposes a payment destination.

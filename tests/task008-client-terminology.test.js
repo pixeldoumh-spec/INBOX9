@@ -67,3 +67,23 @@ test('admin provider presentation does not expose implementation adapter names',
   assert.match(app, /provider\?\.id === 'provider-mock'/);
   assert.doesNotMatch(app, /\bSYNTHETIC_SERVERS\b/);
 });
+
+
+test('customer activation UI is provider-agnostic and does not expose synthetic lifecycle fields', async () => {
+  const app = await readClient('app.js');
+  const activationRepository = await fs.readFile(new URL('../api/_lib/activation-repository.js', import.meta.url), 'utf8');
+  assert.doesNotMatch(app, /syntheticRevealAt|syntheticOtpAt|syntheticNumberHidden|syntheticOtpWaiting/);
+  assert.doesNotMatch(app, /Number valid for up to 25 minutes/);
+  assert.match(app, /Validity is determined by the provider/);
+  assert.doesNotMatch(activationRepository, /syntheticNumberRevealAt|syntheticOtpAvailableAt/);
+  assert.doesNotMatch(activationRepository, /\{ providerId: row\.provider_id \}/);
+  assert.doesNotMatch(activationRepository, /\{ serverId: row\.provider_metadata\.serverId \}/);
+});
+
+test('production customer fulfillment fails closed without a real provider', async () => {
+  const activationRepository = await fs.readFile(new URL('../api/_lib/activation-repository.js', import.meta.url), 'utf8');
+  const servicesRoute = await fs.readFile(new URL('../api/_services.js', import.meta.url), 'utf8');
+  assert.match(activationRepository, /REAL_PROVIDER_REQUIRED/);
+  assert.match(servicesRoute, /purchasableIds/);
+  assert.match(servicesRoute, /adapter_key <> 'synthetic'/);
+});
