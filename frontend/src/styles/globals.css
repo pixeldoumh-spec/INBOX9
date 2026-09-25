@@ -370,6 +370,29 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 }
 
 /* Phase 2.1 — shared service-logo frame + optical nav normalization */
+
+/* Phase 2.2 — one service-logo size across customer tabs and detail */
+.service-logo-sm,.service-logo-md,.service-logo-lg{
+  width:72px !important;
+  height:72px !important;
+}
+.service-logo-sm .service-logo-fallback-content span,
+.service-logo-md .service-logo-fallback-content span,
+.service-logo-lg .service-logo-fallback-content span{
+  font-size:16px;
+}
+.catalog-apps .service-logo-md{
+  width:72px !important;
+}
+@media (max-width:380px){
+  .catalog-apps .service-logo-md,
+  .catalog-apps .service-logo-sm,
+  .catalog-apps .service-logo-lg{
+    width:64px !important;
+    height:64px !important;
+  }
+}
+
 .service-logo-art{
   width:100%;
   height:100%;
