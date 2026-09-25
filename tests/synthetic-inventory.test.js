@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import { listSyntheticServers, SYNTHETIC_SERVER_COUNT, SYNTHETIC_CAPACITY, getSyntheticServer } from '../api/_lib/synthetic-servers.js';
+import { services } from '../api/_lib/catalog.js';
 import { claimSyntheticSlot, shouldRestoreSyntheticStock, shouldRequireSyntheticReservation } from '../api/_lib/synthetic-inventory-repository.js';
 
 test('synthetic servers partition 100 slots into exactly 11 contiguous chunks', () => {
@@ -23,7 +24,7 @@ test('synthetic slot claim validates server ownership before inserting', async (
   const fakeClient = { query: async (...args) => { calls.push(args); return { rowCount: 1, rows: [{ id: 'slot-1' }] }; } };
   const row = await claimSyntheticSlot(fakeClient, {
     activationId: 'ORD-1',
-    serviceId: 'whatsapp-0',
+    serviceId: services[0].id,
     slot: 1,
     serverId: 'server-1',
   });
@@ -36,7 +37,7 @@ test('synthetic slot claim rejects a slot outside the selected server', async ()
   await assert.rejects(
     () => claimSyntheticSlot(fakeClient, {
       activationId: 'ORD-2',
-      serviceId: 'whatsapp-0',
+      serviceId: services[0].id,
       slot: getSyntheticServer('server-2').startSlot - 1,
       serverId: 'server-2',
     }),
@@ -70,7 +71,7 @@ test('synthetic slot claim surfaces durable uniqueness conflicts', async () => {
   await assert.rejects(
     () => claimSyntheticSlot(fakeClient, {
       activationId: 'ORD-CONFLICT',
-      serviceId: 'whatsapp-0',
+      serviceId: services[0].id,
       slot: 1,
       serverId: 'server-1',
     }),
@@ -101,7 +102,7 @@ test('PostgreSQL concurrent claims allow exactly one Reserved slot owner', { ski
   const activationA = `ACT-SYN-${crypto.randomUUID()}`;
   const activationB = `ACT-SYN-${crypto.randomUUID()}`;
   const slot = 99;
-  const serviceId = 'whatsapp-0';
+  const serviceId = services[0].id;
   const serverId = 'server-11';
 
   const fixture = await pool.connect();
@@ -115,9 +116,9 @@ test('PostgreSQL concurrent claims allow exactly one Reserved slot owner', { ski
       `INSERT INTO activations
        (id,user_id,service_id,service_name,country,phone_number,price_paise,currency,status,expires_at,provider_metadata)
        VALUES
-       ($1,$2,'whatsapp-0','WhatsApp','IN','+919000000001',950,'INR','Active',NOW() + INTERVAL '10 minutes',
+       ($1,$2,services[0].id,'WhatsApp','IN','+919000000001',950,'INR','Active',NOW() + INTERVAL '10 minutes',
         jsonb_build_object('engine','synthetic','slot',4999)),
-       ($3,$4,'whatsapp-0','WhatsApp','IN','+919000000002',950,'INR','Active',NOW() + INTERVAL '10 minutes',
+       ($3,$4,services[0].id,'WhatsApp','IN','+919000000002',950,'INR','Active',NOW() + INTERVAL '10 minutes',
         jsonb_build_object('engine','synthetic','slot',4999))`,
       [activationA, userA, activationB, userB]
     );
