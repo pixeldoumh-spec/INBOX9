@@ -934,17 +934,17 @@ function purchaseReviewModal() {
       '<div class="purchase-steps" aria-label="Purchase progress"><span class="purchase-step current"><b>1</b> Service</span><span class="purchase-step"><b>2</b> Confirm</span><span class="purchase-step"><b>3</b> Track</span></div>' +
       '<div class="inbox9-service-detail-hero">' +
         '<div class="inbox9-service-detail-icon">' + serviceLogoGlyph(service, initials) + '</div>' +
-        '<div class="inbox9-service-detail-name"><span class="service-category">' + esc(service.category || 'Service') + '</span><h3>' + esc(service.name) + '</h3><span>India (+91) · Virtual number</span></div>' +
+        '<div class="inbox9-service-detail-name"><span class="service-category">' + esc(service.category || 'Service') + '</span><h3>' + esc(service.name) + '</h3><span>India (+91) · Provider-defined activation and OTP timing</span></div>' +
         '<span class="inbox9-service-ready"><i></i>' + (service.purchasable === false ? 'Unavailable' : 'Ready to order') + '</span>' +
       '</div>' +
-      '<div class="inbox9-service-price-row"><div><span>From</span><strong>' + money(data.pricePaise) + '</strong><small>per activation</small></div><div><span>Country</span><strong>🇮🇳 +91</strong><small>India</small></div></div>' +
+      '<div class="inbox9-service-price-row"><div><span>Price</span><strong>' + money(data.pricePaise) + '</strong><small>One activation</small></div><div><span>Number format</span><strong>+91</strong><small>India marketplace</small></div></div>' +
       '<div class="inbox9-service-detail-grid">' +
         '<div><span>Number type</span><strong>SMS verification</strong><small>One activation</small></div>' +
         '<div><span>Validity</span><strong>Provider defined</strong><small>Shown at activation</small></div>' +
         '<div><span>OTP delivery</span><strong>Service dependent</strong><small>Tracked in Active</small></div>' +
         '<div><span>Wallet</span><strong>' + money(state.balancePaise) + '</strong><small>' + (insufficient ? 'Add funds to continue' : 'Available balance') + '</small></div>' +
       '</div>' +
-      '<div class="inbox9-service-how"><span class="inbox9-service-how-icon">✓</span><div><strong>How it works</strong><p>Get a +91 number, use it on ' + esc(service.name) + ', then watch the OTP arrive in <b>Active</b>. The provider controls final number availability and OTP timing.</p></div></div>' +
+      '<div class="inbox9-service-how"><span class="inbox9-service-how-icon">✓</span><div><strong>Activation tracking</strong><p>Get a +91 number, use it on ' + esc(service.name) + ', then watch the OTP arrive in <b>Active</b>. OTP delivery timing varies by service; status updates are shown there.</p></div></div>' +
       error +
       '<div class="purchase-actions inbox9-service-actions">' +
         '<button class="secondary-btn" type="button" data-purchase-close>Back to apps</button>' +
