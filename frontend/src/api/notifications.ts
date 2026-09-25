@@ -15,3 +15,7 @@ export function markAllNotificationsRead() {
     { method: 'POST' },
   );
 }
+
+export function markNotificationRead(id:string) {
+ return apiRequest<{id:string;read:boolean}>('/api/notifications/'+encodeURIComponent(id),{method:'PATCH',body:JSON.stringify({read:true})});
+}
