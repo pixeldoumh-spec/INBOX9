@@ -66,12 +66,13 @@ test('customer navigation is extracted and remains wired to the application shel
 
 test('browser navigation has one coordinated history handler and avoids same-route refresh storms', async () => {
   const [app, navigation] = await Promise.all([read('app.js'), read('customer/navigation.js')]);
-  assert.match(app, /function browserNavigationSignature\(\)/);
   assert.match(app, /function handleBrowserNavigation\(\)/);
+  assert.match(app, /handleMarketplaceUrlNavigation\(\)/);
+  assert.match(app, /handleHashNavigation\(\{ refreshSamePage: false \}\)/);
   assert.match(app, /window\.addEventListener\('hashchange', handleBrowserNavigation\)/);
   assert.match(app, /window\.addEventListener\('popstate', handleBrowserNavigation\)/);
   assert.match(app, /window\.addEventListener\('pageshow', handlePageShow\)/);
-  assert.doesNotMatch(app, /popstate', handleMarketplaceUrlNavigation/);
+  assert.doesNotMatch(app, /lastBrowserNavigationSignature/);
   assert.match(navigation, /function handleHashNavigation\(\{ refreshSamePage = true \} = \{\}\)/);
   assert.match(navigation, /if \(refreshSamePage\) refreshPageData\(next\)/);
 });

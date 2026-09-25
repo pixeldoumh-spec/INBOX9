@@ -702,7 +702,6 @@ async function boot() {
   await bootstrapSession();
   if (!state.user) return;
   if (!state.tickTimer) state.tickTimer = window.setInterval(tick, 1000);
-  lastBrowserNavigationSignature = browserNavigationSignature();
 }
 
 function resetPurchaseFlow() {
@@ -1925,17 +1924,9 @@ function apiPage() {
 }
 
 let lastForegroundRefreshAt = 0;
-let lastBrowserNavigationSignature = '';
-
-function browserNavigationSignature() {
-  return window.location.pathname + window.location.search + window.location.hash;
-}
 
 function handleBrowserNavigation() {
   if (!state.user) return;
-  const signature = browserNavigationSignature();
-  if (signature === lastBrowserNavigationSignature) return;
-  lastBrowserNavigationSignature = signature;
   handleMarketplaceUrlNavigation();
   handleHashNavigation({ refreshSamePage: false });
 }
