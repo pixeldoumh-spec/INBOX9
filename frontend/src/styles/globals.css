@@ -310,3 +310,58 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .cancel-confirm-button{width:100%;min-height:46px;display:flex;align-items:center;justify-content:center;gap:8px}
 .cancel-sheet .text-button{width:100%;margin-top:3px}
 @media (prefers-reduced-motion:reduce){.cancel-sheet{animation:none}}
+
+/* Phase 1 — mobile visual foundation */
+.app-shell{
+  width:100%;
+  max-width:720px;
+  min-height:100dvh;
+  margin:0 auto;
+  position:relative;
+  background:var(--bg);
+}
+.top-header{
+  height:78px;
+  padding:calc(env(safe-area-inset-top) + 10px) 16px 10px;
+}
+.brand{gap:11px;font-size:20px}
+.brand-mark{width:42px;height:42px;border-radius:13px}
+.header-actions{gap:7px}
+.wallet-pill{
+  min-height:42px;
+  padding:0 8px 0 11px;
+  border-radius:14px;
+  font-size:13px;
+}
+.wallet-add{width:25px;height:25px;border-radius:9px}
+.notification-button,.profile-button{width:42px;height:42px;border-radius:13px}
+.profile-button span{width:31px;height:31px;border-radius:10px}
+.page-content{
+  max-width:none;
+  padding:0 14px calc(92px + env(safe-area-inset-bottom));
+}
+.catalog-apps .catalog-heading{display:none}
+.catalog-apps .search-field{
+  min-height:62px;
+  margin:14px 2px 20px;
+  padding:0 15px;
+  border-radius:17px;
+  gap:12px;
+}
+.catalog-apps .search-field input{font-size:18px}
+.catalog-buy .search-field{
+  min-height:60px;
+}
+@media (min-width:721px){
+  body{background:#efedf4}
+  .app-shell{box-shadow:0 0 44px rgba(37,24,66,.08)}
+}
+@media (max-width:380px){
+  .top-header{padding-left:12px;padding-right:12px}
+  .brand{gap:8px;font-size:18px}
+  .brand-mark{width:40px;height:40px}
+  .wallet-pill{font-size:12px;padding-left:9px}
+  .notification-button,.profile-button{width:40px;height:40px}
+  .header-actions{gap:5px}
+}
+
