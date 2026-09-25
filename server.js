@@ -342,8 +342,13 @@ function serveFrontend(nodeRes, pathname, req) {
       contentType = 'text/html; charset=utf-8';
       servedPath = '/index.html';
       fs.stat(file, (indexError, indexStats) => {
-        if (indexError || !indexStats.isFile()) return sendNodeJson(nodeRes, 503, { error: 'Frontend build unavailable' });
-        sendFrontendFile(nodeRes, file, contentType, servedPath, req, indexStats);
+        if (!indexError && indexStats.isFile()) return sendFrontendFile(nodeRes, file, contentType, servedPath, req, indexStats);
+        // Backend-only test/dev environments may not have a Vite build yet.
+        const fallback = path.join(__dirname, 'index.html');
+        fs.stat(fallback, (fallbackError, fallbackStats) => {
+          if (fallbackError || !fallbackStats.isFile()) return sendNodeJson(nodeRes, 503, { error: 'Frontend build unavailable' });
+          sendFrontendFile(nodeRes, fallback, contentType, servedPath, req, fallbackStats);
+        });
       });
       return;
     }
