@@ -37,8 +37,8 @@ button:disabled { cursor: default; opacity: .58; }
 .service-grid { display:grid; grid-template-columns: repeat(4,minmax(0,1fr)); column-gap: 9px; row-gap: 22px; }
 .service-tile { min-width:0; display:flex; flex-direction:column; align-items:center; gap:8px; text-align:center; padding: 0 2px; }
 .service-logo { position:relative; flex:0 0 auto; overflow:hidden; border-radius:18px; background:#fff; border:1px solid #ece8f0; box-shadow:0 6px 18px rgba(29,20,44,.05); }
-.service-logo-art { position:absolute; inset:1px; display:grid; place-items:center; overflow:hidden; border-radius:inherit; background-repeat:no-repeat; background-origin:border-box; }
-.service-logo img { width:100%; height:100%; object-fit:contain; display:block; }
+.service-logo-art { position:absolute; inset:1px; display:grid; place-items:center; overflow:hidden; border-radius:inherit; background:transparent; }
+.service-logo-art img { width:100%; height:100%; object-fit:contain; object-position:center; display:block; }
 .service-logo-fallback-content { display:grid; place-items:center; gap:2px; }
 .service-logo-fallback-content span { font-size:20px; font-weight:900; color:var(--accent); letter-spacing:-.08em; }
 .service-logo-md .service-logo-fallback-content span { font-size:16px; }
