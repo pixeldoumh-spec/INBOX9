@@ -1909,7 +1909,7 @@ function buyPage() {
     : '';
   const mobileDrawer = '<section class="inbox9-app-drawer" aria-label="All services">' +
     '<div class="inbox9-app-drawer-head"><h2>All apps</h2><button type="button" data-page="account">Manage</button></div>' +
-    '<div class="inbox9-app-drawer-list"><div class="inbox9-app-drawer-grid">' + serviceAppDrawerMarkup(mobileAppsActive() ? mobileAppServices() : []) + '</div>' + mobileAppIndexMarkup() + '</div>' +
+    '<div class="inbox9-app-drawer-list"><div class="inbox9-app-drawer-grid">' + serviceAppDrawerMarkup(mobileAppServices()) + '</div>' + mobileAppIndexMarkup() + '</div>' +
   '</section>';
     return mobileDrawer + `<div class="market-page" id="marketplace-services">
     ${recentBlock}
