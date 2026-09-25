@@ -16,7 +16,8 @@
     "staging:smoke": "node scripts/staging-smoke.mjs",
     "issue9:e2e": "node scripts/issue9-e2e.mjs",
     "synthetic:smoke": "node scripts/synthetic-inventory-smoke.mjs",
-    "render:smoke": "node scripts/render-smoke.mjs"
+    "render:smoke": "node scripts/render-smoke.mjs",
+    "virtualsms:preflight": "node scripts/virtualsms-preflight.mjs"
   },
   "dependencies": {
     "pg": "^8.16.3"
