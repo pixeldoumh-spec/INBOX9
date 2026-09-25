@@ -5,6 +5,8 @@ import { beginCancellation, completeCancellation } from './provider-operations.j
 import { debitForActivation, getBalanceForClient } from './wallet-repository.js';
 import { completeActivationKey, markActivationKeyStuckSafe } from './idempotency.js';
 import { claimSyntheticSlot, releaseSyntheticSlot, shouldRestoreSyntheticStock, shouldRequireSyntheticReservation } from './synthetic-inventory-repository.js';
+import { getProviderAdapter } from './provider-registry.js';
+import { providerCapabilities } from './provider-gateway.js';
 
 const TTL_MS = 25 * 60 * 1000;
 const SYNTHETIC_SLOT_RESERVATION_ATTEMPTS = 8;
@@ -46,6 +48,15 @@ async function enforceActivationQuotas(client, { userId, serviceId, provider }) 
       error.code = 'VIRTUALSMS_CANARY_CAP_REACHED';
       throw error;
     }
+  }
+}
+
+function providerCanCancel(adapterKey) {
+  if (!adapterKey) return false;
+  try {
+    return providerCapabilities(getProviderAdapter(adapterKey)).cancelActivation === true;
+  } catch {
+    return false;
   }
 }
 
@@ -379,7 +390,11 @@ export async function listActivations(userId, limit = 50) {
   if (!pool) return [];
   const safeLimit = Math.min(Math.max(Number(limit) || 50, 1), 100);
   const result = await pool.query(
-    'SELECT * FROM activations WHERE user_id=$1 ORDER BY created_at DESC LIMIT $2', [userId, safeLimit]
+    `SELECT a.*,p.adapter_key
+       FROM activations a
+       LEFT JOIN providers p ON p.id=a.provider_id
+      WHERE a.user_id=$1
+      ORDER BY a.created_at DESC LIMIT $2`, [userId, safeLimit]
   );
   return result.rows.map(mapActivation);
 }
