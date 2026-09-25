@@ -15,9 +15,14 @@ function readEmbeddedSprite(){
   const b=Buffer.from(match[1],'base64');
   assert.equal(b.toString('ascii',0,4),'RIFF');
   assert.equal(b.toString('ascii',8,12),'WEBP');
-  assert.equal(b.toString('ascii',12,16),'VP8X');
-  const width=1+(b[24]|(b[25]<<8)|(b[26]<<16));
-  const height=1+(b[27]|(b[28]<<8)|(b[29]<<16));
+  const chunkType=b.toString('ascii',12,16);
+  assert.ok(chunkType==='VP8X'||chunkType==='VP8 ');
+  const width=chunkType==='VP8X'
+    ? 1+(b[24]|(b[25]<<8)|(b[26]<<16))
+    : (b[26]|(b[27]<<8)) & 0x3fff;
+  const height=chunkType==='VP8X'
+    ? 1+(b[27]|(b[28]<<8)|(b[29]<<16))
+    : (b[28]|(b[29]<<8)) & 0x3fff;
   return {width,height};
 }
 
