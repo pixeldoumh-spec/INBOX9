@@ -1,18 +1,54 @@
-# INBOX9 — Backend/API Foundation
+# INBOX9
 
-INBOX9 is the backend foundation for an India-focused OTP marketplace. The customer frontend has been intentionally removed so a new frontend can be designed and implemented from scratch against the stable API.
+INBOX9 is an India-focused OTP marketplace with a mobile-first customer app backed by a stable Node/PostgreSQL API.
 
 ## Repository boundary
 
-The repository currently contains the server/API, PostgreSQL migrations, authentication, wallet and UPI recharge controls, activation lifecycle, provider gateway, synthetic QA infrastructure, admin APIs, observability, CI, reconciliation, and deployment configuration.
+The repository contains the customer app, server/API, PostgreSQL migrations, authentication, wallet and UPI recharge controls, activation lifecycle, provider gateway, synthetic QA infrastructure, admin APIs, observability, CI, reconciliation, and deployment configuration.
 
-There is no customer frontend architecture in this repository:
-- no browser application bundle
-- no customer UI state/navigation layer
-- no customer CSS shell
-- no browser/device UI test harness
+The customer app lives under `/frontend` and is served by the same Node runtime. It calls the backend only through same-origin `/api/*` endpoints.
 
-The root `/` endpoint serves only a minimal placeholder page. Replace it when building the new frontend.
+## Customer app
+
+Implemented customer routes:
+
+- `/login`
+- `/register`
+- `/apps`
+- `/apps/service/:serviceId`
+- `/buy`
+- `/active`
+- `/active/:activationId`
+- `/wallet`
+- `/notifications`
+- `/support`
+- `/account`
+
+The Apps launcher renders the active 216-service catalog. Service logos use the committed optimized sprite where supplied assets are available, with deterministic text fallback for missing assets.
+
+## Activation lifecycle
+
+Customer flow:
+
+```text
+Apps / Buy
+   ↓
+Service detail
+   ↓
+Wallet balance check
+   ↓
+POST /api/activations
+   ↓
+Active activation
+   ↓
+number + OTP status polling
+   ↓
+Completed / Expired / Refunded / Cancelled
+```
+
+The frontend sends an idempotency key for every purchase request, invalidates wallet/activation queries after state changes, supports copy-to-clipboard, displays lifecycle-specific states, and exposes cancellation/refund results.
+
+Production activation remains fail-closed until an approved real provider route is configured. The synthetic fulfillment engine is not exposed as production customer inventory.
 
 ## Backend surface
 
@@ -44,6 +80,12 @@ npm start
 
 The server listens on `http://localhost:4173` by default.
 
+Frontend build:
+
+```bash
+npm run build --prefix frontend
+```
+
 API lifecycle smoke:
 
 ```bash
@@ -65,7 +107,7 @@ npm run staging:smoke
 ## Architecture
 
 ```text
-New frontend (to be built)
+Customer app (/frontend)
            │
            │ same-origin /api requests
            ▼
@@ -98,21 +140,4 @@ Admin APIs require an account with database role `admin`. Reconciliation, provid
 
 ## Provider readiness
 
-`npm run virtualsms:preflight` performs the purchase-blocked provider readiness checks. Customer routing remains disabled until provider credentials, India inventory, authorization, mappings, and canary controls are verified.
-
-## Building the new frontend
-
-Start from the API contracts rather than adapting the removed UI. The frontend can be any stack and can be organized independently from the backend.
-
-Useful first endpoints for discovery are:
-
-```text
-GET  /api/health
-GET  /api/services
-POST /api/auth/register
-POST /api/auth/login
-GET  /api/auth/me
-GET  /api/wallet
-GET  /api/activations
-POST /api/activations
-```
+`npm run virtualsms:preflight` performs purchase-blocked provider readiness checks. Customer routing remains disabled until provider credentials, India inventory, authorization, mappings, and canary controls are verified.
