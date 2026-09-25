@@ -1686,7 +1686,7 @@ function serviceCard(service) {
   const balanceDelta = Number(service.pricePaise || 0) - state.balancePaise;
   const balanceReady = !insufficient;
   const walletLabel = balanceReady ? 'Wallet ready' : 'Add ' + money(Math.max(0, balanceDelta));
-  return '<article class="market-service-group customer-service-card ' + (!purchasable ? ' unavailable' : '') + (expanded ? ' expanded' : '') + '"> +
+  return '<article class="market-service-group customer-service-card ' + (!purchasable ? ' unavailable' : '') + (expanded ? ' expanded' : '') + '">' +
     '<button class="service-group-header customer-service-main" type="button" data-toggle-service="' + esc(service.id) + '" aria-expanded="' + String(expanded) + '" aria-controls="details-' + esc(service.id) + '">' +
       '<span class="service-icon service-brand-icon">' + iconFor(service.category) + '</span>' +
       '<span class="service-group-copy"><span class="service-category">' + esc(service.category) + '</span><strong>' + esc(service.name) + '</strong><small>+91 · Provider validity varies · OTP timing varies</small></span>' +
