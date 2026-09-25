@@ -88,9 +88,12 @@ jobs:
 
           INSERT INTO activations
             (id,service_id,service_name,country,phone_number,price_paise,currency,status,otp,created_at,expires_at,user_id,provider_id,provider_activation_id,provider_metadata)
-          SELECT 'DR-ACT-1',s.id,s.name,'IN','+919999000001',950,'INR','Completed','123456',
+          SELECT 'DR-ACT-1',s.id,s.name,'IN','+919999000001',s.price_paise,'INR','Completed','123456',
             NOW(),NOW()+INTERVAL '25 minutes','DR-USER-1','provider-mock','DR-PROVIDER-ACT-1','{}'::jsonb
-          FROM services s WHERE s.id='whatsapp-0';
+          FROM services s
+          WHERE s.active=TRUE
+          ORDER BY s.id
+          LIMIT 1;
 
           INSERT INTO provider_operations
             (id,activation_id,operation_type,status,provider_id,provider_activation_id,attempts,completed_at)
