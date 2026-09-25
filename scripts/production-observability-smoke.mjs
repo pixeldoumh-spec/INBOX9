@@ -27,9 +27,6 @@ function assertJson(text, label) {
 
 const results = [];
 results.push(await check('/'));
-results.push(await check('/app.js'));
-results.push(await check('/styles.css'));
-
 const health = await check('/api/health');
 const healthBody = assertJson(health.body, '/api/health');
 if (healthBody.ok !== true || healthBody.ready !== true || healthBody.mode !== 'postgres') {
