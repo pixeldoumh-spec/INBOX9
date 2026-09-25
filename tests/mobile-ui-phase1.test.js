@@ -36,3 +36,9 @@ test('phase 2.1 normalizes the shared logo frame and bottom-nav optical icon siz
   assert.match(css,/\.bottom-nav-item > svg\s*\{[\s\S]*?width:21px;\s*height:21px/);
   assert.match(css,/\.bottom-nav-item:nth-child\(2\) > svg,.bottom-nav-item:nth-child\(4\) > svg\s*\{[\s\S]*?scale\(1\.08\)/);
 });
+
+test('phase 2.2 uses one service-logo size across customer surfaces',()=>{
+  assert.match(app,/const d=72/);
+  assert.match(css,/\.service-logo-sm,\.service-logo-md,\.service-logo-lg\s*\{[\s\S]*?width:72px !important;\s*height:72px !important/);
+  assert.match(css,/@media \(max-width:380px\)[\s\S]*?\.catalog-apps \.service-logo-md,[\s\S]*?\.catalog-apps \.service-logo-sm,[\s\S]*?\.catalog-apps \.service-logo-lg[\s\S]*?width:64px !important;[\s\S]*?height:64px !important/);
+});
