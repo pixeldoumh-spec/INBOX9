@@ -86,6 +86,41 @@ await withServer(async (server) => {
   assert.match(activationBody.number, /^\+91 /);
   const current = await request(server, `/api/activations/${encodeURIComponent(activationBody.id)}`, { headers: { cookie } });
   assert.equal(current.status, 200); assert.equal(json(current).id, activationBody.id);
+  assert.equal(json(activation).canCancel, true);
+
+  const replay = await request(server, '/api/activations', {
+    method: 'POST',
+    headers: { cookie, 'idempotency-key': 'runtime-activation-0001', origin: 'http://127.0.0.1' },
+    body: { serviceId: catalog[0].id },
+  });
+  assert.equal(replay.status, 201);
+  assert.equal(replay.headers['x-idempotent-replay'], 'true');
+  assert.equal(json(replay).id, activationBody.id);
+  assert.equal((await request(server, '/api/wallet', { headers: { cookie } })).status, 200);
+  assert.equal(json(await request(server, '/api/wallet', { headers: { cookie }})).balancePaise, 10000 - Number(activationBody.pricePaise));
+
+  const cancel = await request(server, `/api/activations/${encodeURIComponent(activationBody.id)}/cancel`, {
+    method: 'POST',
+    headers: { cookie, origin: 'http://127.0.0.1' },
+  });
+  assert.equal(cancel.status, 200);
+  const cancelled = json(cancel);
+  assert.equal(cancelled.status, 'Refunded');
+  assert.equal(cancelled.refundPaise, activationBody.pricePaise);
+  assert.equal(cancelled.walletBalancePaise, 10000);
+
+  const cancelledDetail = await request(server, `/api/activations/${encodeURIComponent(activationBody.id)}`, { headers: { cookie } });
+  assert.equal(cancelledDetail.status, 200);
+  assert.equal(json(cancelledDetail).status, 'Refunded');
+
+  const cancelReplay = await request(server, `/api/activations/${encodeURIComponent(activationBody.id)}/cancel`, {
+    method: 'POST',
+    headers: { cookie, origin: 'http://127.0.0.1' },
+  });
+  assert.equal(cancelReplay.status, 200);
+  assert.equal(json(cancelReplay).status, 'Refunded');
+  assert.equal((await request(server, '/api/wallet', { headers: { cookie } }).then(json)).balancePaise, 10000);
+
   const logout = await request(server, '/api/auth/logout', { method: 'POST', headers: { cookie } });
   assert.equal(logout.status, 200);
   cookie = cookieFrom(logout, cookie);
