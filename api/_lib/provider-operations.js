@@ -37,7 +37,16 @@ export async function beginCancellation(activationId, userId) {
     const existing = await client.query(
       `SELECT * FROM provider_operations WHERE activation_id=$1 AND operation_type='cancel' AND status='Pending' LIMIT 1`, [activationId]
     );
-    if (existing.rowCount) return { activation: row, operation: existing.rows[0] };
+    if (existing.rowCount) {
+      return {
+        activation: { ...row, status: 'CancellationPending' },
+        operation: existing.rows[0],
+        providerId: row.provider_id,
+        adapterKey: row.adapter_key,
+        providerPayload: activationPayload(row),
+        alreadyPending: true,
+      };
+    }
     const operation = await client.query(
       `INSERT INTO provider_operations
        (id,activation_id,operation_type,status,provider_id,provider_activation_id)
