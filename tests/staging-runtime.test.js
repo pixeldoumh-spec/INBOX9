@@ -64,7 +64,7 @@ async function withServer(work) {
 await withServer(async (server) => {
   const staticPage = await request(server, '/');
   assert.equal(staticPage.status, 200);
-  assert.match(staticPage.body, /id="app"/);
+  assert.match(staticPage.body, /Frontend intentionally removed/);
 
   const health = await request(server, '/api/health');
   assert.equal(health.status, 200);
