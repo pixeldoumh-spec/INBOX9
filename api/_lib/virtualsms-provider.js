@@ -57,22 +57,38 @@ function serviceCodeFor(service) {
   }
   return String(code).trim();
 }
-function assertPurchaseEnabled(service) {
-  if (!resellerAuthorized()) {
+export function validateVirtualSmsPurchaseConfig({ apiKeyValue, resellerAuthorizedValue, canaryEnabledValue, allowedServiceIds: allowlistedIds, serviceId } = {}) {
+  if (!String(apiKeyValue || '').trim()) {
+    const error = new Error('VirtualSMS API key is not configured');
+    error.code = 'PROVIDER_CREDENTIALS_MISSING';
+    throw error;
+  }
+  if (String(resellerAuthorizedValue || '').trim().toLowerCase() !== 'true') {
     const error = new Error('VirtualSMS customer resale is not enabled until written provider authorization is recorded');
     error.code = 'PROVIDER_RESELLER_AUTHORIZATION_REQUIRED';
     throw error;
   }
-  if (!canaryEnabled()) {
+  if (String(canaryEnabledValue || '').trim().toLowerCase() !== 'true') {
     const error = new Error('VirtualSMS canary mode is disabled');
     error.code = 'PROVIDER_CANARY_DISABLED';
     throw error;
   }
-  if (!allowedServiceIds().has(String(service?.id || '').trim())) {
+  const allowed = allowlistedIds instanceof Set ? allowlistedIds : new Set();
+  if (!allowed.has(String(serviceId || '').trim())) {
     const error = new Error('VirtualSMS service is not enabled for the canary allowlist');
     error.code = 'VIRTUALSMS_SERVICE_NOT_ALLOWLISTED';
     throw error;
   }
+}
+
+function assertPurchaseEnabled(service) {
+  validateVirtualSmsPurchaseConfig({
+    apiKeyValue: process.env.VIRTUALSMS_API_KEY,
+    resellerAuthorizedValue: process.env.VIRTUALSMS_RESELLER_AUTHORIZED,
+    canaryEnabledValue: process.env.VIRTUALSMS_CANARY_ENABLED,
+    allowedServiceIds: allowedServiceIds(),
+    serviceId: service?.id,
+  });
 }
 function parseTime(value, fallback) {
   const parsed = value == null ? NaN : Date.parse(String(value));
@@ -116,7 +132,7 @@ async function request(path, { method='GET', body=null, idempotencyKey=null } = 
   }
   return payload;
 }
-function activationFromOrder(order, existing={}) {
+export function normalizeVirtualSmsOrder(order, existing={}) {
   const now = Date.now();
   const number = order?.phone_number || order?.phoneNumber || order?.number || existing.number;
   const providerActivationId = order?.order_id || order?.orderId || order?.id || existing.providerActivationId;
@@ -157,11 +173,11 @@ export const virtualSmsProvider = createProviderAdapter({
       body:{service:serviceCodeFor(service),country:'IN'},
       idempotencyKey:service?.idempotencyKey || null,
     });
-    return activationFromOrder(result?.order || result);
+    return normalizeVirtualSmsOrder(result?.order || result);
   },
   async getActivation({providerActivationId,activation}) {
     const result = await request('/api/v1/customer/order/' + encodeURIComponent(providerActivationId));
-    return activationFromOrder(result?.order || result, {
+    return normalizeVirtualSmsOrder(result?.order || result, {
       providerActivationId,
       number:activation?.number,
       createdAt:activation?.createdAt,
