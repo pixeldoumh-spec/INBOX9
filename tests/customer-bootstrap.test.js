@@ -80,3 +80,15 @@ test('session bootstrap uses the same clean startup splash and never renders a s
   assert.doesNotMatch(app, /Restoring your session/);
   assert.doesNotMatch(app, /auth-card-loading/);
 });
+
+test('hard reload masks the previous app shell before the next document arrives', async () => {
+  const app = await fs.readFile(new URL('../app.js', import.meta.url), 'utf8');
+  const pageHideStart = app.indexOf('function handlePageHide(event)');
+  assert.ok(pageHideStart >= 0);
+  const pageHideEnd = app.indexOf('\n}\n', pageHideStart);
+  assert.ok(pageHideEnd > pageHideStart);
+  const pageHide = app.slice(pageHideStart, pageHideEnd + 2);
+  assert.match(pageHide, /if \(event\.persisted\) return/);
+  assert.match(pageHide, /showStartupSplash\(\)/);
+  assert.match(app, /window\.addEventListener\('pagehide', handlePageHide\)/);
+});
