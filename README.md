@@ -1,21 +1,36 @@
-# INBOX9 — India OTP Marketplace
+# INBOX9 — Backend/API Foundation
 
-India-focused OTP marketplace with a persistent customer platform and provider-routing architecture. Synthetic numbers/OTPs are internal QA tooling only.
+INBOX9 is the backend foundation for an India-focused OTP marketplace. The customer frontend has been intentionally removed so a new frontend can be designed and implemented from scratch against the stable API.
 
-## Current release
+## Repository boundary
 
-`v0.8.15` — persistent customer state with PostgreSQL-backed accounts/wallet/orders and a server-side synthetic fulfillment engine.
+The repository currently contains the server/API, PostgreSQL migrations, authentication, wallet and UPI recharge controls, activation lifecycle, provider gateway, synthetic QA infrastructure, admin APIs, observability, CI, reconciliation, and deployment configuration.
 
-- 832 supplied India service catalog entries.
-- Responsive customer marketplace, active-number, orders and wallet screens.
-- Customer UI hides synthetic infrastructure such as server partitions and slot ranges.
-- One Node runtime (`server.js`) serves the browser and mounts the existing API modules.
-- Provider gateway with normalized fulfillment lifecycle, timeouts, error normalization and health checks.
-- Synthetic inventory remains isolated for non-production QA; production customer activation fails closed when no real provider route is available.
-- Security headers, integer paise pricing, payload limits and accessibility improvements.
-- 25-track engineering review documented in `docs/25-AGENT-REVIEW.md`.
+There is no customer frontend architecture in this repository:
+- no browser application bundle
+- no customer UI state/navigation layer
+- no customer CSS shell
+- no browser/device UI test harness
 
-## Run locally
+The root `/` endpoint serves only a minimal placeholder page. Replace it when building the new frontend.
+
+## Backend surface
+
+The Node runtime is `server.js`. It exposes:
+
+- `/api/health`
+- `/api/services`
+- authentication/session/profile/recovery endpoints
+- wallet and recharge endpoints
+- activation and cancellation endpoints
+- notifications and support endpoints
+- admin operations and reconciliation endpoints
+- payment webhook handling
+- provider status/operations endpoints
+
+The service catalog contains 832 India (`IN`) / INR entries.
+
+## Local development
 
 Requirements: Node.js 22+.
 
@@ -25,9 +40,21 @@ npm test
 npm start
 ```
 
-Open `http://localhost:4173`.
+The server listens on `http://localhost:4173` by default.
 
-Full synthetic lifecycle smoke:
+API lifecycle smoke:
+
+```bash
+npm run issue9:e2e
+```
+
+Synthetic inventory verification:
+
+```bash
+npm run synthetic:smoke
+```
+
+Staging-style runtime smoke:
 
 ```bash
 npm run staging:smoke
@@ -36,54 +63,54 @@ npm run staging:smoke
 ## Architecture
 
 ```text
-Browser UI
-   │
-   └── same-origin /api calls
+New frontend (to be built)
            │
+           │ same-origin /api requests
            ▼
        server.js
            │
-           ├── auth / wallet / activation route modules
-           │
-           ▼
-   PostgreSQL (persistent staging/production)
-           │
-           ▼
-     Provider router
-       │        │
-       ▼        ▼
-   Real provider  QA synthetic engine
+    ┌──────┼─────────────────────────┐
+    ▼      ▼                         ▼
+   Auth   Wallet / Payments       Activations
+    │      │                         │
+    └──────┴──────────┬──────────────┘
+                       ▼
+                  PostgreSQL
+                       │
+                       ▼
+                Provider gateway
+                   │       │
+                   ▼       ▼
+             Real provider  QA synthetic engine
 ```
 
-Production is explicitly configured as `postgres`. Persistent customer traffic uses PostgreSQL as the source of truth. Synthetic mode is reserved for non-production QA and never grants a starting wallet balance or exposes a payment destination.
+Production runtime is explicitly configured for PostgreSQL. Synthetic fulfillment is reserved for non-production QA; production activation fails closed when a real provider route is not available.
 
-## Wallet & UPI Recharge
+## Wallet & UPI
 
-Wallets start at ₹0.00. Recharge is manual UPI verification only when `INBOX9_ENABLE_RECHARGE=true`, `DATABASE_URL` is configured, and `INBOX9_UPI_ID` is explicitly supplied. UTR submission remains Pending until an authorized admin approves it. No hardcoded UPI destination or QR asset is shipped in the repository.
+Wallet balance and ledger state are PostgreSQL-authoritative. Recharge is manual UPI verification when enabled and configured. UTR submissions remain pending until authorized admin verification. No hardcoded payment destination is shipped.
 
-PostgreSQL is authoritative for wallet balance, ledger entries, recharge requests, and activation purchases. Activation purchases debit the wallet atomically; cancellations credit refunds atomically.
+## Admin and operations
 
-## Admin Operations
+Admin APIs require an account with database role `admin`. Reconciliation, provider operations, observability, and disaster-recovery workflows remain part of the repository.
 
-The admin control center is available only to accounts whose database role is `admin`.
+## Provider readiness
 
-For a local admin preview only, set `INBOX9_LOCAL_ADMIN_EMAIL` to the exact email you will use to sign in. This development-only override is ignored when `NODE_ENV=production`.
+`npm run virtualsms:preflight` performs the purchase-blocked provider readiness checks. Customer routing remains disabled until provider credentials, India inventory, authorization, mappings, and canary controls are verified.
 
-## Synthetic fulfillment
+## Building the new frontend
 
-All 832 catalog services use the internal synthetic engine. It creates up to 5,000 synthetic slots per service and deterministic six-digit OTPs. These are generated locally for the INBOX9 lifecycle and do not originate from real telecom numbers or external SMS providers.
+Start from the API contracts rather than adapting the removed UI. The frontend can be any stack and can be organized independently from the backend.
 
-Customer-facing screens intentionally do not expose the internal 11-server partitioning or slot ranges.
+Useful first endpoints for discovery are:
 
-## Certification
-
-- `npm run check` — syntax validation
-- `npm test` — automated test suite, including runtime/API wiring
-- `npm run issue9:e2e` — local end-to-end and concurrency certification
-- `npm run synthetic:smoke` — 832-service / 5,000-slot synthetic inventory verification
-- `npm run staging:smoke` — register → catalog → activation → 20-second OTP lifecycle smoke
-
-
-### VirtualSMS canary
-
-`npm run virtualsms:preflight` is the local purchase-blocked provider readiness check. The manual GitHub Actions workflow `.github/workflows/virtualsms-preflight.yml` provides the same verification using GitHub Actions Secrets and never permits a purchase operation. Run `inventory` first; use `canary-ready` only after written resale authorization and explicit service mappings are configured. Customer routing remains disabled until the provider account, India inventory, authorization, mappings and canary settings are verified.
+```text
+GET  /api/health
+GET  /api/services
+POST /api/auth/register
+POST /api/auth/login
+GET  /api/auth/me
+GET  /api/wallet
+GET  /api/activations
+POST /api/activations
+```
