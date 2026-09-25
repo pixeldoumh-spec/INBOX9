@@ -12,8 +12,8 @@ const rowCounts = {};
 for (const table of required) { if (found.has(table)) rowCounts[table] = await scalar('SELECT COUNT(*)::bigint AS count FROM public.' + table); }
 const serviceCount = await scalar('SELECT COUNT(*) FROM services WHERE active=TRUE');
 const totalServiceRows = await scalar('SELECT COUNT(*) FROM services');
-const catalogPositionCount = await scalar('SELECT COUNT(*) FROM services WHERE active=TRUE AND catalog_position IS NOT NULL');
-const duplicateCatalogPositions = await scalar('SELECT COUNT(*) - COUNT(DISTINCT catalog_position) FROM services WHERE active=TRUE');
+const catalogPositionCount = await scalar('SELECT COUNT(*) AS count FROM services WHERE active=TRUE AND catalog_position IS NOT NULL');
+const duplicateCatalogPositions = await scalar('SELECT COUNT(*) - COUNT(DISTINCT catalog_position) AS count FROM services WHERE active=TRUE');
 const activeRouteCount = await scalar("SELECT COUNT(*) FROM service_provider_routes r JOIN providers p ON p.id=r.provider_id WHERE r.active=TRUE AND p.active=TRUE AND p.adapter_key IN ('mock','synthetic')");
 const orphanActivations = await scalar('SELECT COUNT(*) FROM activations WHERE user_id IS NULL');
 const invalidChecks = await scalar("SELECT COUNT(*) FROM pg_constraint WHERE contype='c' AND convalidated=FALSE AND conrelid='public.activations'::regclass AND conname='activations_user_required'");
