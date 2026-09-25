@@ -332,7 +332,7 @@ function serveFrontend(nodeRes, pathname, req) {
 
   fs.stat(info.candidate, (statError, stats) => {
     let file = info.candidate;
-    let contentType = contentTypeFor(info.relative);
+    let contentType = contentTypeFor(info.relative || 'index.html');
     let servedPath = pathname;
 
     if (statError || !stats.isFile()) {
