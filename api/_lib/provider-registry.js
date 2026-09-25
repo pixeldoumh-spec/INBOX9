@@ -1,9 +1,11 @@
 import { syntheticProvider } from './synthetic-provider.js';
 import { numberOtpProvider } from './numberotp-provider.js';
+import { virtualSmsProvider } from './virtualsms-provider.js';
 
 const adapters = new Map([
   ['synthetic', syntheticProvider],
   ['numberotp', numberOtpProvider],
+  ['virtualsms', virtualSmsProvider],
 ]);
 
 export function getProviderAdapter(adapterKey = 'synthetic') {
