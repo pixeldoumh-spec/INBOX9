@@ -11,7 +11,7 @@ test('release ships one canonical browser bundle', async () => {
   assert.match(html, /<script src="\/boot\.js" defer data-app-script="\/app\.js"><\/script>/);
   assert.doesNotMatch(html, /<script src="\/app\.js" defer><\/script>/);
   assert.match(boot, /dataset\?\.appScript/);
-  assert.match(boot, /script\.src = appScript;/);
+  assert.match(boot, /script\.src\s*=\s*appScript;/);
   assert.doesNotMatch(boot, /appScript \+ '\?v=' \+ Date\.now\(\)/);
   assert.match(boot, /application bundle could not be loaded/);
   assert.match(app, /boot\(\);/);
