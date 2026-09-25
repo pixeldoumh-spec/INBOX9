@@ -63,11 +63,12 @@ jobs:
             psql "$TEST_DATABASE_URL" --set ON_ERROR_STOP=1 --file "$migration"
           done
           services=$(psql "$TEST_DATABASE_URL" -Atc "SELECT COUNT(*) FROM services")
+          expected_services=$(node --input-type=module -e "import {services} from \"./api/_lib/catalog.js\"; console.log(services.length)")
           routes=$(psql "$TEST_DATABASE_URL" -Atc "SELECT COUNT(*) FROM service_provider_routes r JOIN providers p ON p.id=r.provider_id WHERE r.active=TRUE AND p.active=TRUE AND p.adapter_key='synthetic'")
           validated=$(psql "$TEST_DATABASE_URL" -Atc "SELECT COUNT(*) FROM pg_constraint WHERE conname='activations_user_required' AND conrelid='public.activations'::regclass AND convalidated")
           reservations_table=$(psql "$TEST_DATABASE_URL" -Atc "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='public' AND table_name='synthetic_slot_reservations'")
-          test "$services" = "832"
-          test "$routes" = "832"
+          test "$services" = "$expected_services"
+          test "$routes" = "$expected_services"
           test "$validated" = "1"
           test "$reservations_table" = "1"
           public_role_table_grants=$(psql "$TEST_DATABASE_URL" -Atc "SELECT COUNT(*) FROM information_schema.role_table_grants WHERE table_schema='public' AND grantee IN ('anon','authenticated')")
