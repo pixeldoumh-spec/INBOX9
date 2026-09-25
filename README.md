@@ -28,7 +28,9 @@ The Node runtime is `server.js`. It exposes:
 - payment webhook handling
 - provider status/operations endpoints
 
-The service catalog contains 832 India (`IN`) / INR entries.
+The active service catalog contains 216 India (`IN`) / INR entries from the 2026-09-25 master service list.
+
+Service IDs are stable slugs (`svc-<slug>`) and do not depend on list position. Historical PostgreSQL service rows are preserved as inactive records when the catalog is replaced.
 
 ## Local development
 
