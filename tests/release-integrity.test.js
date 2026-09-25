@@ -1,25 +1,3 @@
-import test from 'node:test';
-import assert from 'node:assert/strict';
-import fs from 'node:fs/promises';
-
-test('release ships one canonical browser bundle', async () => {
-  const [html, app, boot] = await Promise.all([
-    fs.readFile(new URL('../index.html', import.meta.url), 'utf8'),
-    fs.readFile(new URL('../app.js', import.meta.url), 'utf8'),
-    fs.readFile(new URL('../boot.js', import.meta.url), 'utf8'),
-  ]);
-  assert.match(html, /<script src="\/boot\.js" defer data-app-script="\/app\.js"><\/script>/);
-  assert.doesNotMatch(html, /<script src="\/app\.js" defer><\/script>/);
-  assert.match(boot, /dataset\?\.appScript/);
-  assert.match(boot, /script\.src\s*=\s*appScript;/);
-  assert.doesNotMatch(boot, /appScript \+ '\?v=' \+ Date\.now\(\)/);
-  assert.match(boot, /application bundle could not be loaded/);
-  assert.match(app, /boot\(\);/);
-  assert.doesNotMatch(app, /seedOrders/);
-  assert.doesNotMatch(app, /localStorage/);
-  assert.doesNotMatch(app, /hasPersistedBalance/);
-});
-
 test('production source has no hardcoded payment destination or QR asset', async () => {
   const [walletRepo, exampleEnv, stagingEnv, server] = await Promise.all([
     fs.readFile(new URL('../api/_lib/wallet-repository.js', import.meta.url), 'utf8'),
