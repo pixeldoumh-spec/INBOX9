@@ -64,6 +64,18 @@ test('customer navigation is extracted and remains wired to the application shel
   assert.match(navigation, /function handleSessionExpired\(/);
 });
 
+test('browser navigation has one coordinated history handler and avoids same-route refresh storms', async () => {
+  const [app, navigation] = await Promise.all([read('app.js'), read('customer/navigation.js')]);
+  assert.match(app, /function browserNavigationSignature\(\)/);
+  assert.match(app, /function handleBrowserNavigation\(\)/);
+  assert.match(app, /window\.addEventListener\('hashchange', handleBrowserNavigation\)/);
+  assert.match(app, /window\.addEventListener\('popstate', handleBrowserNavigation\)/);
+  assert.match(app, /window\.addEventListener\('pageshow', handlePageShow\)/);
+  assert.doesNotMatch(app, /popstate', handleMarketplaceUrlNavigation/);
+  assert.match(navigation, /function handleHashNavigation\(\{ refreshSamePage = true \} = \{\}\)/);
+  assert.match(navigation, /if \(refreshSamePage\) refreshPageData\(next\)/);
+});
+
 test('browser hash navigation refreshes the destination data source', async () => {
   const navigation = await read('customer/navigation.js');
   assert.match(navigation, /function refreshPageData\(next\)/);
@@ -83,6 +95,14 @@ test('customer API centralizes expired-session recovery without hijacking login 
   assert.match(apiClient, /\/api\/auth\/register/);
   assert.match(apiClient, /\/api\/auth\/recover/);
   assert.match(navigation, /window\.addEventListener\('inbox9:session-expired', handleSessionExpired\)/);
+});
+
+test('bfcache restoration refreshes authoritative customer state', async () => {
+  const app = await read('app.js');
+  assert.match(app, /function handlePageShow\(event\)/);
+  assert.match(app, /if \(!state\.user \|\| !event\.persisted\) return/);
+  assert.match(app, /lastForegroundRefreshAt = 0/);
+  assert.match(app, /handleCustomerVisibilityRefresh\(\)/);
 });
 
 test('authenticated customer screens have server refresh and session-expiry recovery', async () => {

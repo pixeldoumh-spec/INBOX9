@@ -680,10 +680,10 @@ function handleConnectivityChange(){
     state.reconnecting = true;
     setRefreshUi(true, 'Reconnecting');
     render();
-    void loadCustomerData({silent:true}).then(()=>refreshNotifications()).finally(()=>{
+    void loadCustomerData({silent:true}).finally(()=>{
       state.reconnecting = false;
-      render();
       setRefreshUi(false, 'Connected');
+      render();
       toast('Connection restored');
     });
   } else if (!online && state.user) {
@@ -702,7 +702,7 @@ async function boot() {
   await bootstrapSession();
   if (!state.user) return;
   if (!state.tickTimer) state.tickTimer = window.setInterval(tick, 1000);
-  window.addEventListener('popstate', handleMarketplaceUrlNavigation);
+  lastBrowserNavigationSignature = browserNavigationSignature();
 }
 
 function resetPurchaseFlow() {
@@ -1925,6 +1925,26 @@ function apiPage() {
 }
 
 let lastForegroundRefreshAt = 0;
+let lastBrowserNavigationSignature = '';
+
+function browserNavigationSignature() {
+  return window.location.pathname + window.location.search + window.location.hash;
+}
+
+function handleBrowserNavigation() {
+  if (!state.user) return;
+  const signature = browserNavigationSignature();
+  if (signature === lastBrowserNavigationSignature) return;
+  lastBrowserNavigationSignature = signature;
+  handleMarketplaceUrlNavigation();
+  handleHashNavigation({ refreshSamePage: false });
+}
+
+function handlePageShow(event) {
+  if (!state.user || !event.persisted) return;
+  lastForegroundRefreshAt = 0;
+  handleCustomerVisibilityRefresh();
+}
 
 function handleCustomerVisibilityRefresh() {
   if (document.visibilityState !== 'visible' || !state.user) return;
@@ -2202,8 +2222,9 @@ window.addEventListener('pagehide', () => {
   if (state.user) writeSessionHint(state.user);
 });
 
-window.addEventListener('hashchange', handleHashNavigation);
-window.addEventListener('popstate', handleHashNavigation);
+window.addEventListener('hashchange', handleBrowserNavigation);
+window.addEventListener('popstate', handleBrowserNavigation);
+window.addEventListener('pageshow', handlePageShow);
 document.addEventListener('visibilitychange', handleCustomerVisibilityRefresh);
 window.addEventListener('focus', handleCustomerVisibilityRefresh);
 window.addEventListener('online', handleConnectivityChange);

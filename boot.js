@@ -28,7 +28,7 @@
   });
 
   const script = document.createElement('script');
-  script.src = appScript + '?v=' + Date.now();
+  script.src = appScript;
   script.type = 'module';
   script.onload = () => {
     started = true;

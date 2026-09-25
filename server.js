@@ -282,13 +282,46 @@ async function dispatchApi(req, nodeRes, url) {
   }
 }
 
-function serveStatic(nodeRes, pathname) {
+function staticCacheHeaders(pathname, stats) {
+  const etag = '"' + Math.round(stats.mtimeMs).toString(16) + '-' + stats.size.toString(16) + '"';
+  return {
+    'Cache-Control': pathname === '/' || pathname === '/index.html' ? 'private, no-cache' : 'public, no-cache',
+    ETag: etag,
+    'Last-Modified': stats.mtime.toUTCString()
+  };
+}
+
+function isStaticNotModified(req, etag, lastModified) {
+  const ifNoneMatch = String(req.headers?.['if-none-match'] || '').trim();
+  if (ifNoneMatch && ifNoneMatch.split(',').map((value) => value.trim()).includes(etag)) return true;
+  const ifModifiedSince = String(req.headers?.['if-modified-since'] || '').trim();
+  if (ifModifiedSince) {
+    const since = Date.parse(ifModifiedSince);
+    const modified = Date.parse(lastModified);
+    if (Number.isFinite(since) && Number.isFinite(modified) && modified <= since) return true;
+  }
+  return false;
+}
+
+function applyStaticResponseHeaders(nodeRes, pathname, stats) {
+  const headers = staticCacheHeaders(pathname, stats);
+  for (const [key, value] of Object.entries(headers)) nodeRes.setHeader(key, value);
+  return headers;
+}
+
+function serveStatic(nodeRes, pathname, req) {
   const fileInfo = staticFiles.get(pathname);
   if (!fileInfo) return sendNodeJson(nodeRes, 404, { error: 'Not found' });
 
   const file = path.join(__dirname, fileInfo[0]);
   fs.stat(file, (statError, stats) => {
     if (statError || !stats.isFile()) return sendNodeJson(nodeRes, 404, { error: 'Not found' });
+    const headers = applyStaticResponseHeaders(nodeRes, pathname, stats);
+    if (isStaticNotModified(req, headers.ETag, headers['Last-Modified'])) {
+      nodeRes.statusCode = 304;
+      nodeRes.removeHeader('content-type');
+      return nodeRes.end();
+    }
     nodeRes.statusCode = 200;
     nodeRes.setHeader('content-type', fileInfo[1]);
     fs.createReadStream(file).on('error', (error) => {
@@ -320,12 +353,19 @@ export function createServer() {
       if (!fileInfo) return sendNodeJson(res, 404, { error: 'Not found' });
       return fs.stat(path.join(__dirname, fileInfo[0]), (error, stats) => {
         if (error || !stats.isFile()) return sendNodeJson(res, 404, { error: 'Not found' });
+        const headers = staticCacheHeaders(url.pathname, stats);
+        for (const [key, value] of Object.entries(headers)) res.setHeader(key, value);
+        if (isStaticNotModified(req, headers.ETag, headers['Last-Modified'])) {
+          res.statusCode = 304;
+          res.removeHeader('content-type');
+          return res.end();
+        }
         res.writeHead(200, { 'content-type': fileInfo[1], 'content-length': stats.size });
         res.end();
       });
     }
 
-    return serveStatic(res, url.pathname);
+    return serveStatic(res, url.pathname, req);
   });
 }
 

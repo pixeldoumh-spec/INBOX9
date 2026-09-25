@@ -177,6 +177,8 @@ async function runFullChromium() {
     await heading(page, 'Choose a service', 12000);
     await page.locator('[data-page="wallet"]').first().click();
     await heading(page, 'Wallet');
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await heading(page, 'Wallet', 12000);
     await page.getByText('Wallet recharge', { exact: true }).waitFor({ state: 'visible', timeout: 8000 });
     const rechargeTransaction = page.locator('[data-wallet-detail]').filter({ hasText: 'Wallet recharge' }).first();
     await rechargeTransaction.waitFor({ state: 'visible', timeout: 10000 });
@@ -187,8 +189,24 @@ async function runFullChromium() {
     await transactionDetail.waitFor({ state: 'visible', timeout: 5000 });
     await transactionDetail.getByText(utr, { exact: true }).waitFor({ state: 'visible', timeout: 5000 });
 
+    await page.locator('[data-page="support"]').first().click();
+    await heading(page, 'Help & Support');
+    await page.goBack({ waitUntil: 'domcontentloaded' });
+    await heading(page, 'Wallet');
+    await page.goForward({ waitUntil: 'domcontentloaded' });
+    await heading(page, 'Help & Support');
+
     await page.locator('[data-page="buy"]').first().click();
     await heading(page, 'Choose a service');
+    await page.locator('#service-search').fill('whatsapp');
+    await sleep(400);
+    assert.match(page.url(), /[?&]search=whatsapp(?:&|$)/i, 'marketplace search should sync to the URL');
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await heading(page, 'Choose a service', 12000);
+    assert.equal(await page.locator('#service-search').inputValue(), 'whatsapp', 'marketplace search must survive hard reload');
+    await page.locator('#service-search').fill('');
+    await sleep(250);
+
     const firstBuy = page.locator('[data-buy-service]:visible').first();
     await firstBuy.click();
     await page.getByRole('heading', { name: 'Review your number', exact: true }).waitFor({ state: 'visible' });

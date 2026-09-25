@@ -4,10 +4,10 @@ import http from 'node:http';
 import { once } from 'node:events';
 import { createServer } from '../server.js';
 
-async function request(server, pathname) {
+async function request(server, pathname, { headers = {} } = {}) {
   const address = server.address();
   return new Promise((resolve, reject) => {
-    const req = http.request(new URL(pathname, `http://127.0.0.1:${address.port}`), (res) => {
+    const req = http.request(new URL(pathname, `http://127.0.0.1:${address.port}`), { headers }, (res) => {
       let body = '';
       res.setEncoding('utf8');
       res.on('data', chunk => { body += chunk; });
@@ -35,7 +35,19 @@ test('standalone server serves the static shell with baseline security headers a
     assert.match(response.headers['content-security-policy'], /fonts\.googleapis\.com/);
     assert.match(response.headers['content-security-policy'], /sha256-neT8V8ebT\/osdr\/v5by0QUCTp0FWgCD\+wpt1NXiuEVE=/);
     assert.equal(response.headers['strict-transport-security'], 'max-age=31536000; includeSubDomains');
+    assert.match(response.headers['cache-control'], /private, no-cache/);
+    assert.ok(response.headers.etag, 'HTML shell should expose a validator');
+    assert.ok(response.headers['last-modified'], 'HTML shell should expose Last-Modified');
     assert.match(response.body, /<script src="\/boot\.js" defer data-app-script="\/app\.js"><\/script>/);
+
+    const appScript = await request(server, '/app.js');
+    assert.equal(appScript.status, 200);
+    assert.match(appScript.headers['cache-control'], /public, no-cache/);
+    assert.ok(appScript.headers.etag, 'app.js should expose an ETag');
+    assert.ok(appScript.headers['last-modified'], 'app.js should expose Last-Modified');
+
+    const validated = await request(server, '/app.js', { headers: { 'If-None-Match': appScript.headers.etag } });
+    assert.equal(validated.status, 304, 'unchanged app.js should revalidate to 304');
   } finally {
     server.close();
     await once(server, 'close');

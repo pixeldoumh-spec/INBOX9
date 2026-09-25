@@ -45,11 +45,14 @@ export function createCustomerNavigation({
     refreshPageData(next);
   }
 
-  function handleHashNavigation() {
+  function handleHashNavigation({ refreshSamePage = true } = {}) {
     if (!state.user) return;
     const next = pageFromHash();
     if (next === 'admin' && state.user?.role !== 'admin') return setPage('buy', { syncUrl: true });
-    if (state.page === next) return refreshPageData(next);
+    if (state.page === next) {
+      if (refreshSamePage) refreshPageData(next);
+      return;
+    }
     state.page = next;
     state.mobileMenu = false;
     render();
