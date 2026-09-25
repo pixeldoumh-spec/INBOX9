@@ -5,7 +5,7 @@ services:
     plan: free
     region: singapore
     branch: main
-    buildCommand: npm ci --ignore-scripts
+    buildCommand: npm ci --ignore-scripts && npm install --prefix frontend --no-audit --no-fund && npm run build --prefix frontend
     startCommand: npm run db:migrate && npm start
     healthCheckPath: /api/health
     autoDeployTrigger: commit
