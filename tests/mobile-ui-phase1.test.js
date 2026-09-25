@@ -20,3 +20,9 @@ test('phase 1 uses a four-column launcher and avoids redundant single-category c
   assert.match(app,/\{categories\.length>1\?<div className="category-scroll"/);
   assert.match(app,/size==='lg'\?104:size==='sm'\?52:72/);
 });
+
+test('phase 2 keeps launcher tiles inside narrow mobile columns',()=>{
+  assert.match(css,/\.catalog-apps \.service-logo-md\s*\{[\s\S]*?width:min\(72px,100%\)\s*!important/);
+  assert.match(css,/\.catalog-apps \.service-logo-md\s*\{[\s\S]*?height:auto\s*!important/);
+  assert.match(css,/@media \(max-width:380px\)\{[\s\S]*?\.catalog-apps \.service-logo-md\s*\{[\s\S]*?width:min\(64px,100%\)\s*!important/);
+});
