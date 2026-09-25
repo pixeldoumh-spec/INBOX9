@@ -82,3 +82,8 @@ Customer-facing screens intentionally do not expose the internal 11-server parti
 - `npm run issue9:e2e` — local end-to-end and concurrency certification
 - `npm run synthetic:smoke` — 832-service / 5,000-slot synthetic inventory verification
 - `npm run staging:smoke` — register → catalog → activation → 20-second OTP lifecycle smoke
+
+
+### VirtualSMS canary
+
+`npm run virtualsms:preflight` checks authenticated provider access and India visibility without purchasing a number. Customer routing remains disabled until a verified provider account, written resale authorization, service mappings, and canary settings are explicitly configured.
