@@ -22,5 +22,8 @@ test('customer shell matches the recorded mobile marketplace structure', async (
   assert.match(boot, /Search services\.\.\./);
   assert.match(app, /SERVICE_LOGO_DOMAINS/);
   assert.match(app, /serviceLogoMarkup\(service, initials\)/);
-  assert.match(app, /google\.com\/s2\/favicons/);
+  assert.match(app, /SERVICE_LOGO_GLYPHS/);
+  assert.match(app, /serviceLogoGlyph\(service, initials\)/);
+  assert.doesNotMatch(app, /google\.com\/s2\/favicons/);
+  assert.doesNotMatch(app, /onerror=/);
 });
