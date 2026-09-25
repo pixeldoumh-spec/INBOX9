@@ -22,7 +22,11 @@ async function get(path, options = {}) {
 const root = await get('/');
 assert.equal(root.response.status, 200, 'root must load');
 assert.match(root.response.headers.get('content-type') || '', /text\/html/i, 'root must be HTML');
-assert.match(root.text, /Frontend intentionally removed/);
+assert.match(root.text, /INBOX9/);
+
+const manifest = await get('/manifest.webmanifest');
+assert.equal(manifest.response.status, 200, 'app manifest must load');
+assert.match(manifest.response.headers.get('content-type') || '', /manifest|json/i, 'manifest must be JSON');
 
 const health = await get('/api/health');
 assert.equal(health.response.status, 200, 'health endpoint must respond');
