@@ -1,4 +1,12 @@
-export const SERVICE_LOGO_SPRITE = {\n  path: '/service-icons-sprite.webp',\n  tileSize: 48,\n  columns: 12,\n  rows: 18,\n} as const;\n\nexport const SERVICE_LOGO_MANIFEST: Record<string, { spriteIndex: number }> = {
+export const SERVICE_LOGO_SPRITE = {
+  path: '/service-icons-sprite.webp',
+  tileSize: 48,
+  columns: 12,
+  rows: 18,
+} as const;
+
+export const SERVICE_LOGO_MANIFEST: Record<string, { spriteIndex: number }> = 
+{
   "svc-yono-bonus-51": {
     "spriteIndex": 0
   },
@@ -464,4 +472,5 @@ export const SERVICE_LOGO_SPRITE = {\n  path: '/service-icons-sprite.webp',\n  t
   "svc-all-yono-slots": {
     "spriteIndex": 212
   }
-};\n
+}
+;
