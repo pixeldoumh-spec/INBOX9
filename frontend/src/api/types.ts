@@ -56,10 +56,13 @@ export type Wallet = {
   ledger?: Array<{
     id: string;
     type?: string;
-    description?: string;
     amountPaise?: number;
+    referenceType?: string | null;
+    referenceId?: string | null;
+    description?: string | null;
     createdAt?: number;
   }>;
+  recharges?: Recharge[];
 };
 
 export type Notification = {
