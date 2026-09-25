@@ -369,74 +369,77 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   .header-actions{gap:5px}
 }
 
-/* Phase 2.1 — shared service-logo frame + optical nav normalization */
-
-/* Phase 2.2 — one service-logo size across customer tabs and detail */
-.service-logo-sm,.service-logo-md,.service-logo-lg{
+/* Phase 2.4 — canonical service logo and bottom-navigation system */
+.service-logo{
+  position:relative;
+  flex:0 0 72px;
   width:72px !important;
   height:72px !important;
+  min-width:72px;
+  max-width:72px;
+  min-height:72px;
+  max-height:72px;
+  overflow:hidden;
+  border-radius:18px;
+  background:#fff;
+  border:1px solid #ece8f0;
+  box-shadow:0 6px 18px rgba(29,20,44,.05);
+  box-sizing:border-box;
 }
-.service-logo-sm .service-logo-fallback-content span,
-.service-logo-md .service-logo-fallback-content span,
-.service-logo-lg .service-logo-fallback-content span{
-  font-size:16px;
-}
-.catalog-apps .service-logo-md{
-  width:72px !important;
-}
-@media (max-width:380px){
-  .catalog-apps .service-logo-md,
-  .catalog-apps .service-logo-sm,
-  .catalog-apps .service-logo-lg{
-    width:64px !important;
-    height:64px !important;
-  }
-}
-
 .service-logo-art{
+  position:absolute;
+  inset:1px;
+  width:70px;
+  height:70px;
+  display:grid;
+  place-items:center;
+  overflow:hidden;
+  border-radius:17px;
+  background:#fff;
+}
+.service-logo-art img{
   width:100%;
   height:100%;
-  box-sizing:border-box;
-  background-size:100% 100%;
-  background-position:center;
+  max-width:100%;
+  max-height:100%;
+  object-fit:contain;
+  object-position:center;
+  display:block;
 }
-.catalog-apps .service-logo-art{
-  border-radius:17px;
+.service-logo-fallback-content{
+  display:grid;
+  place-items:center;
+  gap:2px;
+}
+.service-logo-fallback-content span{
+  font-size:16px;
+  font-weight:900;
+  color:var(--accent);
+  letter-spacing:-.08em;
+}
+.bottom-nav-icon{
+  width:24px;
+  height:24px;
+  display:grid;
+  place-items:center;
+  flex:0 0 24px;
+}
+.bottom-nav-icon svg{
+  width:21px;
+  height:21px;
+  stroke-width:1.9;
 }
 @media (max-width:380px){
-  .catalog-apps .service-logo-art{border-radius:15px}
-}
-
-/* Phase 2 — mobile service launcher refinement */
-.catalog-apps .service-grid{
-  align-items:start;
-  row-gap:24px;
-}
-.catalog-apps .service-tile{
-  padding:0;
-}
-.catalog-apps .service-logo-md{
-  width:min(72px,100%) !important;
-  height:auto !important;
-  aspect-ratio:1 / 1;
-}
-.catalog-apps .service-name{
-  max-width:72px;
-  margin-inline:auto;
-  font-size:11px;
-  line-height:1.24;
-}
-@media (max-width:380px){
-  .catalog-apps .service-grid{
-    column-gap:6px;
-    row-gap:21px;
-  }
-  .catalog-apps .service-logo-md{
-    width:min(64px,100%) !important;
-  }
-  .catalog-apps .service-name{
+  .service-logo{
+    width:64px !important;
+    height:64px !important;
+    min-width:64px;
     max-width:64px;
-    font-size:10.5px;
+    min-height:64px;
+    max-height:64px;
+  }
+  .service-logo-art{
+    width:62px;
+    height:62px;
   }
 }
-
