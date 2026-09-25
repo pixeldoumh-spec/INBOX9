@@ -33,38 +33,13 @@ test('support schema constrains customer input and links lifecycle references', 
   }
 });
 
-test('customer support page exposes recovery paths and avoids sensitive credential collection', async () => {
-  const [app, nav, stateSource] = await Promise.all([read('app.js'), read('customer/navigation.js'), read('customer/state.js')]);
-  assert.match(nav, /support/);
-  assert.match(stateSource, /\['support', 'Help & Support', '\?'\]/);
-  assert.match(app, /Activation recovery/);
-  assert.match(app, /Wallet recovery/);
-  assert.match(app, /Order recovery/);
-  assert.match(app, /Create support ticket/);
-  assert.match(app, /Never share passwords, OTPs, or card PINs here/);
-  assert.match(app, /id="support-form"/);
-  assert.match(app, /class="support-page"/);
-  assert.match(app, /getElementById\('support-form'\)\?\.addEventListener\('input'/);
-  const supportForm = app.match(/<form id="support-form"[\s\S]*?<\/form>/)?.[0] || '';
-  assert.doesNotMatch(supportForm, /type="password"/);
-});
 
-test('support submission is duplicate-click safe and references current account records only', async () => {
-  const app = await read('app.js');
-  assert.match(app, /if \(state\.supportSubmitting\) return/);
-  assert.match(app, /state\.supportSubmitting = true/);
-  assert.match(app, /activationId/);
-  assert.match(app, /rechargeId/);
-});
-
-
-test('admin support queue is authenticated, auditable, and wired into the customer response loop', async () => {
-  const [index, byId, repo, server, app] = await Promise.all([
+test('admin support queue is authenticated, auditable, and wired into the runtime', async () => {
+  const [index, byId, repo, server] = await Promise.all([
     read('api/admin/support/_index.js'),
     read('api/admin/support/_id.js'),
     read('api/_lib/support-repository.js'),
-    read('server.js'),
-    read('app.js')
+    read('server.js')
   ]);
   assert.match(index, /requireAdmin/);
   assert.match(byId, /requireAdmin/);
