@@ -1,0 +1,66 @@
+@import './tokens.css';
+
+* { box-sizing: border-box; }
+
+html {
+  min-height: 100%;
+  background: var(--i9-bg);
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  font-family: var(--i9-font-family);
+  background: var(--i9-bg);
+  color: var(--i9-text);
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+a {
+  color: inherit;
+}
+
+main {
+  padding: 24px 16px;
+}
+
+.app-shell-placeholder {
+  min-height: 100vh;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+}
+
+.placeholder-header {
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--i9-border);
+}
+
+.placeholder-nav {
+  min-height: 60px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  border-top: 1px solid var(--i9-border);
+  padding: 8px 12px;
+}
+
+.placeholder-nav a[aria-current='page'] {
+  font-weight: 700;
+}
