@@ -364,4 +364,36 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   .notification-button,.profile-button{width:40px;height:40px}
   .header-actions{gap:5px}
 }
+/* Phase 2 — mobile service launcher refinement */
+.catalog-apps .service-grid{
+  align-items:start;
+  row-gap:24px;
+}
+.catalog-apps .service-tile{
+  padding:0;
+}
+.catalog-apps .service-logo-md{
+  width:min(72px,100%) !important;
+  height:auto !important;
+  aspect-ratio:1 / 1;
+}
+.catalog-apps .service-name{
+  max-width:72px;
+  margin-inline:auto;
+  font-size:11px;
+  line-height:1.24;
+}
+@media (max-width:380px){
+  .catalog-apps .service-grid{
+    column-gap:6px;
+    row-gap:21px;
+  }
+  .catalog-apps .service-logo-md{
+    width:min(64px,100%) !important;
+  }
+  .catalog-apps .service-name{
+    max-width:64px;
+    font-size:10.5px;
+  }
+}
 
