@@ -366,6 +366,12 @@ function sendFrontendFile(nodeRes, file, contentType, pathname, req, stats) {
   }
   nodeRes.statusCode = 200;
   nodeRes.setHeader('content-type', contentType);
+  // Keep the application shell rendered in mobile browsers instead of treating
+  // the HTML entry document as a file download.
+  if (contentType === 'text/html; charset=utf-8') {
+    nodeRes.setHeader('content-disposition', 'inline; filename="index.html"');
+    nodeRes.setHeader('content-length', String(stats.size));
+  }
   if (req.method === 'HEAD') {
     nodeRes.setHeader('content-length', stats.size);
     return nodeRes.end();
