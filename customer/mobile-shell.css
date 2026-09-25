@@ -1,3 +1,4 @@
+@media(max-width:780px){
 body.inbox9-customer-mobile{background:#fff;color:#182235;font-family:'DM Sans',system-ui,sans-serif;padding-bottom:78px}
 body.inbox9-customer-mobile .app-shell{min-height:100vh;background:#fff;display:block}
 body.inbox9-customer-mobile .sidebar{display:none!important}
@@ -48,5 +49,5 @@ body.inbox9-customer-mobile .mobile-nav-item.active .mobile-nav-icon{font-weight
 body.inbox9-customer-mobile .panel,body.inbox9-customer-mobile .active-card,body.inbox9-customer-mobile .balance-card{background:#fff;border-color:#e7eaf0;color:#182235}
 body.inbox9-customer-mobile .empty{color:#182235}
 body.inbox9-customer-mobile .notification-popup{bottom:88px}
-@media(min-width:781px){body.inbox9-customer-mobile .mobile-bottom-nav{display:none}}
 @media(max-width:430px){body.inbox9-customer-mobile .content-wrap{padding-left:14px;padding-right:14px}body.inbox9-customer-mobile .service-grid{gap:17px 7px}body.inbox9-customer-mobile .marketplace-service-logo{height:64px;width:64px}body.inbox9-customer-mobile .marketplace-service-copy strong{font-size:10px}}
+}
