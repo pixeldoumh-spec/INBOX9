@@ -9,6 +9,9 @@ async function read(path) {
 test('customer shell matches the recorded mobile marketplace structure', async () => {
   const [boot, app] = await Promise.all([read('boot.js'), read('app.js')]);
   assert.match(boot, /inbox9-mobile-header/);
+  assert.match(boot, /inbox9-app-drawer/);
+  assert.match(boot, /inbox9-app-index/);
+  assert.match(boot, /Search for apps on this device/);
   assert.match(boot, /inbox9-mobile-search/);
   assert.match(boot, /inbox9-mobile-search-input/);
   assert.match(boot, /inbox9-bottom-nav/);
@@ -19,6 +22,9 @@ test('customer shell matches the recorded mobile marketplace structure', async (
   assert.match(boot, /grid-template-columns:repeat\(4,minmax\(0,1fr\)\)/);
   assert.match(boot, /marketplace-service-logo/);
   assert.match(app, /data-select-service/);
+  assert.match(app, /function serviceDetailPage\(\)/);
+  assert.match(app, /OTP SYSTEM/);
+  assert.match(app, /service/);
   assert.match(app, /Number details/);
   assert.match(app, /inbox9-service-detail-sheet/);
   assert.match(boot, /Search services\.\.\./);
