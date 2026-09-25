@@ -54,8 +54,8 @@ if (fullFlow) {
   result.activationId=activation.id;
   const deadline=Date.now()+28_000; let latest=activation;
   while(Date.now()<deadline){ await sleep(2_000); const statusResponse=await request('/api/activations/'+encodeURIComponent(activation.id),{headers:{cookie}}); assertStatus(statusResponse,200,'activation status'); latest=parse(statusResponse); if(latest.status==='Completed') break; if(['Expired','Refunded','Cancelled'].includes(latest.status)) throw new Error('activation reached terminal state '+latest.status+' before OTP arrival'); }
-  if(latest.status!=='Completed'||!/^\\d{6}$/.test(String(latest.otp||'').replace(/\\s/g,''))) throw new Error('synthetic OTP did not arrive within the 20-second lifecycle window');
-  result.otp=String(latest.otp).replace(/\\s/g,'');
+  if(latest.status!=='Completed'||!/^\d{6}$/.test(String(latest.otp||'').replace(/\s/g,''))) throw new Error('synthetic OTP did not arrive within the 20-second lifecycle window');
+  result.otp=String(latest.otp).replace(/\s/g,'');
 }
 const logout=await request('/api/auth/logout',{method:'POST',headers:{cookie}}); assertStatus(logout,200,'logout');
 console.log(JSON.stringify(result,null,2));
