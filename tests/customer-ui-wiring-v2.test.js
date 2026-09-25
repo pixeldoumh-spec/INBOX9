@@ -54,8 +54,8 @@ test('customer navigation is extracted and remains wired to the application shel
   ]);
   assert.match(app, /from '\.\/customer\/navigation\.js'/);
   assert.match(app, /createCustomerNavigation\(/);
-  assert.match(app, /window\.addEventListener\('hashchange', handleHashNavigation\)/);
-  assert.match(app, /window\.addEventListener\('popstate', handleHashNavigation\)/);
+  assert.match(app, /window\.addEventListener\('hashchange', handleBrowserNavigation\)/);
+  assert.match(app, /window\.addEventListener\('popstate', handleBrowserNavigation\)/);
   assert.match(navigation, /export const CUSTOMER_PAGES/);
   assert.match(navigation, /function pageFromHash\(/);
   assert.match(navigation, /function syncPageHash\(/);
@@ -82,7 +82,8 @@ test('browser hash navigation refreshes the destination data source', async () =
   assert.match(navigation, /if \(next === 'wallet'\) void refreshWallet\(\)\.then\(\(\) => render\(\)\)/);
   assert.match(navigation, /if \(next === 'support'\) void refreshSupport\(\)/);
   assert.match(navigation, /if \(next === 'account'\) void refreshAccount\(\)\.then\(\(\) => render\(\)\)/);
-  assert.match(navigation, /if \(state\.page === next\) return refreshPageData\(next\)/);
+  assert.match(navigation, /if \(state\.page === next\) \{/);
+  assert.match(navigation, /if \(refreshSamePage\) refreshPageData\(next\)/);
   assert.match(navigation, /refreshPageData\(next\);/);
 });
 
