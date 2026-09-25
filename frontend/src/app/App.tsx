@@ -114,6 +114,7 @@ function cropServiceLogo(path:string,index:number,tileSize:number,columns:number
   const data=output.toDataURL('image/png');
   serviceLogoCropCache.set(index,data);
   return data;
+ });
 }
 
 function ServiceLogo({serviceId,name,size='md'}:{serviceId:string;name:string;size?:'sm'|'md'|'lg'}){
