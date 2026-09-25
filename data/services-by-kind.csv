@@ -1,0 +1,833 @@
+Kind,Service,Price (INR),Service ID
+Games,101Z,8.00,101z-39
+Games,567SLOTS,8.00,567slots-40
+Games,777GAME,8.00,777game-48
+Games,789JACKPOT,8.00,789jackpot-41
+Games,BET213,8.00,bet213-54
+Games,BINGO101,8.50,bingo101-8
+Games,CLUBINR,8.00,clubinr-42
+Games,DHANGAME,8.00,dhangame-72
+Games,DIWA777,8.00,diwa777-55
+Games,DIWAGAME,8.00,diwagame-56
+Games,DIWAKING,8.00,diwaking-74
+Games,DIWASLOTS,8.00,diwaslots-57
+Games,DIWATOP,8.00,diwatop-58
+Games,DIWAVIP,8.00,diwavip-59
+Games,DIWAWIN,8.00,diwawin-60
+Games,DIWAX,8.00,diwax-61
+Games,GOODSLOTS,8.00,goodslots-62
+Games,HINDI777,8.00,hindi777-43
+Games,INDCLUB,8.00,indclub-11
+Games,INDSLOT,8.00,indslot-13
+Games,JAIHO777,8.00,jaiho777-14
+Games,JAIHO91,8.00,jaiho91-66
+Games,JAIHOARCADE,8.50,jaihoarcade-15
+Games,JAIHOSLOT,8.00,jaihoslot-17
+Games,JAIHOSPIN,8.00,jaihospin-18
+Games,JAIHOWIN,8.00,jaihowin-19
+Games,MAHAGAMES,8.00,mahagames-21
+Games,MBMBET,8.00,mbmbet-44
+Games,MQMBET,8.00,mqmbet-63
+Games,NETAVIP,10.00,netavip-22
+Games,SAGASLOT,8.00,sagaslot-24
+Games,SHARESLOT,8.00,shareslot-25
+Games,SLOTSPIN,8.00,slotspin-26
+Games,SLOTWINNER,8.00,slotwinner-27
+Games,SPIN101,8.00,spin101-28
+Games,SPIN777,8.00,spin777-32
+Games,SPINCRUSH,8.00,spincrush-29
+Games,SPINGOLD,8.00,spingold-30
+Games,SPINWINNER,8.00,spinwinner-31
+Games,SVIP777,8.00,svip777-64
+Games,WOHO,8.00,woho-71
+Games,YESSPIN,8.00,yesspin-47
+Games,YN777,8.00,yn777-33
+Games,YONO777,8.00,yono777-7
+Games,YONOARCADE,8.00,yonoarcade-34
+Games,YONOGAME,8.00,yonogame-35
+Games,YONOSLOT,8.00,yonoslot-37
+Games,YONOVIP,9.00,yonovip-38
+Other,1mg,10.00,1mg-76
+Other,1xGame,10.00,1xgame-77
+Other,28xbet,10.00,28xbet-78
+Other,3cr,10.00,3cr-79
+Other,4 Side Play,10.00,4-side-play-80
+Other,4mmile,10.00,4mmile-81
+Other,4rabet,10.00,4rabet-82
+Other,50matka,10.00,50matka-83
+Other,51game,10.00,51game-84
+Other,5588in,10.00,5588in-85
+Other,55club,10.00,55club-86
+Other,567Jackpot,10.00,567jackpot-87
+Other,567slots,10.00,567slots-88
+Other,5xGame,10.00,5xgame-89
+Other,6 Club,10.00,6-club-90
+Other,6 Profit,10.00,6-profit-91
+Other,66game,10.00,66game-92
+Other,777In,10.00,777in-93
+Other,789Jackpot,10.00,789jackpot-94
+Other,799win,10.00,799win-95
+Other,8game,10.00,8game-96
+Other,91Club,10.00,91club-97
+Other,91Cric,10.00,91cric-98
+Other,91Rummy,10.00,91rummy-99
+Other,999pay,10.00,999pay-100
+Other,99acres,10.00,99acres-101
+Other,9Pay,10.00,9pay-102
+Other,A Bet,10.00,a-bet-103
+Other,A1igame,10.00,a1igame-104
+Other,AA Games,10.00,aa-games-105
+Other,aapay,10.00,aapay-656
+Other,ABCRummy,10.00,abcrummy-106
+Other,Abhibus,10.00,abhibus-111
+Other,Acko,10.00,acko-112
+Other,ACO,10.00,aco-107
+Other,adda66pay,10.00,adda66pay-657
+Other,Aditya Birla Capital,10.00,aditya-birla-capital-113
+Other,afratech,10.00,afratech-658
+Other,Agro Star,10.00,agro-star-114
+Other,airindia,10.00,airindia-659
+Other,airportpin,10.00,airportpin-660
+Other,Airtel,10.00,airtel-115
+Other,AJIO,10.00,ajio-108
+Other,Ak47,10.00,ak47-116
+Other,Ak777,10.00,ak777-117
+Other,Aliens World,10.00,aliens-world-118
+Other,alipay,10.00,alipay-661
+Other,ALL (60 SEC MULTIPLE),10.00,all-60-sec-multiple--109
+Other,All5OTP,10.00,all5otp-119
+Other,Allen,10.00,allen-120
+Other,Almond,10.00,almond-121
+Other,Alpha Pay,10.00,alpha-pay-122
+Other,Amazon,10.00,amazon-123
+Other,Amazon Old,10.00,amazon-old-124
+Other,ambience,10.00,ambience-662
+Other,Amway,10.00,amway-125
+Other,Andy,10.00,andy-126
+Other,AngelOne,10.00,angelone-127
+Other,Anna Lottery,10.00,anna-lottery-128
+Other,AOC,10.00,aoc-110
+Other,Apna Mart,10.00,apna-mart-129
+Other,Apple ID,10.00,apple-id-130
+Other,Arb,10.00,arb-131
+Other,arbpay,10.00,arbpay-663
+Other,Arpay,10.00,arpay-132
+Other,AsGame,10.00,asgame-133
+Other,askmebet,10.00,askmebet-664
+Other,Asli Pundit,10.00,asli-pundit-134
+Other,astrotalk,10.00,astrotalk-665
+Other,Astroyogi,10.00,astroyogi-135
+Other,Bajaj Broking,10.00,bajaj-broking-141
+Other,Bajaj Finance,10.00,bajaj-finance-142
+Other,Bajaj Market,10.00,bajaj-market-143
+Other,Barbeque Nation,10.00,barbeque-nation-144
+Other,Bbjjli,10.00,bbjjli-145
+Other,BCASINO,10.00,bcasino-136
+Other,BeBetta,10.00,bebetta-146
+Other,Bengal Harvest,10.00,bengal-harvest-147
+Other,Bet200,10.00,bet200-148
+Other,Bet213,10.00,bet213-149
+Other,Bet91,10.00,bet91-150
+Other,Betwin,10.00,betwin-151
+Other,betwinner,10.00,betwinner-666
+Other,Bgcash,10.00,bgcash-152
+Other,BGIL,10.00,bgil-137
+Other,Bharatgas,10.00,bharatgas-154
+Other,BharatPe,10.00,bharatpe-153
+Other,Big Mumbai,10.00,big-mumbai-155
+Other,BigBasket,10.00,bigbasket-156
+Other,Bigcity,10.00,bigcity-157
+Other,Bilibili,10.00,bilibili-158
+Other,Bingo,10.00,bingo-159
+Other,Bingo101,10.00,bingo101-160
+Other,Bingo777,10.00,bingo777-161
+Other,Bistro,10.00,bistro-162
+Other,Bizom,10.00,bizom-163
+Other,BJP Sadasya,10.00,bjp-sadasya-139
+Other,BJP SARAL,10.00,bjp-saral-138
+Other,BlaBlaCar,10.00,blablacar-164
+Other,Blinkit,10.00,blinkit-165
+Other,blinkloan,10.00,blinkloan-667
+Other,Bn9,10.00,bn9-166
+Other,BN99,10.00,bn99-140
+Other,boAt,10.00,boat-668
+Other,bolt,10.00,bolt-669
+Other,bonus buddy,10.00,bonus-buddy-670
+Other,Boom79,10.00,boom79-167
+Other,Borzo,10.00,borzo-168
+Other,Bounty,10.00,bounty-169
+Other,Brevistay,10.00,brevistay-170
+Other,Brevo,10.00,brevo-171
+Other,Brskly,10.00,brskly-172
+Other,Buglie,10.00,buglie-173
+Other,C88,10.00,c88-174
+Other,cadbury,10.00,cadbury-671
+Other,Career 360,10.00,career-360-178
+Other,Cash Book,10.00,cash-book-179
+Other,Cash Daily,10.00,cash-daily-180
+Other,ChannelPay,10.00,channelpay-181
+Other,chargezone,10.00,chargezone-672
+Other,Chatbot,10.00,chatbot-183
+Other,ChatGPT(openai),10.00,chatgpt-openai--182
+Other,Chillar,10.00,chillar-184
+Other,chsolution,10.00,chsolution-673
+Other,ciferon,10.00,ciferon-674
+Other,Cigna,10.00,cigna-185
+Other,CIPLA,10.00,cipla-175
+Other,Cispit,10.00,cispit-186
+Other,City Mall,10.00,city-mall-187
+Other,cityflo,10.00,cityflo-675
+Other,Citykart,10.00,citykart-188
+Other,CLBP,10.00,clbp-176
+Other,Cleartrip,10.00,cleartrip-189
+Other,Cockfight,10.00,cockfight-190
+Other,CoinSwift,10.00,coinswift-191
+Other,comepay,10.00,comepay-676
+Other,Confirm tkt,10.00,confirm-tkt-192
+Other,Connecto,10.00,connecto-193
+Other,Corteva Farmer Connect,10.00,corteva-farmer-connect-194
+Other,Country Delight,10.00,country-delight-195
+Other,CreatR,10.00,creatr-196
+Other,CRED: UPI & Credit Cards,10.00,cred-upi-credit-cards-177
+Other,Creditmantri,10.00,creditmantri-197
+Other,Crest777,10.00,crest777-198
+Other,Cric999,10.00,cric999-199
+Other,cricmatch360,10.00,cricmatch360-677
+Other,Crisscross,10.00,crisscross-200
+Other,Crore Play,10.00,crore-play-201
+Other,Crownit,10.00,crownit-202
+Other,Crunchyroll,10.00,crunchyroll-203
+Other,Crystal Pay,10.00,crystal-pay-204
+Other,Cult Fit,10.00,cult-fit-205
+Other,Cursor,10.00,cursor-206
+Other,Cutshort,10.00,cutshort-207
+Other,cyberlink,10.00,cyberlink-678
+Other,Dainik Bhaskar,10.00,dainik-bhaskar-212
+Other,DBG Game,10.00,dbg-game-208
+Other,DBT Agriculture,10.00,dbt-agriculture-209
+Other,DealShare,10.00,dealshare-213
+Other,Delhi Metro,10.00,delhi-metro-214
+Other,Deliveroo,10.00,deliveroo-215
+Other,DG Game,10.00,dg-game-210
+Other,dhaniwin,10.00,dhaniwin-679
+Other,Dhoom Play,10.00,dhoom-play-216
+Other,Digihaat,10.00,digihaat-218
+Other,DigiLocker,10.00,digilocker-217
+Other,Digital India,10.00,digital-india-219
+Other,Digital Topup,10.00,digital-topup-220
+Other,Digitalaya,10.00,digitalaya-222
+Other,DigitalIndia,10.00,digitalindia-221
+Other,Discord,10.00,discord-223
+Other,DishTV,10.00,dishtv-224
+Other,Diuwin,10.00,diuwin-225
+Other,Diwapay,10.00,diwapay-226
+Other,diwatop,10.00,diwatop-680
+Other,Diwpay,10.00,diwpay-227
+Other,DKart,10.00,dkart-211
+Other,Dmart,10.00,dmart-228
+Other,Doctutorials,10.00,doctutorials-229
+Other,Dominos,10.00,dominos-230
+Other,Dostt,10.00,dostt-231
+Other,Dotandkey,10.00,dotandkey-232
+Other,Dove,10.00,dove-233
+Other,DreamMoney,10.00,dreammoney-234
+Other,dreem55,10.00,dreem55-681
+Other,drivebison,10.00,drivebison-682
+Other,driveu,10.00,driveu-683
+Other,Drop-D,10.00,drop-d-235
+Other,dubaiexch247,10.00,dubaiexch247-684
+Other,dukaan,10.00,dukaan-685
+Other,Earnkaro,10.00,earnkaro-237
+Other,Earntp,10.00,earntp-238
+Other,EatSure,10.00,eatsure-239
+Other,egpayment,10.00,egpayment-686
+Other,Emergency Paisa,10.00,emergency-paisa-240
+Other,Emversity,10.00,emversity-241
+Other,Enkash,10.00,enkash-242
+Other,Epalsa,10.00,epalsa-243
+Other,ERCS,10.00,ercs-236
+Other,ezprep,10.00,ezprep-687
+Other,factsscan,10.00,factsscan-688
+Other,Fast2sms,10.00,fast2sms-246
+Other,Fastwin,10.00,fastwin-247
+Other,feeid,10.00,feeid-689
+Other,Feelin,10.00,feelin-248
+Other,fidha,10.00,fidha-690
+Other,Financebuddha,10.00,financebuddha-249
+Other,finfinance,10.00,finfinance-691
+Other,Finmandir,10.00,finmandir-250
+Other,Fino,10.00,fino-251
+Other,Fire11,10.00,fire11-252
+Other,FirstCry,10.00,firstcry-253
+Other,Flabs,10.00,flabs-254
+Other,Flex Salary,10.00,flex-salary-255
+Other,Flipkart,10.00,flipkart-256
+Other,Flipkart Seller,10.00,flipkart-seller-257
+Other,Flipkart super coins,10.00,flipkart-super-coins-258
+Other,Flot,10.00,flot-259
+Other,Focused,10.00,focused-260
+Other,Foundit,10.00,foundit-261
+Other,FoxMotors,10.00,foxmotors-262
+Other,Foxtale,10.00,foxtale-263
+Other,Free Hit,10.00,free-hit-264
+Other,Freelancer,10.00,freelancer-266
+Other,FreeRecharge,10.00,freerecharge-265
+Other,frendzo,10.00,frendzo-692
+Other,frenzvwinner,10.00,frenzvwinner-693
+Other,FriendshipHub,10.00,friendshiphub-267
+Other,FRND,10.00,frnd-244
+Other,FUNNGRO,10.00,funngro-245
+Other,Gaja Game777,10.00,gaja-game777-268
+Other,Galle,10.00,galle-269
+Other,Game 3f,10.00,game-3f-270
+Other,Game Rummy,10.00,game-rummy-271
+Other,Game1,10.00,game1-272
+Other,Game12,10.00,game12-273
+Other,Game3f,10.00,game3f-274
+Other,ganeshicon,10.00,ganeshicon-694
+Other,Gauipl,10.00,gauipl-275
+Other,gclass,10.00,gclass-695
+Other,GenieZap,10.00,geniezap-276
+Other,Ghar Soaps,10.00,ghar-soaps-277
+Other,glamguider,10.00,glamguider-696
+Other,Go Pay,10.00,go-pay-278
+Other,goagame,10.00,goagame-697
+Other,Goaok,10.00,goaok-279
+Other,Goibibo,10.00,goibibo-280
+Other,Gold Go,10.00,gold-go-281
+Other,Google & YouTube & Gmail = All,10.00,google-youtube-gmail-all-282
+Other,Google Chat,10.00,google-chat-283
+Other,Google Message,10.00,google-message-284
+Other,Google pay,10.00,google-pay-285
+Other,goplavl1,10.00,goplavl1-698
+Other,Gosats,10.00,gosats-286
+Other,Gosh,10.00,gosh-287
+Other,Grafti,10.00,grafti-288
+Other,Grainotch,10.00,grainotch-289
+Other,Gratifi,10.00,gratifi-290
+Other,Gromo Partner,10.00,gromo-partner-291
+Other,Growfitter,10.00,growfitter-292
+Other,Gugobet,10.00,gugobet-293
+Other,gullybet,10.00,gullybet-699
+Other,gumloop,10.00,gumloop-700
+Other,HabitYoga,10.00,habityoga-298
+Other,hack2skill,10.00,hack2skill-701
+Other,Halalbox,10.00,halalbox-299
+Other,hamaramall,10.00,hamaramall-702
+Other,Handpickd,10.00,handpickd-300
+Other,happyteenpatti,10.00,happyteenpatti-703
+Other,Havells,10.00,havells-301
+Other,HDFC ERGO,10.00,hdfc-ergo-294
+Other,HDFC Life,10.00,hdfc-life-295
+Other,Herbalife,10.00,herbalife-302
+Other,Hercules,10.00,hercules-303
+Other,Hi Rummy,10.00,hi-rummy-304
+Other,Hidnn,10.00,hidnn-305
+Other,Hindi Spin,10.00,hindi-spin-306
+Other,Hindustan,10.00,hindustan-307
+Other,Hinge,10.00,hinge-308
+Other,Hkpay,10.00,hkpay-309
+Other,Hmmral,10.00,hmmral-310
+Other,hostelco,10.00,hostelco-704
+Other,Hotya,10.00,hotya-311
+Other,Housing.com,10.00,housing-com-312
+Other,HP Gas,10.00,hp-gas-296
+Other,hpleauge,10.00,hpleauge-705
+Other,HSBC,10.00,hsbc-297
+Other,Hyugalife,10.00,hyugalife-313
+Other,icfai,10.00,icfai-706
+Other,ICICI,10.00,icici-314
+Other,ICICI Mutual Fund,10.00,icici-mutual-fund-315
+Other,icicidirect,10.00,icicidirect-707
+Other,Icubeswire,10.00,icubeswire-319
+Other,Imffy,10.00,imffy-320
+Other,Imo,10.00,imo-321
+Other,Imshol,10.00,imshol-322
+Other,in99,10.00,in99-708
+Other,in999,10.00,in999-709
+Other,increa,10.00,increa-710
+Other,Incredold,10.00,incredold-323
+Other,Ind Rummy,10.00,ind-rummy-324
+Other,indbet,10.00,indbet-711
+Other,indclub,10.00,indclub-712
+Other,indiago,10.00,indiago-713
+Other,IndiaLends,10.00,indialends-325
+Other,Indian Oil,10.00,indian-oil-326
+Other,Indianapolis,10.00,indianapolis-327
+Other,Indusbet,10.00,indusbet-328
+Other,Indwin,10.00,indwin-329
+Other,Innopay,10.00,innopay-330
+Other,InstaAstro,10.00,instaastro-331
+Other,Instamart,10.00,instamart-332
+Other,IOCL (Indane),10.00,iocl-indane--316
+Other,Ipl Win 555,10.00,ipl-win-555-333
+Other,Iplucky,10.00,iplucky-334
+Other,IQOO,10.00,iqoo-317
+Other,IRCTC,10.00,irctc-318
+Other,Ixigo,10.00,ixigo-335
+Other,jackpotwheel,10.00,jackpotwheel-714
+Other,Jagran,10.00,jagran-337
+Other,Jaiclub,10.00,jaiclub-338
+Other,Jaiho Spin,10.00,jaiho-spin-339
+Other,Jaiho777,10.00,jaiho777-340
+Other,jaiho91,10.00,jaiho91-715
+Other,Jalwa,10.00,jalwa-341
+Other,Jar,10.00,jar-342
+Other,Jeem,10.00,jeem-343
+Other,Jeema,10.00,jeema-344
+Other,Jeet,10.00,jeet-345
+Other,Jeetech360,10.00,jeetech360-346
+Other,Jeetfix,10.00,jeetfix-347
+Other,Jeetwin,10.00,jeetwin-348
+Other,Jiffy,10.00,jiffy-349
+Other,Jio Fiber,10.00,jio-fiber-350
+Other,JioHotstar,10.00,jiohotstar-351
+Other,JioMart,10.00,jiomart-352
+Other,jiopc,10.00,jiopc-716
+Other,Jlosavaan,10.00,jlosavaan-353
+Other,Jugnoo,10.00,jugnoo-354
+Other,jumpp,10.00,jumpp-717
+Other,Jungle,10.00,jungle-355
+Other,Just Dial,10.00,just-dial-356
+Other,jwin,10.00,jwin-718
+Other,JXVERSNX,10.00,jxversnx-336
+Other,k777,10.00,k777-719
+Other,Kamai Kendra,10.00,kamai-kendra-360
+Other,keenin,10.00,keenin-720
+Other,KFC,10.00,kfc-357
+Other,KGEN,10.00,kgen-358
+Other,kheloboss,10.00,kheloboss-721
+Other,KickCash,10.00,kickcash-361
+Other,Kingfisher,10.00,kingfisher-362
+Other,Kirlo,10.00,kirlo-363
+Other,kk789,10.00,kk789-722
+Other,KPH,10.00,kph-359
+Other,Kraus Jeans,10.00,kraus-jeans-364
+Other,Kredbharat,10.00,kredbharat-365
+Other,Kuiklo,10.00,kuiklo-366
+Other,lakshmi,10.00,lakshmi-723
+Other,Lazy Pay,10.00,lazy-pay-367
+Other,Learning csc,10.00,learning-csc-368
+Other,Lendingplate,10.00,lendingplate-369
+Other,Lenskart,10.00,lenskart-370
+Other,lhanott,10.00,lhanott-724
+Other,Lic Housing,10.00,lic-housing-371
+Other,Linkedin,10.00,linkedin-372
+Other,loanone,10.00,loanone-725
+Other,Local,10.00,local-373
+Other,Lottery7,10.00,lottery7-374
+Other,Lotus 365,10.00,lotus-365-375
+Other,lptfun,10.00,lptfun-726
+Other,luckykismat,10.00,luckykismat-727
+Other,Ludo Fancy,10.00,ludo-fancy-376
+Other,Ludo Winner,10.00,ludo-winner-377
+Other,Lummp,10.00,lummp-378
+Other,lurupay,10.00,lurupay-728
+Other,Magicpin,10.00,magicpin-380
+Other,Magnify,10.00,magnify-381
+Other,Maha Luck,10.00,maha-luck-382
+Other,Mahatma,10.00,mahatma-383
+Other,majalinfotech,10.00,majalinfotech-730
+Other,MakeMyTrip,10.00,makemytrip-384
+Other,Mantrigame,10.00,mantrigame-385
+Other,Mantrishop,10.00,mantrishop-386
+Other,Master EDU,10.00,master-edu-387
+Other,Matka,10.00,matka-388
+Other,Matkax,10.00,matkax-389
+Other,matricenter,10.00,matricenter-731
+Other,Mbet,10.00,mbet-390
+Other,Meesho,10.00,meesho-391
+Other,Mera Gaon,10.00,mera-gaon-392
+Other,Mera Wala,10.00,mera-wala-393
+Other,Meta,10.00,meta-394
+Other,Microsoft,10.00,microsoft-395
+Other,Milkbasket,10.00,milkbasket-396
+Other,Mino Game,10.00,mino-game-397
+Other,MMY,10.00,mmy-379
+Other,MobiKwik,10.00,mobikwik-398
+Other,mobikwik,10.00,mobikwik-732
+Other,mobile connect,10.00,mobile-connect-733
+Other,Mogli,10.00,mogli-399
+Other,Money Control,10.00,money-control-400
+Other,Moneyhi,10.00,moneyhi-401
+Other,MoonPay,10.00,moonpay-402
+Other,mospay,10.00,mospay-734
+Other,Mothersgold,10.00,mothersgold-403
+Other,Motp,10.00,motp-404
+Other,Mpartner,10.00,mpartner-405
+Other,mPocket,10.00,mpocket-729
+Other,MrBrown,10.00,mrbrown-406
+Other,Mreward,10.00,mreward-407
+Other,Mt Game,10.00,mt-game-408
+Other,mtfund,10.00,mtfund-735
+Other,My Mart,10.00,my-mart-409
+Other,My Wallet,10.00,my-wallet-410
+Other,myfuture,10.00,myfuture-736
+Other,myhq,10.00,myhq-737
+Other,MyJio,10.00,myjio-411
+Other,Myntra,10.00,myntra-412
+Other,myshopify,10.00,myshopify-738
+Other,mytatva,10.00,mytatva-739
+Other,Nadi,10.00,nadi-414
+Other,Nadi777,10.00,nadi777-415
+Other,Nattyindia,10.00,nattyindia-416
+Other,Naukri,10.00,naukri-417
+Other,Navi,10.00,navi-418
+Other,NB9,10.00,nb9-413
+Other,NcFun,10.00,ncfun-419
+Other,Nestle,10.00,nestle-420
+Other,Netmeds,10.00,netmeds-421
+Other,Newvt,10.00,newvt-422
+Other,Nexsoft,10.00,nexsoft-423
+Other,nhidcl,10.00,nhidcl-740
+Other,Nielsen,10.00,nielsen-424
+Other,nourq,10.00,nourq-741
+Other,Nova Mines,10.00,nova-mines-425
+Other,novapay,10.00,novapay-742
+Other,nutrabay,10.00,nutrabay-743
+Other,Nykaa,10.00,nykaa-426
+Other,Nymph,10.00,nymph-427
+Other,offerzone,10.00,offerzone-744
+Other,Okmm.com,10.00,okmm-com-430
+Other,Okwin,10.00,okwin-431
+Other,Ola Cabs,10.00,ola-cabs-432
+Other,One Win,10.00,one-win-433
+Other,Online Shop,10.00,online-shop-434
+Other,ons,10.00,ons-745
+Other,Orbit Mart,10.00,orbit-mart-435
+Other,Orgen,10.00,orgen-436
+Other,Oriflame,10.00,oriflame-437
+Other,Ownly,10.00,ownly-438
+Other,OYO,10.00,oyo-428
+Other,Ozan,10.00,ozan-439
+Other,OZI,10.00,ozi-429
+Other,P77,10.00,p77-440
+Other,Pantastore,10.00,pantastore-442
+Other,parbat,10.00,parbat-746
+Other,Parimatch,10.00,parimatch-443
+Other,Pay Setu,10.00,pay-setu-444
+Other,Paybet,10.00,paybet-446
+Other,paymitra,10.00,paymitra-747
+Other,Payone,10.00,payone-447
+Other,PayPal,10.00,paypal-445
+Other,Paytm,10.00,paytm-448
+Other,Paytm Old,10.00,paytm-old-449
+Other,Paywin,10.00,paywin-450
+Other,Payzo,10.00,payzo-451
+Other,PBKS,10.00,pbks-441
+Other,Peacock247,10.00,peacock247-452
+Other,perbet,10.00,perbet-748
+Other,pharmarack,10.00,pharmarack-749
+Other,PharmEasy,10.00,pharmeasy-453
+Other,phonepe,10.00,phonepe-750
+Other,PhonePe Old,10.00,phonepe-old-454
+Other,Physics Wallah,10.00,physics-wallah-455
+Other,Pincode,10.00,pincode-456
+Other,play console,10.00,play-console-751
+Other,playerludo,10.00,playerludo-752
+Other,playkaro,10.00,playkaro-753
+Other,Playliq,10.00,playliq-457
+Other,pmbuy,10.00,pmbuy-754
+Other,pmfby,10.00,pmfby-755
+Other,point matka,10.00,point-matka-756
+Other,policy bazaar,10.00,policy-bazaar-757
+Other,poonawala fincorp,10.00,poonawala-fincorp-758
+Other,porter,10.00,porter-759
+Other,Pragya,10.00,pragya-458
+Other,praxo,10.00,praxo-760
+Other,prepladder,10.00,prepladder-761
+Other,private,10.00,private-762
+Other,private-1,10.00,private-1-763
+Other,Pro Rewards,10.00,pro-rewards-459
+Other,ProAnalyser,10.00,proanalyser-460
+Other,pronto,10.00,pronto-764
+Other,Punjab King,10.00,punjab-king-461
+Other,purpll.com,10.00,purpll-com-765
+Other,Pvr,10.00,pvr-462
+Other,QQ Win,10.00,qq-win-463
+Other,QuackQuack,10.00,quackquack-464
+Other,Quan Bot,10.00,quan-bot-465
+Other,quick tv,10.00,quick-tv-766
+Other,Quicker,10.00,quicker-466
+Other,quizeanmoney,10.00,quizeanmoney-767
+Other,qwiksilver,10.00,qwiksilver-768
+Other,raitel,10.00,raitel-769
+Other,Raja game,10.00,raja-game-470
+Other,Rajasthanherbal,10.00,rajasthanherbal-471
+Other,Ram Sabha,10.00,ram-sabha-472
+Other,RAMP,10.00,ramp-467
+Other,Ranglive,10.00,ranglive-473
+Other,Rapido,10.00,rapido-474
+Other,Rapido Captain,10.00,rapido-captain-475
+Other,Rapidoiq,10.00,rapidoiq-476
+Other,Ravlexch,10.00,ravlexch-477
+Other,razorpay,10.00,razorpay-770
+Other,real estate india,10.00,real-estate-india-771
+Other,Real teen patti,10.00,real-teen-patti-478
+Other,Rechargehub,10.00,rechargehub-479
+Other,redbus,10.00,redbus-772
+Other,ReddyBook,10.00,reddybook-480
+Other,repair challenge,10.00,repair-challenge-773
+Other,research 360,10.00,research-360-774
+Other,reward media,10.00,reward-media-775
+Other,Rewardx,10.00,rewardx-481
+Other,Rexproearn,10.00,rexproearn-482
+Other,ricklieve,10.00,ricklieve-776
+Other,ricktick,10.00,ricktick-777
+Other,Ring Pay,10.00,ring-pay-483
+Other,rohini,10.00,rohini-778
+Other,rojdhan,10.00,rojdhan-779
+Other,roney sensex,10.00,roney-sensex-780
+Other,Rooter,10.00,rooter-484
+Other,rosier (carwale),10.00,rosier-carwale--781
+Other,routematic,10.00,routematic-782
+Other,Royalwin,10.00,royalwin-485
+Other,Royeljeet,10.00,royeljeet-486
+Other,RRP,10.00,rrp-468
+Other,RRP Old,10.00,rrp-old-469
+Other,Rrpapp,10.00,rrpapp-487
+Other,rs9,10.00,rs9-783
+Other,rummvtrv,10.00,rummvtrv-784
+Other,rummy club,10.00,rummy-club-785
+Other,rummy club-1,10.00,rummy-club-1-786
+Other,Rummy East,10.00,rummy-east-488
+Other,Rummy Glee,10.00,rummy-glee-489
+Other,Rummy Gold,10.00,rummy-gold-490
+Other,Rummy Good,10.00,rummy-good-491
+Other,rummy grand,10.00,rummy-grand-787
+Other,Rummy Leader,10.00,rummy-leader-492
+Other,rummy leader,10.00,rummy-leader-788
+Other,Rummy Ludo,10.00,rummy-ludo-493
+Other,rummy mars,10.00,rummy-mars-789
+Other,Rummy Most,10.00,rummy-most-494
+Other,Rummy Online,10.00,rummy-online-495
+Other,Rummy Paisa,10.00,rummy-paisa-496
+Other,Rummy perfect,10.00,rummy-perfect-500
+Other,Rummy Pride,10.00,rummy-pride-497
+Other,rummy sweety,10.00,rummy-sweety-790
+Other,Rummy Wealth,10.00,rummy-wealth-498
+Other,Rummy Yes,10.00,rummy-yes-499
+Other,rummyadda,10.00,rummyadda-791
+Other,rummylegal,10.00,rummylegal-792
+Other,RummyOla,10.00,rummyola-501
+Other,Rupay,10.00,rupay-502
+Other,rupiyo,10.00,rupiyo-793
+Other,Ruviexch,10.00,ruviexch-503
+Other,RxPay,10.00,rxpay-504
+Other,SafeGuard,10.00,safeguard-506
+Other,Sahyog,10.00,sahyog-507
+Other,Salary Setu,10.00,salary-setu-508
+Other,samridhi (havells),10.00,samridhi-havells--794
+Other,SantriShop,10.00,santrishop-509
+Other,Saya Care,10.00,saya-care-510
+Other,sbigeneral,10.00,sbigeneral-795
+Other,scoremove,10.00,scoremove-796
+Other,shaktipay,10.00,shaktipay-797
+Other,ShareChat,10.00,sharechat-511
+Other,sharteji,10.00,sharteji-798
+Other,Shein,10.00,shein-512
+Other,Shikhar,10.00,shikhar-513
+Other,Shiprocket,10.00,shiprocket-514
+Other,Shopsy,10.00,shopsy-515
+Other,Shriram One,10.00,shriram-one-516
+Other,simpie pay,10.00,simpie-pay-799
+Other,Singam lottery,10.00,singam-lottery-517
+Other,Sitara Partner,10.00,sitara-partner-518
+Other,SkillSTrainer,10.00,skillstrainer-519
+Other,slot winner,10.00,slot-winner-800
+Other,Slot99,10.00,slot99-520
+Other,Smartwallet,10.00,smartwallet-521
+Other,sms india hub,10.00,sms-india-hub-801
+Other,Snapmint,10.00,snapmint-522
+Other,solid,10.00,solid-802
+Other,Solidnxt,10.00,solidnxt-523
+Other,southern express,10.00,southern-express-803
+Other,spenbook,10.00,spenbook-804
+Other,Spin Casino,10.00,spin-casino-524
+Other,Spin Gold,10.00,spin-gold-525
+Other,Spin11,10.00,spin11-526
+Other,Spin567,10.00,spin567-527
+Other,Spin777,10.00,spin777-528
+Other,Spin99,10.00,spin99-529
+Other,spinach,10.00,spinach-805
+Other,Spincrush,10.00,spincrush-530
+Other,Spinkaro,10.00,spinkaro-531
+Other,ssclub,10.00,ssclub-806
+Other,Stable Money,10.00,stable-money-532
+Other,Stage,10.00,stage-533
+Other,Stan,10.00,stan-534
+Other,Star777,10.00,star777-535
+Other,Starexch,10.00,starexch-536
+Other,Starp,10.00,starp-537
+Other,Starzbet,10.00,starzbet-538
+Other,Stockmock,10.00,stockmock-539
+Other,Storm,10.00,storm-540
+Other,Story Max,10.00,story-max-541
+Other,Storytv,10.00,storytv-542
+Other,Sudipta,10.00,sudipta-543
+Other,SUNAXEN,10.00,sunaxen-505
+Other,SuperJ,10.00,superj-544
+Other,surewin,10.00,surewin-807
+Other,Svip777,10.00,svip777-545
+Other,Swacch Bharat,10.00,swacch-bharat-546
+Other,Swarail (RailOne),10.00,swarail-railone--547
+Other,Swiggy,10.00,swiggy-548
+Other,Swish,10.00,swish-549
+Other,T1game,10.00,t1game-550
+Other,T2 game,10.00,t2-game-551
+Other,T20win,10.00,t20win-552
+Other,Tabe,10.00,tabe-554
+Other,Tap Alam,10.00,tap-alam-555
+Other,Tashanwin,10.00,tashanwin-556
+Other,Tata Neu,10.00,tata-neu-557
+Other,Tata Neu HDFC,10.00,tata-neu-hdfc-558
+Other,Taurus,10.00,taurus-559
+Other,TCM,10.00,tcm-553
+Other,Teen Patti Chatai,10.00,teen-patti-chatai-560
+Other,teen patti rush,10.00,teen-patti-rush-808
+Other,Teenpati Sona,10.00,teenpati-sona-562
+Other,Teenpatti Cash,10.00,teenpatti-cash-563
+Other,Teenpatti Neta,10.00,teenpatti-neta-564
+Other,Teenpatti Nobel,10.00,teenpatti-nobel-565
+Other,Teenpatti Sona,10.00,teenpatti-sona-566
+Other,TeenPatti Star,10.00,teenpatti-star-561
+Other,teenpattigame,10.00,teenpattigame-809
+Other,Telegram,10.00,telegram-567
+Other,Telephia,10.00,telephia-568
+Other,Test Service,10.00,test-service-569
+Other,Test91,10.00,test91-570
+Other,Testbook,10.00,testbook-571
+Other,Thalagame,10.00,thalagame-572
+Other,thinkitlucky,10.00,thinkitlucky-810
+Other,Tickmill,10.00,tickmill-573
+Other,Timbuktu,10.00,timbuktu-574
+Other,Times Prime,10.00,times-prime-575
+Other,Tinder,10.00,tinder-576
+Other,Tira Beauty,10.00,tira-beauty-577
+Other,Tiranga,10.00,tiranga-578
+Other,Toing,10.00,toing-579
+Other,topone,10.00,topone-811
+Other,TradeX,10.00,tradex-580
+Other,tripoto,10.00,tripoto-812
+Other,TrucksUp,10.00,trucksup-581
+Other,Truecaller,10.00,truecaller-582
+Other,Truemeds,10.00,truemeds-583
+Other,trugold,10.00,trugold-813
+Other,TrulyMadly,10.00,trulymadly-584
+Other,Tt3pay,10.00,tt3pay-585
+Other,Twilio,10.00,twilio-586
+Other,Tywin,10.00,tywin-587
+Other,Uber,10.00,uber-589
+Other,uber eats,10.00,uber-eats-814
+Other,UBGTL,10.00,ubgtl-588
+Other,Ucoinpay,10.00,ucoinpay-590
+Other,Umoney,10.00,umoney-591
+Other,Unacademy,10.00,unacademy-592
+Other,Unicef p2e,10.00,unicef-p2e-593
+Other,Univest,10.00,univest-594
+Other,Uono,10.00,uono-595
+Other,Uono Hub,10.00,uono-hub-596
+Other,Upay,10.00,upay-597
+Other,upstox,10.00,upstox-815
+Other,Urban Company,10.00,urban-company-598
+Other,urban pro,10.00,urban-pro-816
+Other,V RUMMY,10.00,v-rummy-599
+Other,Varun Jewellery,10.00,varun-jewellery-605
+Other,vegas casino,10.00,vegas-casino-817
+Other,Vercel,10.00,vercel-606
+Other,VFS,10.00,vfs-600
+Other,VFS Global,10.00,vfs-global-601
+Other,Viber,10.00,viber-607
+Other,Viewpoint,10.00,viewpoint-608
+Other,vijaysales,10.00,vijaysales-818
+Other,vip gujarat,10.00,vip-gujarat-819
+Other,VIP-TT7,10.00,vip-tt7-602
+Other,Vivo,10.00,vivo-609
+Other,vmm,10.00,vmm-820
+Other,VNR Game,10.00,vnr-game-603
+Other,Voltas,10.00,voltas-610
+Other,VriBus,10.00,vribus-611
+Other,VT Markets,10.00,vt-markets-604
+Other,vymo,10.00,vymo-821
+Other,Walle8,10.00,walle8-612
+Other,Walter,10.00,walter-613
+Other,Wazirwin,10.00,wazirwin-614
+Other,Welby,10.00,welby-616
+Other,WePlay,10.00,weplay-615
+Other,Win11,10.00,win11-617
+Other,Win379,10.00,win379-618
+Other,winclass,10.00,winclass-822
+Other,Wingo,10.00,wingo-619
+Other,Wininr,10.00,wininr-620
+Other,Winmatch,10.00,winmatch-621
+Other,Winmate,10.00,winmate-622
+Other,Winza,10.00,winza-623
+Other,Woohoo,10.00,woohoo-624
+Other,Wooill Pay,10.00,wooill-pay-625
+Other,World Lends,10.00,world-lends-626
+Other,Wow Eat,10.00,wow-eat-627
+Other,WowTv,10.00,wowtv-628
+Other,wtpmall,10.00,wtpmall-823
+Other,Wyse,10.00,wyse-629
+Other,X89 App,10.00,x89-app-630
+Other,XIPL,10.00,xipl-631
+Other,xoxoday,10.00,xoxoday-824
+Other,Yadi,10.00,yadi-632
+Other,Yamaha,10.00,yamaha-633
+Other,yasglobal,10.00,yasglobal-825
+Other,Yatharthgeeta,10.00,yatharthgeeta-634
+Other,yespin,10.00,yespin-826
+Other,Yn777,10.00,yn777-635
+Other,ynorg,10.00,ynorg-827
+Other,Yo777,10.00,yo777-636
+Other,Yono Games,10.00,yono-games-637
+Other,Yono King,10.00,yono-king-638
+Other,Yono Rummy,10.00,yono-rummy-639
+Other,Yono Vip,10.00,yono-vip-640
+Other,yono365,10.00,yono365-828
+Other,YonoArcade,10.00,yonoarcade-641
+Other,Yonohub,10.00,yonohub-642
+Other,yonorumme,10.00,yonorumme-829
+Other,Yonoslots,10.00,yonoslots-643
+Other,Your Rick,10.00,your-rick-644
+Other,Youth,10.00,youth-645
+Other,Youtube,10.00,youtube-646
+Other,yulubikes,10.00,yulubikes-830
+Other,Yy6 Game,10.00,yy6-game-647
+Other,Zapploans,10.00,zapploans-648
+Other,Zepmeta,10.00,zepmeta-649
+Other,Zepto,10.00,zepto-650
+Other,Zeptom,10.00,zeptom-651
+Other,Zerox,10.00,zerox-652
+Other,Zilly Buy,10.00,zilly-buy-653
+Other,Zomato,10.00,zomato-654
+Other,zomatodelhiverypartner,10.00,zomatodelhiverypartner-831
+Other,Zubydo,10.00,zubydo-655
+Productivity,Gmail,14.50,gmail-5
+Productivity,Zoom,8.50,zoom-4
+Rummy,ABCRUMMY,8.50,abcrummy-36
+Rummy,BOSSRUMMY,8.50,bossrummy-52
+Rummy,GAMERUMMY,8.50,gamerummy-65
+Rummy,GOGORUMMY,8.50,gogorummy-9
+Rummy,GOLDRUMMY,8.50,goldrummy-73
+Rummy,HIRUMMY,8.50,hirummy-10
+Rummy,INDRUMMY,9.00,indrummy-12
+Rummy,INR RUMMY,8.50,inr-rummy-53
+Rummy,JAIHORUMMY,8.50,jaihorummy-16
+Rummy,JOYRUMMY,8.50,joyrummy-67
+Rummy,LOVERUMMY,8.50,loverummy-20
+Rummy,MAXRUMMY,8.50,maxrummy-69
+Rummy,MONEYRUMMY,8.50,moneyrummy-75
+Rummy,OKRUMMY,8.50,okrummy-45
+Rummy,RUMBLERUMMY,8.50,rumblerummy-46
+Rummy,RUMMY77,8.50,rummy77-50
+Rummy,RUMMY888,8.50,rummy888-51
+Rummy,RUMMY91,8.50,rummy91-23
+Rummy,RUMMYLUDO,8.50,rummyludo-49
+Rummy,TOPRUMMY,8.50,toprummy-68
+Rummy,WINRUMMY,8.50,winrummy-70
+Rummy,YONORUMMY,8.50,yonorummy-6
+Social,Facebook,10.00,facebook-1
+Social,Instagram,11.00,instagram-2
+Social,Snapchat,12.00,snapchat-3
+Social,WhatsApp,9.50,whatsapp-0
