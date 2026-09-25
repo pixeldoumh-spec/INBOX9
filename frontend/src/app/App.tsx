@@ -36,20 +36,22 @@ const iconPaths:Record<IconName,ReactNode>={
 };
 function Icon({name,size=20}:{name:IconName;size?:number}){return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{iconPaths[name]}</svg>}
 
-const logoMask='111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111100010001111111101111111111111111111110001000010000000000000001000010010111001101010000000001000110010010101000';
-function ServiceLogo({serviceId,name,size='md',position}:{serviceId:string;name:string;size?:'sm'|'md'|'lg';position?:number}){
+import { SERVICE_LOGO_MANIFEST, SERVICE_LOGO_SPRITE } from './serviceLogoManifest';
+
+function ServiceLogo({serviceId,name,size='md'}:{serviceId:string;name:string;size?:'sm'|'md'|'lg'}){
  const d=size==='lg'?104:size==='sm'?52:68;
- const base=48;
- const index=(position??0)-1;
- const has=Boolean(position&&index>=0&&index<logoMask.length&&logoMask[index]==='1');
- const x=(Math.max(0,index)%12)*base;
- const y=Math.floor(Math.max(0,index)/12)*base;
- const scale=d/base;
+ const {tileSize,columns,rows,path}=SERVICE_LOGO_SPRITE;
+ const logo=SERVICE_LOGO_MANIFEST[serviceId];
+ const index=logo?.spriteIndex ?? -1;
+ const has=Boolean(logo&&index>=0&&index<columns*rows);
+ const x=(Math.max(0,index)%columns)*tileSize;
+ const y=Math.floor(Math.max(0,index)/columns)*tileSize;
+ const scale=d/tileSize;
  const initials=name.trim().split(/\\s+/).slice(0,2).map(x=>x[0]).join('').toUpperCase()||'I9';
  const style:CSSProperties=has
-   ? {width:d,height:d,backgroundImage:'url(/service-icons-sprite.webp)',backgroundSize:`${12*base*scale}px ${18*base*scale}px`,backgroundPosition:`${-x*scale}px ${-y*scale}px`,backgroundRepeat:'no-repeat'}
+   ? {width:d,height:d,backgroundImage:`url(${path})`,backgroundSize:`${columns*tileSize*scale}px ${rows*tileSize*scale}px`,backgroundPosition:`${-x*scale}px ${-y*scale}px`,backgroundRepeat:'no-repeat'}
    : {width:d,height:d};
- return <div className={`service-logo service-logo-${size}${has?'':' service-logo-fallback'}`} data-service-id={serviceId} style={style}>
+ return <div className={`service-logo service-logo-${size}${has?'':' service-logo-fallback'}`} data-service-id={serviceId} data-logo-source={has?'sprite':'fallback'} style={style}>
    {has?null:<><span>{initials}</span><Icon name="apps" size={size==='lg'?28:size==='sm'?17:21}/></>}
  </div>;
 }
@@ -124,9 +126,9 @@ function Catalog({mode='apps'}:{mode?:'apps'|'buy'}){
    <button type="button" className={category==='all'?'category-chip is-selected':'category-chip'} onClick={()=>setCategory('all')}>All</button>
    {categories.map(item=><button type="button" className={category===item.value?'category-chip is-selected':'category-chip'} key={item.value} onClick={()=>setCategory(item.value)}>{item.value}<span>{item.count}</span></button>)}
   </div>
-  {mode==='apps'&&!search.trim()&&category==='all'&&recentServices.length?<div className="recent-section"><div className="section-heading-row"><div><h2>Recent</h2><span className="section-subtle">Your latest services</span></div></div><div className="recent-row">{recentServices.map(item=><Link className="recent-tile" key={item!.id} to={`/apps/service/${encodeURIComponent(item!.id)}`} onClick={()=>remember(item!.id)}><ServiceLogo serviceId={item!.id} name={item!.name} size="sm" position={item!.catalogPosition}/><span>{item!.name}</span></Link>)}</div></div>:null}
+  {mode==='apps'&&!search.trim()&&category==='all'&&recentServices.length?<div className="recent-section"><div className="section-heading-row"><div><h2>Recent</h2><span className="section-subtle">Your latest services</span></div></div><div className="recent-row">{recentServices.map(item=><Link className="recent-tile" key={item!.id} to={`/apps/service/${encodeURIComponent(item!.id)}`} onClick={()=>remember(item!.id)}><ServiceLogo serviceId={item!.id} name={item!.name} size="sm"/><span>{item!.name}</span></Link>)}</div></div>:null}
   {q.isError?<div className="error-card">Service catalog is temporarily unavailable.</div>:null}
-  {q.isPending?<div className="service-grid-placeholder">{Array.from({length:16},(_,i)=><div className="tile-skeleton" key={i}/>)}</div>:list.length?<div className="service-grid">{list.map(item=><Link className="service-tile" key={item.id} to={`/apps/service/${encodeURIComponent(item.id)}${mode==='buy'?'?buy=1':''}`} onClick={()=>remember(item.id)}><ServiceLogo serviceId={item.id} name={item.name} position={item.catalogPosition}/><span className="service-name">{item.name}</span></Link>)}</div>:<div className="empty-state"><div className="empty-icon">⌕</div><h3>No services found</h3><p>{search||category!=='all'?'Try another search or category.':'No services are available right now.'}</p>{search||category!=='all'?<button type="button" className="outline-button compact-button" onClick={()=>{setSearch('');setCategory('all')}}>Reset filters</button>:null}</div>}
+  {q.isPending?<div className="service-grid-placeholder">{Array.from({length:16},(_,i)=><div className="tile-skeleton" key={i}/>)}</div>:list.length?<div className="service-grid">{list.map(item=><Link className="service-tile" key={item.id} to={`/apps/service/${encodeURIComponent(item.id)}${mode==='buy'?'?buy=1':''}`} onClick={()=>remember(item.id)}><ServiceLogo serviceId={item.id} name={item.name}/><span className="service-name">{item.name}</span></Link>)}</div>:<div className="empty-state"><div className="empty-icon">⌕</div><h3>No services found</h3><p>{search||category!=='all'?'Try another search or category.':'No services are available right now.'}</p>{search||category!=='all'?<button type="button" className="outline-button compact-button" onClick={()=>{setSearch('');setCategory('all')}}>Reset filters</button>:null}</div>}
   {mode==='apps'?<NotificationStrip/>:null}
  </section>
 }
@@ -180,7 +182,7 @@ function ServicePage(){
  }
  return <section className="page-section service-detail">
   <Link className="back-link" to="/apps"><Icon name="back" size={18}/> Apps</Link>
-  <div className="service-hero"><ServiceLogo serviceId={selected.id} name={selected.name} size="lg" position={selected.catalogPosition}/><div><h1>{selected.name}</h1><p>{selected.category}</p></div></div>
+  <div className="service-hero"><ServiceLogo serviceId={selected.id} name={selected.name} size="lg"/><div><h1>{selected.name}</h1><p>{selected.category}</p></div></div>
   <div className="detail-grid">
    <div className="detail-card"><span>Price</span><strong>₹{price.toFixed(2)}</strong><small>Per activation</small></div>
    <div className="detail-card"><span>Availability</span><strong>{selected.availability||'—'}</strong><small>{selected.stock==null?'Live inventory':`${selected.stock} shown in catalog`}</small></div>
@@ -202,7 +204,6 @@ function ActivePage(){
  const [tab,setTab]=useState<'ongoing'|'history'>('ongoing');
  const [now,setNow]=useState(Date.now());
  useEffect(()=>{const t=window.setInterval(()=>setNow(Date.now()),1000);return()=>window.clearInterval(t)},[]);
- const positionOf=(id:string)=>catalog.data?.services.find(s=>s.id===id)?.catalogPosition;
  const list=useMemo(()=>[...(q.data?.activations??[])].sort((a,b)=>(b.createdAt??0)-(a.createdAt??0)),[q.data?.activations]);
  const ongoing=useMemo(()=>list.filter(a=>a.status==='Active'),[list]);
  const history=useMemo(()=>list.filter(a=>a.status!=='Active'),[list]);
@@ -220,7 +221,7 @@ function ActivePage(){
     const countdown=a.expiresAt?remaining>0?`${Math.floor(remaining/60000)}:${String(Math.floor((remaining%60000)/1000)).padStart(2,'0')}`:'Expired':null;
     const terminal=a.status!=='Active';
     return <Link className={`activation-card ${terminal?'activation-card-history':'activation-card-ongoing'}`} key={a.id} to={`/active/${encodeURIComponent(a.id)}`}>
-     <ServiceLogo serviceId={a.serviceId} name={a.service||a.serviceId} size="sm" position={positionOf(a.serviceId)}/>
+     <ServiceLogo serviceId={a.serviceId} name={a.service||a.serviceId} size="sm"/>
      <div className="activation-main">
       <div className="activation-title"><strong>{a.service||a.serviceId}</strong><span className={statusClass(a.status)}>{a.status}</span></div>
       <div className="activation-meta"><span>{a.number||'Number pending'}</span><span>₹{(a.pricePaise/100).toFixed(2)}</span></div>
@@ -241,7 +242,6 @@ function ActivePage(){
 }
 function ActivationPage(){
  const {activationId}=useParams();
- const catalog=useQuery({queryKey:['services'],queryFn:getServices,staleTime:60_000});
  const client=useQueryClient();
  const [copied,setCopied]=useState<'number'|'otp'|null>(null);
  const [now,setNow]=useState(Date.now());
@@ -275,7 +275,7 @@ function ActivationPage(){
  const position=catalog.data?.services.find(s=>s.id===a.serviceId)?.catalogPosition;
  return <section className="page-section activation-page">
   <Link className="back-link" to="/active"><Icon name="back" size={18}/> Active</Link>
-  <div className="activation-hero"><ServiceLogo serviceId={a.serviceId} name={a.service||a.serviceId} position={position}/><div><h1>{a.service||a.serviceId}</h1><div className="hero-meta"><span className={statusClass(a.status)}>{a.status}</span><span>₹{(a.pricePaise/100).toFixed(2)}</span></div></div></div>
+  <div className="activation-hero"><ServiceLogo serviceId={a.serviceId} name={a.service||a.serviceId}/><div><h1>{a.service||a.serviceId}</h1><div className="hero-meta"><span className={statusClass(a.status)}>{a.status}</span><span>₹{(a.pricePaise/100).toFixed(2)}</span></div></div></div>
   <div className="number-card"><span className="card-label">Phone number</span><div className="big-number">{a.number||'Waiting for number'}</div>{a.number?<button className="copy-button" onClick={()=>void doCopy('number',a.number!)}><Icon name="copy" size={17}/>{copied==='number'?'Copied':'Copy'}</button>:null}</div>
   <div className={`otp-card ${a.otp?'otp-ready':''}`}><div><span className="card-label">Verification code</span><div className="otp-value">{a.otp||'— — — — — —'}</div></div>{a.otp?<button className="copy-button" onClick={()=>void doCopy('otp',a.otp!)}><Icon name="copy" size={17}/>{copied==='otp'?'Copied':'Copy'}</button>:<div className="otp-wait"><span className="pulse-dot"/>{q.isFetching?'Checking for OTP...':'Waiting for OTP'}</div>}</div>
   {!terminal?<div className="countdown-card"><Icon name="clock" size={21}/><div><strong>{remaining?countdown:'Expired'}</strong><span>time remaining</span></div></div>:null}

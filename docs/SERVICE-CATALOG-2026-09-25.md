@@ -17,17 +17,15 @@ The catalog contains **216 services** in the supplied order. Names are preserved
 
 ## Logo contract
 
-Phase 2 will add one PNG per service under:
+The customer UI uses a single 576×864 WebP sprite at:
 
-`frontend/src/assets/service-icons/`
+`frontend/public/service-icons-sprite.webp`
 
-Filename:
+The sprite is a 12×18 grid of 48px tiles. Stable lookup is defined in:
 
-`<stable-service-id>.png`
+`frontend/src/app/serviceLogoManifest.ts`
 
-Example: `svc-yono-bonus-51.png`
-
-This keeps logo lookup independent of display-name casing and future catalog reordering.
+Each mapped service ID points to its sprite tile index. This keeps logo lookup independent of display-name casing and catalog reordering. Services without a supplied logo intentionally use the UI fallback instead of a broken image.
 
 ## Services
 
