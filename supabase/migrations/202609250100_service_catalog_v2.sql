@@ -8,8 +8,7 @@ BEGIN;
 UPDATE service_provider_routes SET active=FALSE WHERE active=TRUE;
 UPDATE services SET active=FALSE WHERE active=TRUE;
 
-INSERT INTO services
-  (id,name,category,currency,price_paise,country,availability,stock,active)
+WITH new_services(id,name,category,currency,price_paise,country,availability,stock,active) AS (
 VALUES
   ('svc-yono-bonus-51','Yono Bonus 51','Other','INR',1000,'IN','medium',104,TRUE),
   ('svc-joy-rummy','Joy Rummy','Other','INR',1000,'IN','high',77,TRUE),
@@ -227,6 +226,18 @@ VALUES
   ('svc-3-patti-hot','3 Patti Hot','Other','INR',1000,'IN','medium',104,TRUE),
   ('svc-21-game-download','21 Game Download','Other','INR',1000,'IN','high',107,TRUE),
   ('svc-rummy-grand','Rummy Grand','Other','INR',1000,'IN','high',55,TRUE)
+),
+renamed AS (
+  UPDATE services s
+  SET name = s.name || ' [legacy:' || s.id || ']'
+  FROM new_services n
+  WHERE s.id NOT LIKE 'svc-%' AND s.name = n.name
+  RETURNING s.id
+)
+INSERT INTO services
+  (id,name,category,currency,price_paise,country,availability,stock,active)
+SELECT id,name,category,currency,price_paise,country,availability,stock,active
+FROM new_services
 ON CONFLICT (id) DO UPDATE SET
   name=EXCLUDED.name,
   category=EXCLUDED.category,
