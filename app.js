@@ -1719,6 +1719,9 @@ function serviceCard(service) {
   const insufficient = state.balancePaise < Number(service.pricePaise || 0);
   const purchasable = service.purchasable !== false;
   const expanded = state.expandedServiceId === service.id;
+  const balanceDelta = Number(service.pricePaise || 0) - state.balancePaise;
+  const balanceReady = !insufficient;
+  const walletLabel = balanceReady ? 'Wallet ready' : 'Add ' + money(Math.max(0, balanceDelta));
   const initials = String(service.name || 'IN').trim().split(/\\s+/).slice(0, 2).map((part) => part.charAt(0)).join('').toUpperCase().slice(0, 2) || 'IN';
   return '<article class="market-service-group customer-service-card marketplace-service-card ' + (!purchasable ? ' unavailable' : '') + (expanded ? ' expanded' : '') + '">' +
     '<button class="service-group-header customer-service-main marketplace-service-main" type="button" data-toggle-service="' + esc(service.id) + '" aria-expanded="' + String(expanded) + '" aria-controls="details-' + esc(service.id) + '">' +
@@ -1727,7 +1730,7 @@ function serviceCard(service) {
       '<span class="service-group-meta marketplace-service-meta"><span class="marketplace-availability ' + (purchasable ? 'available' : 'unavailable') + '"><i></i> ' + (purchasable ? 'Ready' : 'Unavailable') + '</span><span class="service-price">' + money(service.pricePaise) + '</span></span>' +
       '<span class="service-group-chevron marketplace-service-chevron" aria-hidden="true">⌄</span>' +
     '</button>' +
-    '<div class="customer-service-bottom marketplace-service-bottom"><div class="customer-service-facts marketplace-service-facts"><span class="customer-service-fact"><b>+91</b> India</span><span class="customer-service-fact"><b>Varies</b> OTP delivery</span><span class="customer-service-fact"><b>Secure</b> checkout</span></div><div class="customer-service-action"><button class="buy-btn customer-buy" type="button" data-buy-service="' + esc(service.id) + '"' + (!purchasable ? ' disabled' : '') + '>' + (purchasable ? 'Get' : 'Unavailable') + '</button></div></div>' +
+    '<div class="customer-service-bottom marketplace-service-bottom"><div class="customer-service-facts marketplace-service-facts"><span class="customer-service-fact"><b>+91</b> India</span><span class="customer-service-fact"><b>Varies</b> OTP delivery</span><span class="customer-service-fact"><b>Secure</b> checkout</span></div><div class="customer-service-action"><span class="wallet-ready-chip ' + (purchasable ? (balanceReady ? 'ready' : 'needs-funds') : 'needs-funds') + '">' + esc(purchasable ? walletLabel : 'Route not active') + '</span><button class="buy-btn customer-buy" type="button" data-buy-service="' + esc(service.id) + '"' + (!purchasable ? ' disabled' : '') + '>' + (purchasable ? 'Get' : 'Unavailable') + '</button></div></div>' +
     (expanded ? serviceDetailsMarkup() : '') +
   '</article>';
 }
