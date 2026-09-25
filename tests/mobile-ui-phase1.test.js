@@ -26,22 +26,22 @@ test('phase 2 keeps launcher tiles inside narrow mobile columns',()=>{
   assert.match(css,/\.catalog-apps \.service-name\s*\{[\s\S]*?max-width:72px/);
   assert.match(css,/@media \(max-width:380px\)[\s\S]*?\.catalog-apps \.service-grid\s*\{[\s\S]*?row-gap:21px/);
 });
-test('phase 2.1 normalizes the shared logo frame and bottom-nav optical icon sizing',()=>{
+test('phase 2.1 normalizes the shared logo frame and bottom-nav icon sizing',()=>{
   assert.match(app,/className="service-logo-art"/);
   assert.match(app,/cropServiceLogo/);
   assert.match(app,/data-logo-source=\{src\?'cropped-sprite'/);
   assert.match(css,/\.service-logo\s*\{[\s\S]*?position:relative/);
   assert.match(css,/\.service-logo-art\s*\{[\s\S]*?inset:1px/);
-  assert.match(css,/\.bottom-nav-item > svg\s*\{[\s\S]*?width:21px;\s*height:21px/);
-  assert.match(css,/\.bottom-nav-item:nth-child\(2\) > svg,.bottom-nav-item:nth-child\(4\) > svg\s*\{[\s\S]*?scale\(1\.08\)/);
+  assert.match(css,/\.bottom-nav-icon\s*\{[\s\S]*?width:24px/);
 });
 
-test('phase 2.2 uses one service-logo size across customer surfaces',()=>{
-  assert.match(app,/const d=72/);
-  assert.match(css,/\.service-logo-sm,\.service-logo-md,\.service-logo-lg\s*\{[\s\S]*?width:72px !important;\s*height:72px !important/);
-  assert.match(css,/@media \(max-width:380px\)[\s\S]*?\.catalog-apps \.service-logo-md,[\s\S]*?\.catalog-apps \.service-logo-sm,[\s\S]*?\.catalog-apps \.service-logo-lg[\s\S]*?width:64px !important;[\s\S]*?height:64px !important/);
+test('phase 2.2 uses one canonical service-logo size across customer surfaces',()=>{
+  assert.match(app,/function ServiceLogo\(\{serviceId,name\}/);
+  assert.doesNotMatch(app,/size="sm"/);
+  assert.doesNotMatch(app,/size="lg"/);
+  assert.match(css,/\.service-logo\s*\{[\s\S]*?width:72px !important;[\s\S]*?height:72px !important/);
+  assert.match(css,/\.service-logo-art img\s*\{[\s\S]*?object-fit:contain/);
 });
-
 
 test('phase 2.4 crops logo artwork to visible bounds then contains the full image',()=>{
   assert.match(app,/cropServiceLogo/);
