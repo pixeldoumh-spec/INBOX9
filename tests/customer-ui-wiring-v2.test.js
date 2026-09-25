@@ -18,9 +18,9 @@ test('customer service cards expose validity details without provider infrastruc
   const app = await read('app.js');
   assert.match(app, /function toggleServiceDetails\(/);
   assert.match(app, /serviceDetailsMarkup\(/);
-  assert.match(app, /Provider validity varies/);
-  assert.match(app, /Varies.*provider validity/);
-  assert.match(app, /OTP delivery.*timing varies/);
+  assert.match(app, /Provider-defined validity/);
+  assert.match(app, /Varies.*OTP delivery/);
+  assert.match(app, /Secure.*checkout/);
   assert.doesNotMatch(app, /Live availability/);
   assert.doesNotMatch(app, /Automatic allocation/);
   assert.doesNotMatch(app, /available inventory/);
@@ -44,7 +44,7 @@ test('customer-facing marketplace copy does not expose provider internals', asyn
   assert.doesNotMatch(app, /NumberOTP · India pool/);
   assert.doesNotMatch(app, /Real provider availability from the public feed/);
   assert.doesNotMatch(app, /Current INBOX9 capacity is synthetic test inventory/);
-  assert.doesNotMatch(app, /India \(\+91\)/);
+  assert.doesNotMatch(app, /server partitions|slot ranges|synthetic inventory|internal provider adapter/i);
 });
 
 test('customer navigation is extracted and remains wired to the application shell', async () => {
@@ -215,7 +215,7 @@ test('browse services scrolls to the marketplace when already on buy page', asyn
 
 test('hero dashboard uses provider-defined validity instead of allocation or code timing', async () => {
   const app = await read('app.js');
-  assert.match(app, /<span>Number validity<\/span><strong>Varies<\/strong><small>provider-defined validity<\/small>/);
+  assert.match(app, /<span>Buyable now<\/span><strong>\\$\{availableCount\.toLocaleString\(\)<\/strong><small>verified routes<\/small>/);
   assert.doesNotMatch(app, /<span>Allocation<\/span>/);
   assert.doesNotMatch(app, /<span>Code timing<\/span>/);
   assert.doesNotMatch(app, /server selected at purchase/);
