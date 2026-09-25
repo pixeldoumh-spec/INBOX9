@@ -35,6 +35,10 @@
     settled = true;
     window.clearTimeout(timeout);
     app?.setAttribute('aria-busy', 'false');
+    const shell = document.createElement('script');
+    shell.src = '/customer/mobile-shell.js';
+    shell.defer = true;
+    document.head.appendChild(shell);
   };
   script.onerror = () => {
     window.clearTimeout(timeout);
