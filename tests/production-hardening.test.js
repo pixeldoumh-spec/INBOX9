@@ -37,7 +37,8 @@ test('standalone server serves the clean root with baseline security headers and
     assert.match(response.headers['cache-control'], /private, no-cache/);
     assert.ok(response.headers.etag, 'HTML root should expose a validator');
     assert.ok(response.headers['last-modified'], 'HTML root should expose Last-Modified');
-    assert.match(response.body, /Frontend intentionally removed/);
+    assert.match(response.body, /INBOX9/);
+    assert.match(response.headers['content-type'], /text\/html/i);
 
     const validated = await request(server, '/', { headers: { 'If-None-Match': response.headers.etag } });
     assert.equal(validated.status, 304, 'unchanged root should revalidate to 304');
