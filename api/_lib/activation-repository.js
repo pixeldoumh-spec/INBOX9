@@ -199,7 +199,7 @@ export async function createActivation(service, userId, idempotency = null, opti
         );
 
         const result = await client.query('SELECT * FROM activations WHERE id=$1', [activationId]);
-        const activation = mapActivation(result.rows[0]);
+        const activation = mapActivation({ ...result.rows[0], adapter_key: provider.adapter_key });
         const balancePaise = await getBalanceForClient(client, userId);
         if (idempotency?.idempotencyKey) {
           await completeActivationKey(client, userId, idempotency.idempotencyKey, activation.id, { ...activation, walletBalancePaise: balancePaise });
