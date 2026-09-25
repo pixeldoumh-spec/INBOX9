@@ -88,6 +88,8 @@ export type Activation = {
   pricePaise: number;
   currency: string;
   status: string;
+  canCancel?: boolean;
+  pending?: boolean;
   otp?: string | null;
   createdAt?: number;
   expiresAt?: number;
