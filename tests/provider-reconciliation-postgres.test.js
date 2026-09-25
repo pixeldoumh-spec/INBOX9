@@ -17,7 +17,7 @@ test('db and supabase migration trees stay semantically aligned', async () => {
     fs.readdir(path.join(repoRoot, 'supabase', 'migrations'))
   ]);
   const dbNames = dbFiles.filter(name => /^\d+_.+\.sql$/.test(name)).map(migrationSemanticName).sort();
-  const supabaseNames = supabaseFiles.filter(name => /^\d{12}_.+\.sql$/.test(name)).map(migrationSemanticName).sort();
+  const supabaseNames = supabaseFiles.filter(name => /^\d+_.+\.sql$/.test(name)).map(migrationSemanticName).sort();
   assert.deepEqual(dbNames, supabaseNames);
 });
 
