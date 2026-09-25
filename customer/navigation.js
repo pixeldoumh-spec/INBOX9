@@ -1,4 +1,4 @@
-export const CUSTOMER_PAGES = new Set(['buy', 'active', 'orders', 'wallet', 'support', 'account', 'admin', 'api']);
+export const CUSTOMER_PAGES = new Set(['buy', 'active', 'orders', 'wallet', 'support', 'account', 'service', 'admin', 'api']);
 
 export function createCustomerNavigation({
   state,
@@ -11,17 +11,29 @@ export function createCustomerNavigation({
   resetPurchaseFlow,
   toast
 }) {
-  function pageFromHash() {
-    const raw = String(window.location.hash || '').replace(/^#/, '').trim().toLowerCase();
-    return CUSTOMER_PAGES.has(raw) ? raw : 'buy';
+  function parseHash() {
+    const raw = String(window.location.hash || '').replace(/^#/, '').trim();
+    if (raw.toLowerCase().startsWith('service/')) {
+      return { page: 'service', serviceId: decodeURIComponent(raw.slice(8)) };
+    }
+    const page = raw.toLowerCase();
+    return { page: CUSTOMER_PAGES.has(page) ? page : 'buy', serviceId: null };
   }
 
-  function syncPageHash(page, { replace = false } = {}) {
-    const target = page === 'buy' ? '' : `#${page}`;
+  function pageFromHash() {
+    return parseHash().page;
+  }
+
+  function syncPageHash(page, { replace = false, serviceId = null } = {}) {
+    const target = page === 'buy'
+      ? ''
+      : page === 'service'
+        ? `#service/${encodeURIComponent(String(serviceId || ''))}`
+        : `#${page}`;
     if (window.location.hash === target || (target === '' && !window.location.hash)) return;
     const url = `${window.location.pathname}${window.location.search}${target}`;
-    if (replace) window.history.replaceState({ page }, '', url);
-    else window.history.pushState({ page }, '', url);
+    if (replace) window.history.replaceState({ page, serviceId }, '', url);
+    else window.history.pushState({ page, serviceId }, '', url);
   }
 
   function refreshPageData(next) {
@@ -35,22 +47,29 @@ export function createCustomerNavigation({
     if (next === 'account') void refreshAccount().then(() => render());
   }
 
-  function setPage(page, { syncUrl = true } = {}) {
-    const next = CUSTOMER_PAGES.has(page) ? page : 'buy';
+  function setPage(page, { syncUrl = true, serviceId = null } = {}) {
+    let next = CUSTOMER_PAGES.has(page) ? page : 'buy';
+    if (next === 'service' && !serviceId && !state.selectedServiceId) next = 'buy';
     if (next === 'admin' && state.user?.role !== 'admin') return;
     state.page = next;
     state.mobileMenu = false;
-    if (syncUrl) syncPageHash(next);
+    if (next === 'service') state.selectedServiceId = String(serviceId || state.selectedServiceId || '');
+    else if (next !== 'service') state.selectedServiceId = null;
+    if (syncUrl) syncPageHash(next, { serviceId: state.selectedServiceId });
     render();
     refreshPageData(next);
   }
 
   function handleHashNavigation({ refreshSamePage = true } = {}) {
     if (!state.user) return;
-    const next = pageFromHash();
+    const parsed = parseHash();
+    const next = parsed.page;
     if (next === 'admin' && state.user?.role !== 'admin') return setPage('buy', { syncUrl: true });
+    if (next === 'service') state.selectedServiceId = parsed.serviceId;
+    else state.selectedServiceId = null;
     if (state.page === next) {
       if (refreshSamePage) refreshPageData(next);
+      render();
       return;
     }
     state.page = next;
