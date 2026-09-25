@@ -1,0 +1,52 @@
+body.inbox9-customer-mobile{background:#fff;color:#182235;font-family:'DM Sans',system-ui,sans-serif;padding-bottom:78px}
+body.inbox9-customer-mobile .app-shell{min-height:100vh;background:#fff;display:block}
+body.inbox9-customer-mobile .sidebar{display:none!important}
+body.inbox9-customer-mobile .main{margin-left:0;width:100%;min-height:100vh;background:#fff}
+body.inbox9-customer-mobile .topbar{height:82px;padding:0 18px;background:#fff;border-bottom:1px solid #e8ebf2;position:sticky;top:0;z-index:20;box-shadow:0 1px 0 rgba(17,24,39,.02)}
+body.inbox9-customer-mobile .breadcrumb{gap:0;color:#111827}
+body.inbox9-customer-mobile .breadcrumb .menu-btn,body.inbox9-customer-mobile .breadcrumb span,body.inbox9-customer-mobile .breadcrumb strong{display:none}
+body.inbox9-customer-mobile .breadcrumb:before{content:'INBOX9';font:700 20px/1 'Space Grotesk';letter-spacing:-.02em;color:#151c2d}
+body.inbox9-customer-mobile .top-actions{gap:8px}
+body.inbox9-customer-mobile .topbar-live-status{display:none}
+body.inbox9-customer-mobile .wallet-chip{height:46px;border:1.5px solid #8b5cf6;background:#fff;color:#6d35c8;border-radius:13px;padding:0 12px;font-weight:700;box-shadow:0 4px 12px rgba(124,58,237,.10)}
+body.inbox9-customer-mobile .wallet-chip b{color:#6d35c8}
+body.inbox9-customer-mobile .icon-btn{height:40px;width:40px;background:#fff;border-color:#e4e8ef;color:#4b5567}
+body.inbox9-customer-mobile .content-wrap{max-width:none;padding:16px 16px 30px}
+body.inbox9-customer-mobile .hero-strip{display:none!important}
+body.inbox9-customer-mobile .market-country-strip{display:none!important}
+body.inbox9-customer-mobile .marketplace-controls{display:none!important}
+body.inbox9-customer-mobile .section-head{margin:0 0 12px}
+body.inbox9-customer-mobile .section-head h2{font-size:20px;color:#172033}
+body.inbox9-customer-mobile .section-head .result-note{color:#8993a5}
+body.inbox9-customer-mobile .controls{margin:0 0 14px}
+body.inbox9-customer-mobile .toolbar{display:block}
+body.inbox9-customer-mobile .search-box{height:56px;border:0;background:#f0f3f8;border-radius:15px;padding:0 17px;box-shadow:none;min-width:0}
+body.inbox9-customer-mobile .search-box input{font-size:16px;color:#293449}
+body.inbox9-customer-mobile .search-box input::placeholder{color:#7f8898}
+body.inbox9-customer-mobile .search-glyph{font-size:25px;color:#8a96a8}
+body.inbox9-customer-mobile .search-box kbd{display:none}
+body.inbox9-customer-mobile .service-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:18px 10px}
+body.inbox9-customer-mobile .customer-service-card{border:0!important;background:transparent!important;box-shadow:none!important;border-radius:0!important;min-width:0}
+body.inbox9-customer-mobile .customer-service-card:hover{transform:none!important;box-shadow:none!important}
+body.inbox9-customer-mobile .customer-service-main{display:flex;width:100%;min-height:0!important;padding:0!important;border:0!important;background:transparent!important;flex-direction:column;align-items:center!important;text-align:center;gap:7px;cursor:pointer}
+body.inbox9-customer-mobile .marketplace-service-logo{height:68px;width:68px;border-radius:18px;background:#f7f8fb;border:1px solid #e7eaf0;box-shadow:0 5px 14px rgba(15,23,42,.07);font-size:18px;color:#1f2937}
+body.inbox9-customer-mobile .marketplace-service-logo small{display:none}
+body.inbox9-customer-mobile .marketplace-service-logo>span{font-size:17px}
+body.inbox9-customer-mobile .marketplace-service-copy{display:flex;align-items:center;gap:2px;padding:0!important;min-width:0;width:100%}
+body.inbox9-customer-mobile .marketplace-service-copy .service-category{display:none}
+body.inbox9-customer-mobile .marketplace-service-copy strong{font-size:11px;line-height:1.2;color:#4c586d;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+body.inbox9-customer-mobile .marketplace-service-copy small{display:none}
+body.inbox9-customer-mobile .marketplace-service-meta{display:none!important}
+body.inbox9-customer-mobile .marketplace-service-chevron{display:none!important}
+body.inbox9-customer-mobile .customer-service-bottom{display:none!important}
+body.inbox9-customer-mobile .service-details-panel{display:none!important}
+body.inbox9-customer-mobile .mobile-bottom-nav{position:fixed;left:0;right:0;bottom:0;height:74px;display:grid;grid-template-columns:repeat(4,1fr);background:rgba(255,255,255,.97);border-top:1px solid #e5e8ee;box-shadow:0 -8px 25px rgba(15,23,42,.06);z-index:100;padding:6px 6px calc(6px + env(safe-area-inset-bottom));backdrop-filter:blur(12px)}
+body.inbox9-customer-mobile .mobile-nav-item{border:0;background:transparent;color:#8a95a8;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:11px;font-weight:600}
+body.inbox9-customer-mobile .mobile-nav-icon{font-size:25px;line-height:1;height:27px;display:grid;place-items:center}
+body.inbox9-customer-mobile .mobile-nav-item.active{color:#7c3aed;background:#f2eafe;border-radius:16px}
+body.inbox9-customer-mobile .mobile-nav-item.active .mobile-nav-icon{font-weight:700}
+body.inbox9-customer-mobile .panel,body.inbox9-customer-mobile .active-card,body.inbox9-customer-mobile .balance-card{background:#fff;border-color:#e7eaf0;color:#182235}
+body.inbox9-customer-mobile .empty{color:#182235}
+body.inbox9-customer-mobile .notification-popup{bottom:88px}
+@media(min-width:781px){body.inbox9-customer-mobile .mobile-bottom-nav{display:none}}
+@media(max-width:430px){body.inbox9-customer-mobile .content-wrap{padding-left:14px;padding-right:14px}body.inbox9-customer-mobile .service-grid{gap:17px 7px}body.inbox9-customer-mobile .marketplace-service-logo{height:64px;width:64px}body.inbox9-customer-mobile .marketplace-service-copy strong{font-size:10px}}
