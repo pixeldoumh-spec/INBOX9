@@ -268,6 +268,16 @@ test('customer notification center surfaces recharge and activation lifecycle ev
   assert.match(css, /notification-popup/);
 });
 
+test('notification center supports keyboard and outside-click dismissal', async () => {
+  const app = await read('app.js');
+  assert.match(app, /function closeNotifications\(\)/);
+  assert.match(app, /aria-controls="customer-notification-panel"/);
+  assert.match(app, /id="customer-notification-panel"/);
+  assert.match(app, /target\.closest\('\.notification-wrap'\)/);
+  assert.match(app, /if \(state\.notificationsOpen\)/);
+  assert.match(app, /if \(state\.mobileMenu\)/);
+});
+
 test('notification monitoring refreshes wallet state periodically using the authoritative API', async () => {
   const app = await read('app.js');
   assert.match(app, /lastWalletSignalSync > 15000/);
