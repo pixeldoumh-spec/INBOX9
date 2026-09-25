@@ -187,7 +187,49 @@ function ServicePage(){
  </section>
 }
 function statusClass(status:string){return `status-pill status-${status.toLowerCase()}`}
-function ActivePage(){const q=useQuery({queryKey:['activations'],queryFn:getActivations,refetchInterval:10_000});const catalog=useQuery({queryKey:['services'],queryFn:getServices,staleTime:60_000});const positionOf=(id:string)=>catalog.data?.services.find(s=>s.id===id)?.catalogPosition;const list=useMemo(()=>[...(q.data?.activations??[])].sort((a,b)=>(b.createdAt??0)-(a.createdAt??0)),[q.data?.activations]);return <section className="page-section"><div className="catalog-heading"><div><h1>Active</h1><p>Track your numbers and OTPs.</p></div><span className="catalog-chip">{list.length}</span></div>{q.isError?<div className="error-card">Could not load activations.</div>:null}{q.isPending?<div className="list-skeleton">{Array.from({length:4},(_,i)=><div className="row-skeleton" key={i}/>)}</div>:list.length?<div className="activation-list">{list.map(a=><Link className="activation-card" key={a.id} to={`/active/${encodeURIComponent(a.id)}`}><ServiceLogo serviceId={a.serviceId} name={a.service||a.serviceId} size="sm" position={positionOf(a.serviceId)}/><div className="activation-main"><div className="activation-title"><strong>{a.service||a.serviceId}</strong><span className={statusClass(a.status)}>{a.status}</span></div><div className="activation-meta"><span>{a.number||'Number pending'}</span><span>₹{(a.pricePaise/100).toFixed(2)}</span></div>{a.otp?<div className="mini-otp">OTP <b>{a.otp}</b></div>:null}</div><Icon name="arrow" size={18}/></Link>)}</div>:<div className="empty-state activation-empty"><div className="empty-icon"><Icon name="active" size={28}/></div><h3>No activations yet</h3><p>Choose an app and buy a number to start.</p><Link className="primary-button compact-button" to="/buy">Browse apps <Icon name="arrow" size={17}/></Link></div>}</section>}
+function ActivePage(){
+ const q=useQuery({queryKey:['activations'],queryFn:getActivations,refetchInterval:10_000});
+ const catalog=useQuery({queryKey:['services'],queryFn:getServices,staleTime:60_000});
+ const [tab,setTab]=useState<'ongoing'|'history'>('ongoing');
+ const [now,setNow]=useState(Date.now());
+ useEffect(()=>{const t=window.setInterval(()=>setNow(Date.now()),1000);return()=>window.clearInterval(t)},[]);
+ const positionOf=(id:string)=>catalog.data?.services.find(s=>s.id===id)?.catalogPosition;
+ const list=useMemo(()=>[...(q.data?.activations??[])].sort((a,b)=>(b.createdAt??0)-(a.createdAt??0)),[q.data?.activations]);
+ const ongoing=useMemo(()=>list.filter(a=>a.status==='Active'),[list]);
+ const history=useMemo(()=>list.filter(a=>a.status!=='Active'),[list]);
+ const visible=tab==='ongoing'?ongoing:history;
+ return <section className="page-section active-page">
+  <div className="catalog-heading"><div><h1>Active</h1><p>{tab==='ongoing'?'Track numbers waiting for an OTP.':'Your completed, expired and cancelled activations.'}</p></div><span className="catalog-chip">{tab==='ongoing'?ongoing.length:history.length}</span></div>
+  <div className="active-tabs" role="tablist" aria-label="Activation views">
+   <button type="button" role="tab" aria-selected={tab==='ongoing'} className={tab==='ongoing'?'active-tab is-selected':'active-tab'} onClick={()=>setTab('ongoing')}><span>Ongoing</span><b>{ongoing.length}</b></button>
+   <button type="button" role="tab" aria-selected={tab==='history'} className={tab==='history'?'active-tab is-selected':'active-tab'} onClick={()=>setTab('history')}><span>History</span><b>{history.length}</b></button>
+  </div>
+  {q.isError?<div className="error-card">Could not load activations.</div>:null}
+  {q.isPending?<div className="list-skeleton">{Array.from({length:4},(_,i)=><div className="row-skeleton" key={i}/>)}</div>:
+   visible.length?<div className="activation-list">{visible.map(a=>{
+    const remaining=a.expiresAt?Math.max(0,a.expiresAt-now):0;
+    const countdown=a.expiresAt?remaining>0?`${Math.floor(remaining/60000)}:${String(Math.floor((remaining%60000)/1000)).padStart(2,'0')}`:'Expired':null;
+    const terminal=a.status!=='Active';
+    return <Link className={`activation-card ${terminal?'activation-card-history':'activation-card-ongoing'}`} key={a.id} to={`/active/${encodeURIComponent(a.id)}`}>
+     <ServiceLogo serviceId={a.serviceId} name={a.service||a.serviceId} size="sm" position={positionOf(a.serviceId)}/>
+     <div className="activation-main">
+      <div className="activation-title"><strong>{a.service||a.serviceId}</strong><span className={statusClass(a.status)}>{a.status}</span></div>
+      <div className="activation-meta"><span>{a.number||'Number pending'}</span><span>₹{(a.pricePaise/100).toFixed(2)}</span></div>
+      {a.otp?<div className="mini-otp">OTP <b>{a.otp}</b></div>:null}
+      {tab==='ongoing'&&countdown?<div className="activation-validity"><Icon name="clock" size={13}/><span>{countdown} remaining</span></div>:null}
+      {tab==='history'?<div className="activation-history-meta">{a.createdAt?new Date(a.createdAt).toLocaleString():'Activation record'}</div>:null}
+     </div>
+     <Icon name="arrow" size={18}/>
+    </Link>
+   })}</div>:
+   <div className="empty-state activation-empty">
+    <div className="empty-icon"><Icon name={tab==='ongoing'?'active':'clock'} size={28}/></div>
+    <h3>{tab==='ongoing'?'No ongoing activations':'No activation history'}</h3>
+    <p>{tab==='ongoing'?'Choose an app and buy a number to start.':'Completed or cancelled activations will appear here.'}</p>
+    {tab==='ongoing'?<Link className="primary-button compact-button" to="/buy">Browse apps <Icon name="arrow" size={17}/></Link>:null}
+   </div>}
+ </section>
+}
 function ActivationPage(){
  const {activationId}=useParams();
  const catalog=useQuery({queryKey:['services'],queryFn:getServices,staleTime:60_000});

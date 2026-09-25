@@ -238,3 +238,16 @@ button:disabled { cursor: default; opacity: .58; }
 .purchase-sheet .text-button{width:100%;margin-top:3px}
 @media (max-width:520px){.buy-wallet-strip .outline-button{min-width:100px}.notification-strip{margin-top:19px}}
 @media (prefers-reduced-motion:reduce){.notification-button,.pulse-dot,.tile-skeleton,.row-skeleton,.purchase-sheet{animation:none}.sheet-backdrop{scroll-behavior:auto}}
+
+
+/* Active workspace upgrade */
+.active-tabs{display:grid;grid-template-columns:1fr 1fr;gap:5px;padding:4px;margin:0 0 14px;border:1px solid #e2dce9;border-radius:15px;background:#f6f3f8}
+.active-tab{min-height:44px;border-radius:11px;display:flex;align-items:center;justify-content:center;gap:7px;color:#847c8c;font-size:11px;font-weight:800}
+.active-tab b{min-width:18px;height:18px;padding:0 5px;border-radius:9px;display:grid;place-items:center;background:#ebe7ee;color:#8c8493;font-size:9px}
+.active-tab.is-selected{background:#fff;color:var(--accent);box-shadow:0 4px 12px rgba(33,25,45,.07)}
+.active-tab.is-selected b{background:var(--accent-soft);color:var(--accent)}
+.activation-card-ongoing{border-color:#e0d5fb;background:#fcfaff}
+.activation-card-history{background:#fff}
+.activation-validity{display:inline-flex;align-items:center;gap:4px;margin-top:6px;padding:4px 7px;border-radius:8px;background:#f3effd;color:#7252b7;font-size:9px;font-weight:800}
+.activation-history-meta{margin-top:6px;color:#a19aa7;font-size:9px}
+@media (min-width:640px){.active-tabs{max-width:480px}}
