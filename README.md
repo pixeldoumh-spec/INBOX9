@@ -24,7 +24,7 @@ Implemented customer routes:
 - `/support`
 - `/account`
 
-The Apps launcher renders the active 216-service catalog. Service logos use the committed optimized sprite where supplied assets are available, with deterministic text fallback for missing assets.
+The Apps launcher renders the active 193-service catalog. Service logos use the committed HD artwork bundle where supplied assets are available, with deterministic text fallback for missing assets.
 
 ## Activation lifecycle
 
@@ -64,7 +64,7 @@ The Node runtime is `server.js`. It exposes:
 - payment webhook handling
 - provider status/operations endpoints
 
-The active service catalog contains 216 India (`IN`) / INR entries from the 2026-09-25 master service list.
+The active service catalog contains 193 India (`IN`) / INR entries from the cleaned 2026-09-25 service list.
 
 Service IDs are stable slugs (`svc-<slug>`) and do not depend on list position. Historical PostgreSQL service rows are preserved as inactive records when the catalog is replaced.
 

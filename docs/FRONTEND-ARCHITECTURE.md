@@ -31,8 +31,8 @@ Apps launcher
 - Add Funds / wallet access
 - four-column, scrollable service launcher on mobile
 - live client-side search across service name/category
-- 216 services rendered directly from GET /api/services
-- stable service-ID-based logo rendering through the committed optimized sprite
+- 193 services rendered directly from GET /api/services
+- stable service-ID-based logo rendering through the committed optimized HD artwork bundle
 - deterministic fallback for services without supplied artwork
 - fixed bottom navigation: Apps, Buy, Active, Account
 - service tiles route to the independent service-detail screen
@@ -87,7 +87,7 @@ The customer UI is ready for a real provider route, but the repository currently
 
 ## Current catalog
 
-The backend exposes the 216-service India/INR catalog from the 2026-09-25 master list. Service IDs are stable slugs, so logo assets and UI state are not coupled to catalog order.
+The backend exposes the 193-service India/INR catalog from the cleaned 2026-09-25 service list. Service IDs are stable slugs, so logo assets and UI state are not coupled to catalog order.
 
 ## Build sequence
 

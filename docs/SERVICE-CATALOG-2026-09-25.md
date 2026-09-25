@@ -1,247 +1,231 @@
 # INBOX9 Service Catalog — 2026-09-25
 
-Canonical source: the uploaded master service list dated 2026-09-25.
+Status: active customer catalog after the user-confirmed duplicate cleanup on 2026-09-25.
 
-The catalog contains **216 services** in the supplied order. Names are preserved exactly; similar-looking entries are not silently merged.
+The catalog contains **193 active India (IN) / INR services**. Historical PostgreSQL rows remain preserved as inactive records when services are removed from the active catalog.
 
-## Runtime contract
+## Duplicate cleanup applied
 
-- Runtime source: `data/services.json`
-- Stable service ID: `svc-<slug>`
-- Country: `IN`
-- Currency: `INR`
-- Current provisional category: `Other`
-- Current provisional price: INR 10.00
-- Provider routing is separate from catalog identity.
-- Existing legacy PostgreSQL service rows are preserved as inactive history when the active catalog changes.
+The following services are excluded from the active catalog in this pass:
 
-## Logo contract
+- Yono Bonus 51
+- All Yono Games
+- Rani Slots
+- Yono Arcade
+- Yono All Games
+- Yono Game
+- Yono App
+- New Yono App
+- All Rummy Apps
+- Diva ace
+- Diva Lucky
+- Diva King
+- Diva X
+- Diva Top
+- DivaVIP
+- Diva Game
+- Diva Slots
+- Diva 777
+- Diva 2026
+- Download Yono Rummy
+- Download Rummy 365
+- KOKO SLOTS
+- All Yono Slots
 
-The customer UI uses a single 576×864 WebP sprite at:
+Future duplicate removals can be added as another catalog migration without deleting historical activation references.
 
-`frontend/public/service-icons-sprite.webp`
+## Active services
 
-The sprite is a 12×18 grid of 48px tiles. Stable lookup is defined in:
-
-`frontend/src/app/serviceLogoManifest.ts`
-
-Each mapped service ID points to its sprite tile index. This keeps logo lookup independent of display-name casing and catalog reordering. Services without a supplied logo intentionally use the UI fallback instead of a broken image.
-
-## Services
-
-1. Yono Bonus 51
-2. Joy Rummy
-3. IND Rummy
-4. INR Rummy
-5. Rumble Rummy
-6. Bingo 101
-7. Spin 101
-8. Diwa Top
-9. Jaiho Slots
-10. Rummy 91
-11. Max Rummy
-12. Gold Rummy
-13. Win Rummy
-14. Diwa X
-15. Jaiho Rummy
-16. Jaiho 91
-17. Diwa Win
-18. Maha Games
-19. Jaiho 777 VIP
-20. Rummy 888
-21. Dhan Game
-22. Diwa Game
-23. Diwa VIP
-24. IND Club
-25. All Yono Games
-26. Diwa Slots
-27. DIWA 777
-28. Spin Crush
-29. Spin Winner
-30. Spin Gold
-31. Slots Winner
-32. Rummy Ludo
-33. Jaiho Spin
-34. Yono 777
-35. Rummy 77
-36. 777 Game
-37. Club INR
-38. Winzo Rummy
-39. Rummy App
-40. Ever 777
-41. INR Slots
-42. Good Slots
-43. Boss Rummy
-44. Hindi 777
-45. YN 777
-46. Yes Spin
-47. OK Rummy
-48. Love Rummy
-49. Share Slots
-50. Hi Rummy
-51. Rani Slots
-52. Jaiho Win
-53. Goa Spin
-54. Slots Spin
-55. MQM Bet
-56. Saga Slots
-57. Rummy Yono
-58. ABC Rummy
-59. Jaiho Arcade
-60. Neta VIP
-61. MWM Bet
-62. EN 365
-63. 101Z App
-64. Rummy 365
-65. IND Bingo
-66. My 777
-67. Bet 213 Slots
-68. GoGo Rummy
-69. 789 Jackpot
-70. MDM Bet
-71. Spin Lucky
-72. IND Slots
-73. MKM Bet
-74. Yono Maha Games
-75. Game Rummy
-76. MBM Bet
-77. Jaiho 777
-78. TOP Rummy
-79. Spin 777
-80. 567 Slots
-81. Yono VIP
-82. Yono Slots
-83. Yono Arcade
-84. Yono Rummy
-85. Yono All Games
-86. Yono Game
-87. Yono Games
-88. Yono App
-89. New Yono App
-90. All Rummy Apps
-91. Money Rummy
-92. YN Rummy
-93. Yoyo Slots
-94. SVIP 777
-95. Rummy Zip
-96. Diwa Lucky
-97. Diwa Ace
-98. Diwa King
-99. Diwa Play
-100. Diwa Bet
-101. Diwa Spin
-102. Diwa Rummy
-103. Diwa Club
-104. Diwa 91
-105. Diwa Gold
-106. Jeet Spin
-107. All Diwa Apps
-108. PP 777
-109. Holy Rummy
-110. Teen Patti Master
-111. Ind Vip
-112. Rumble Rummy 77
-113. Yono Rumble Rummy
-114. Bolly Game
-115. T989
-116. Rummy Mate
-117. Rummy GOLD
-118. Tycoon
-119. K9
-120. MMY
-121. BDG Game
-122. NEW 66 lotry
-123. Ww9
-124. Goplay11
-125. Win 03
-126. Woho Game
-127. Yono Slot
-128. Come11
-129. KaliWins
-130. RUMMY HOLLY
-131. rummy nabob
-132. RUMMY OLA
-133. Diva ace
-134. Diva Lucky
-135. Diva King
-136. Diva X
-137. Diva Top
-138. DivaVIP
-139. Diva Game
-140. Diva Slots
-141. Diva 777
-142. JAI HO SLOTS
-143. Slot Spin
-144. Diva 2026
-145. Teen Patti Gold
-146. Rummy Wealth
-147. Rummy Modern
-148. Rummy All App
-149. AK777
-150. Rummy Ares
-151. 11 Winner APK
-152. All Rummy App
-153. Rummy New App
-154. Colour Trading
-155. Prosafe Bet
-156. MSM Bet
-157. 365 Jeet
-158. RK Ludo
-159. Gogo Anime
-160. Spin Yono
-161. Game 3f
-162. Download Svip
-163. KAL WIN
-164. Rummy Sultan
-165. New Rummy App
-166. 1a Game
-167. 8 Game App
-168. Slots 777
-169. Slot Guru
-170. Rummy Black
-171. TeenPatti Happy
-172. Rummy Master
-173. Yono Rummy 2026
-174. All Yono Apk
-175. CASINO GAME
-176. Yono Games List
-177. 777 Rummy
-178. Rummy Vip APK
-179. Download Rummy Ludo
-180. Crush Spin
-181. ABC VIP
-182. Rummy 333
-183. Best Yono App
-184. Best Yono
-185. POP Slots
-186. Download Yono Rummy
-187. DOWNLOAD LCG BET
-188. 3 Patti Master
-189. Teen Patti Bliss
-190. Navo Slots
-191. Jaiclub GAME
-192. SXRIPL GAME
-193. Rummy Loot
-194. ALL VV5 GAME
-195. Crown Rummy
-196. Teenpatti Bazaar
-197. 5177 Win
-198. Yono Arcarde
-199. Rummy Good
-200. Bet 11
-201. AYUIPL GAME
-202. Download Rummy 365
-203. Rummy 777
-204. KOKO SLOTS
-205. Raja Game Download
-206. Yono Yoyo Slots
-207. Gg9 Android App
-208. Frenzy Winner
-209. En 365 Games
-210. 9Game Apk
-211. Diwa Slot
-212. Namaste Teenpatti Apk
-213. All Yono Slots
-214. 3 Patti Hot
-215. 21 Game Download
-216. Rummy Grand
+1. Joy Rummy
+2. IND Rummy
+3. INR Rummy
+4. Rumble Rummy
+5. Bingo 101
+6. Spin 101
+7. Diwa Top
+8. Jaiho Slots
+9. Rummy 91
+10. Max Rummy
+11. Gold Rummy
+12. Win Rummy
+13. Diwa X
+14. Jaiho Rummy
+15. Jaiho 91
+16. Diwa Win
+17. Maha Games
+18. Jaiho 777 VIP
+19. Rummy 888
+20. Dhan Game
+21. Diwa Game
+22. Diwa VIP
+23. IND Club
+24. Diwa Slots
+25. DIWA 777
+26. Spin Crush
+27. Spin Winner
+28. Spin Gold
+29. Slots Winner
+30. Rummy Ludo
+31. Jaiho Spin
+32. Yono 777
+33. Rummy 77
+34. 777 Game
+35. Club INR
+36. Winzo Rummy
+37. Rummy App
+38. Ever 777
+39. INR Slots
+40. Good Slots
+41. Boss Rummy
+42. Hindi 777
+43. YN 777
+44. Yes Spin
+45. OK Rummy
+46. Love Rummy
+47. Share Slots
+48. Hi Rummy
+49. Jaiho Win
+50. Goa Spin
+51. Slots Spin
+52. MQM Bet
+53. Saga Slots
+54. Rummy Yono
+55. ABC Rummy
+56. Jaiho Arcade
+57. Neta VIP
+58. MWM Bet
+59. EN 365
+60. 101Z App
+61. Rummy 365
+62. IND Bingo
+63. My 777
+64. Bet 213 Slots
+65. GoGo Rummy
+66. 789 Jackpot
+67. MDM Bet
+68. Spin Lucky
+69. IND Slots
+70. MKM Bet
+71. Yono Maha Games
+72. Game Rummy
+73. MBM Bet
+74. Jaiho 777
+75. TOP Rummy
+76. Spin 777
+77. 567 Slots
+78. Yono VIP
+79. Yono Slots
+80. Yono Rummy
+81. Yono Games
+82. Money Rummy
+83. YN Rummy
+84. Yoyo Slots
+85. SVIP 777
+86. Rummy Zip
+87. Diwa Lucky
+88. Diwa Ace
+89. Diwa King
+90. Diwa Play
+91. Diwa Bet
+92. Diwa Spin
+93. Diwa Rummy
+94. Diwa Club
+95. Diwa 91
+96. Diwa Gold
+97. Jeet Spin
+98. All Diwa Apps
+99. PP 777
+100. Holy Rummy
+101. Teen Patti Master
+102. Ind Vip
+103. Rumble Rummy 77
+104. Yono Rumble Rummy
+105. Bolly Game
+106. T989
+107. Rummy Mate
+108. Rummy GOLD
+109. Tycoon
+110. K9
+111. MMY
+112. BDG Game
+113. NEW 66 lotry
+114. Ww9
+115. Goplay11
+116. Win 03
+117. Woho Game
+118. Yono Slot
+119. Come11
+120. KaliWins
+121. RUMMY HOLLY
+122. rummy nabob
+123. RUMMY OLA
+124. JAI HO SLOTS
+125. Slot Spin
+126. Teen Patti Gold
+127. Rummy Wealth
+128. Rummy Modern
+129. Rummy All App
+130. AK777
+131. Rummy Ares
+132. 11 Winner APK
+133. All Rummy App
+134. Rummy New App
+135. Colour Trading
+136. Prosafe Bet
+137. MSM Bet
+138. 365 Jeet
+139. RK Ludo
+140. Gogo Anime
+141. Spin Yono
+142. Game 3f
+143. Download Svip
+144. KAL WIN
+145. Rummy Sultan
+146. New Rummy App
+147. 1a Game
+148. 8 Game App
+149. Slots 777
+150. Slot Guru
+151. Rummy Black
+152. TeenPatti Happy
+153. Rummy Master
+154. Yono Rummy 2026
+155. All Yono Apk
+156. CASINO GAME
+157. Yono Games List
+158. 777 Rummy
+159. Rummy Vip APK
+160. Download Rummy Ludo
+161. Crush Spin
+162. ABC VIP
+163. Rummy 333
+164. Best Yono App
+165. Best Yono
+166. POP Slots
+167. DOWNLOAD LCG BET
+168. 3 Patti Master
+169. Teen Patti Bliss
+170. Navo Slots
+171. Jaiclub GAME
+172. SXRIPL GAME
+173. Rummy Loot
+174. ALL VV5 GAME
+175. Crown Rummy
+176. Teenpatti Bazaar
+177. 5177 Win
+178. Yono Arcarde
+179. Rummy Good
+180. Bet 11
+181. AYUIPL GAME
+182. Rummy 777
+183. Raja Game Download
+184. Yono Yoyo Slots
+185. Gg9 Android App
+186. Frenzy Winner
+187. En 365 Games
+188. 9Game Apk
+189. Diwa Slot
+190. Namaste Teenpatti Apk
+191. 3 Patti Hot
+192. 21 Game Download
+193. Rummy Grand
