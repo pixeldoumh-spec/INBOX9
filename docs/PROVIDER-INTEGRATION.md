@@ -70,3 +70,8 @@ INBOX9 Active / Completed / Refunded
 ```
 
 NumberOTP supports a Global Webhook for instant OTP delivery and signs webhook payloads with HMAC-SHA256. citeturn167932search0turn167932search1
+
+
+## VirtualSMS canary readiness
+
+The adapter is installed but not routed in production. Use `npm run virtualsms:preflight` only after a VirtualSMS API key is provisioned. The preflight performs authenticated balance/country checks and does not purchase a number. The customer purchase path additionally requires `VIRTUALSMS_RESELLER_AUTHORIZED=true`, `VIRTUALSMS_CANARY_ENABLED=true`, an explicit service allowlist, and explicit service-code mapping. VirtualSMS's terms require prior written authorization for resale. citeturn254301search0turn254301search2
