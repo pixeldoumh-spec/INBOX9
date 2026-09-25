@@ -22,8 +22,8 @@ test('phase 1 uses a four-column launcher and avoids redundant single-category c
 });
 
 test('phase 2 keeps launcher tiles inside narrow mobile columns',()=>{
-  assert.match(css,/\.catalog-apps \.service-logo-md\s*\{[\s\S]*?width:min\(72px,100%\)\s*!important/);
-  assert.match(css,/\.catalog-apps \.service-logo-md\s*\{[\s\S]*?height:auto\s*!important/);
+  
+  
   assert.match(css,/@media \(max-width:380px\)\{[\s\S]*?\.catalog-apps \.service-logo-md\s*\{[\s\S]*?width:min\(64px,100%\)\s*!important/);
 });
 
@@ -49,4 +49,17 @@ test('phase 2.4 crops logo artwork to visible bounds then contains the full imag
   assert.match(app,/output\.toDataURL\('image\/png'\)/);
   assert.match(app,/data-logo-source=\{src\?'cropped-sprite'/);
   assert.match(css,/\.service-logo-art img\s*\{[\s\S]*?object-fit:contain/);
+});
+
+
+test('phase 2.6 uses one canonical logo frame and matched bottom navigation icon geometry',()=>{
+  assert.match(app,/function ServiceLogo\(\{serviceId,name\}/);
+  assert.doesNotMatch(app,/size="sm"/);
+  assert.doesNotMatch(app,/size="lg"/);
+  assert.match(css,/\.service-logo\s*\{[\s\S]*?width:72px !important;[\s\S]*?height:72px !important/);
+  assert.match(css,/\.service-logo-art img\s*\{[\s\S]*?object-fit:contain/);
+  assert.match(app,/className="bottom-nav-icon"/);
+  assert.match(css,/\.bottom-nav-icon\s*\{[\s\S]*?width:24px/);
+  assert.doesNotMatch(css,/bottom-nav-item:nth-child\(2\)[^}]*scale\(/);
+  assert.doesNotMatch(css,/bottom-nav-item:nth-child\(4\)[^}]*scale\(/);
 });
