@@ -18,8 +18,8 @@ test('customer service cards expose validity details without provider infrastruc
   const app = await read('app.js');
   assert.match(app, /function toggleServiceDetails\(/);
   assert.match(app, /serviceDetailsMarkup\(/);
-  assert.match(app, /25 min.*maximum validity/);
-  assert.match(app, /25 minutes.*Maximum validity/);
+  assert.match(app, /Provider validity varies/);
+  assert.match(app, /Varies.*provider validity/);
   assert.match(app, /OTP delivery.*timing varies/);
   assert.doesNotMatch(app, /Live availability/);
   assert.doesNotMatch(app, /Automatic allocation/);
@@ -308,12 +308,12 @@ test('notification monitoring refreshes wallet state periodically using the auth
   assert.doesNotMatch(app, /state\.balancePaise \+=/);
 });
 
-test('synthetic activation waiting states hide countdown timers from customers', async () => {
+test('customer activation waiting state is provider-agnostic', async () => {
   const app = await read('app.js');
-  assert.match(app, /label: 'Waiting for number'/);
-  assert.match(app, /label: 'Waiting for OTP'/);
-  assert.match(app, /Waiting for number/);
-  assert.match(app, /Waiting for OTP/);
+  assert.match(app, /label: 'Waiting for SMS'/);
+  assert.doesNotMatch(app, /label: 'Waiting for number'/);
+  assert.doesNotMatch(app, /label: 'Waiting for OTP'/);
+  assert.doesNotMatch(app, /syntheticNumberHidden|syntheticOtpWaiting/);
   assert.doesNotMatch(app, /numberFetchClock/);
   assert.doesNotMatch(app, /otpClock/);
 });

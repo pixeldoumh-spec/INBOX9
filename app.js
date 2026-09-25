@@ -630,7 +630,7 @@ function handleSessionSignedOut() {
 
 function serviceDetailsMarkup() {
   return '<div class="server-panel service-details-panel">' +
-    '<div class="service-detail-row"><span class="service-detail-icon">◷</span><div><strong>Number validity</strong><span>Your reserved number remains valid for up to 25 minutes.</span></div></div>' +
+    '<div class="service-detail-row"><span class="service-detail-icon">◷</span><div><strong>Number validity</strong><span>Validity is determined by the provider.</span></div></div>' +
     '<div class="service-detail-row"><span class="service-detail-icon">⌁</span><div><strong>OTP delivery</strong><span>Delivery timing varies by service. Watch the Active page for updates.</span></div></div>' +
   '</div>';
 }
@@ -1603,7 +1603,7 @@ function hero() {
       <div class="hero-live"><span class="live-dot"></span><strong>Account ready</strong><span>SECURE SESSION</span></div>
       <div class="hero-stat-grid">
         <div class="hero-stat"><span>Services</span><strong>${state.services.length.toLocaleString()}</strong><small>ready to browse</small></div>
-        <div class="hero-stat"><span>Number validity</span><strong>25 min</strong><small>maximum validity</small></div>
+        <div class="hero-stat"><span>Number validity</span><strong>Varies</strong><small>provider-defined validity</small></div>
         <div class="hero-stat"><span>Active now</span><strong>${activeCount}</strong><small>${activeCount === 1 ? 'activation' : 'activations'}</small></div>
       </div>
     </div>

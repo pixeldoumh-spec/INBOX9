@@ -61,9 +61,12 @@ test('purchase review shows wallet balance and projected remaining balance', asy
 });
 
 
-test('customer purchase copy uses 25 minute validity and no removed availability copy', async () => {
+test('customer purchase copy uses provider-defined validity and no removed availability copy', async () => {
   const app = await fs.readFile(new URL('../app.js', import.meta.url), 'utf8');
-  assert.match(app, /25 minutes/);
+  assert.match(app, /Provider-defined activation and OTP timing/);
+  assert.match(app, /Provider-defined validity/);
+  assert.doesNotMatch(app, /Number validity[^\n]*25 minutes/);
+  assert.doesNotMatch(app, /Number validity[^\n]*25 min/);
   assert.doesNotMatch(app, /3 minutes/);
   assert.doesNotMatch(app, /Automatic allocation/);
   assert.doesNotMatch(app, /Live availability/);

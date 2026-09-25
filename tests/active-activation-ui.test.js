@@ -31,12 +31,11 @@ test('active activation keeps completed OTP accessible in a recent section', asy
   assert.match(css, /cancel-confirm/);
 });
 
-test('active lifecycle keeps timing internal and shows plain waiting states', async () => {
+test('active lifecycle is provider-agnostic and shows plain waiting states', async () => {
   const app = await read('app.js');
-  assert.match(app, /const expiresAt = Number\(activation\.expiresAt/);
-  assert.match(app, /const createdAt = Number\(activation\.createdAt/);
-  assert.match(app, /Waiting for number/);
-  assert.match(app, /Waiting for OTP/);
+  assert.match(app, /Waiting for SMS/);
+  assert.match(app, /Validity is determined by the provider/);
+  assert.doesNotMatch(app, /syntheticRevealAt|syntheticOtpAt|syntheticNumberHidden|syntheticOtpWaiting/);
   assert.doesNotMatch(app, /numberFetchClock/);
   assert.doesNotMatch(app, /otpClock/);
   assert.doesNotMatch(app, /const total = Math\.max\(1, expiresAt - createdAt/);
