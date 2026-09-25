@@ -196,3 +196,45 @@ button:disabled { cursor: default; opacity: .58; }
 .session-list{display:flex;flex-direction:column;gap:8px;margin-bottom:11px}.session-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 12px;border:1px solid var(--line);border-radius:14px}.session-row strong{display:block;font-size:12px}.session-row span{display:block;color:var(--muted);font-size:9px;margin-top:3px}.current-session{color:var(--success)!important;font-weight:900!important}
 .support-layout{display:flex;flex-direction:column;gap:10px}.support-panel .section-heading{margin-top:0}.ticket-hero{background:#fff;border:1px solid var(--line);border-radius:18px;padding:16px;box-shadow:var(--shadow-soft)}.ticket-hero h1{margin:0;font-size:24px;letter-spacing:-.045em}.ticket-hero p{margin:6px 0 0;color:var(--muted);font-size:11px}.reference-strip{display:flex;flex-wrap:wrap;gap:7px;margin:10px 0}.reference-strip a{padding:8px 10px;border-radius:10px;background:var(--accent-soft);color:var(--accent);font-size:10px;font-weight:800}.message-thread{display:flex;flex-direction:column;gap:8px;margin:12px 0}.thread-message{max-width:88%;padding:11px 12px;border-radius:16px;border:1px solid var(--line);background:#fff;box-shadow:var(--shadow-soft)}.thread-message.from-customer{align-self:flex-end;background:#f8f5ff;border-color:#e4d9ff}.thread-message.from-admin{align-self:flex-start}.thread-message span{font-size:9px;font-weight:900;color:var(--muted)}.thread-message p{margin:5px 0;font-size:12px;line-height:1.45}.thread-message time{font-size:8px;color:#a19aa7}.reply-form{display:flex;flex-direction:column;gap:9px}.reply-form textarea{width:100%;min-height:110px;border:1px solid #ddd8e5;border-radius:14px;padding:11px 12px;resize:vertical;outline:none}.compact-empty{min-height:140px}
 @media (min-width:700px){.support-layout{display:grid;grid-template-columns:1fr 1fr;align-items:start}.account-panels{display:grid;grid-template-columns:1fr 1fr}}
+
+
+/* Customer marketplace upgrade */
+.catalog-page .search-field{margin-bottom:10px}
+.category-scroll{display:flex;gap:7px;overflow-x:auto;padding:2px 1px 5px;margin-bottom:13px;scrollbar-width:none}
+.category-scroll::-webkit-scrollbar,.recent-row::-webkit-scrollbar{display:none}
+.category-chip{flex:0 0 auto;min-height:35px;padding:0 11px;border:1px solid #ded9e7;border-radius:999px;background:#fff;color:#716a78;font-size:10px;font-weight:800;display:inline-flex;align-items:center;gap:5px}
+.category-chip span{color:#aaa3b0;font-size:9px}
+.category-chip.is-selected{border-color:#bca9eb;background:var(--accent-soft);color:var(--accent)}
+.category-chip.is-selected span{color:var(--accent)}
+.recent-section{margin:5px 0 17px}
+.recent-section h2{margin:0;font-size:14px;letter-spacing:-.03em}
+.section-subtle{display:block;margin-top:3px;color:#a09aa6;font-size:9px}
+.recent-row{display:flex;gap:10px;overflow-x:auto;padding:2px 1px 4px;margin-top:9px;scrollbar-width:none}
+.recent-tile{flex:0 0 72px;display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center}
+.recent-tile .service-logo{border-radius:15px}
+.recent-tile span{width:72px;color:#67616d;font-size:9px;line-height:1.2;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.buy-wallet-strip{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 14px;margin:-2px 0 11px;border:1px solid #e3dded;border-radius:17px;background:linear-gradient(135deg,#fbf9ff,#fff);box-shadow:var(--shadow-soft)}
+.buy-wallet-strip span{display:block;color:var(--muted);font-size:9px;font-weight:700}
+.buy-wallet-strip strong{display:block;margin-top:3px;font-size:18px;letter-spacing:-.04em}
+.notification-strip{position:relative;display:flex;align-items:center;gap:11px;margin-top:23px;padding:13px 14px;border:1px solid #e3d9fb;border-radius:18px;background:linear-gradient(100deg,#fbf9ff,#fff);box-shadow:0 0 0 1px rgba(109,62,231,.03),0 10px 28px rgba(109,62,231,.08);overflow:hidden}
+.notification-strip:after{content:"";position:absolute;inset:auto -30px -45px auto;width:120px;height:100px;border-radius:50%;background:rgba(109,62,231,.08);filter:blur(22px)}
+.notification-glow{position:relative;z-index:1;width:40px;height:40px;border-radius:13px;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent);box-shadow:0 0 0 5px rgba(109,62,231,.07),0 0 22px rgba(109,62,231,.18);flex:0 0 auto}
+.notification-strip-count{font-size:11px;font-weight:900}
+.notification-strip-copy{min-width:0;flex:1}
+.notification-strip-copy strong{display:block;font-size:12px}
+.notification-strip-copy span{display:block;margin-top:3px;color:#817986;font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.notification-strip>svg{position:relative;z-index:1;color:#9a91a5;flex:0 0 auto}
+.sheet-backdrop{position:fixed;inset:0;z-index:80;display:flex;align-items:flex-end;justify-content:center;padding:14px;background:rgba(29,20,44,.34);backdrop-filter:blur(5px)}
+.purchase-sheet{position:relative;width:min(100%,560px);padding:21px 17px max(17px,env(safe-area-inset-bottom));border-radius:24px 24px 18px 18px;background:#fff;box-shadow:0 -18px 48px rgba(29,20,44,.2);animation:sheetIn .18s ease-out}
+@keyframes sheetIn{from{transform:translateY(16px);opacity:.6}to{transform:translateY(0);opacity:1}}
+.sheet-handle{width:42px;height:4px;border-radius:999px;background:#ded9e4;margin:-4px auto 13px}
+.sheet-close{position:absolute;top:13px;right:13px;width:36px;height:36px;border-radius:11px;display:grid;place-items:center;color:#817987;background:#f5f2f7}
+.purchase-sheet h2{margin:7px 42px 0 0;font-size:23px;letter-spacing:-.045em}
+.sheet-copy{margin:6px 0 13px;color:var(--muted);font-size:11px;line-height:1.45}
+.sheet-summary{display:flex;flex-direction:column;gap:8px;padding:11px 12px;margin-bottom:12px;border:1px solid #e8e2ef;border-radius:15px;background:#faf9fc}
+.sheet-summary div{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.sheet-summary span{color:#928b99;font-size:10px}
+.sheet-summary strong{max-width:65%;text-align:right;color:var(--text);font-size:11px}
+.purchase-sheet .text-button{width:100%;margin-top:3px}
+@media (max-width:520px){.buy-wallet-strip .outline-button{min-width:100px}.notification-strip{margin-top:19px}}
+@media (prefers-reduced-motion:reduce){.notification-button,.pulse-dot,.tile-skeleton,.row-skeleton,.purchase-sheet{animation:none}.sheet-backdrop{scroll-behavior:auto}}
