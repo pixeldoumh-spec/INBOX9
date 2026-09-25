@@ -272,7 +272,6 @@ function ActivationPage(){
   try{await navigator.clipboard.writeText(value);setCopied(kind);window.setTimeout(()=>setCopied(null),1200)}
   catch{setCancelError('Copy is not available in this browser.');}
  }
- const position=catalog.data?.services.find(s=>s.id===a.serviceId)?.catalogPosition;
  return <section className="page-section activation-page">
   <Link className="back-link" to="/active"><Icon name="back" size={18}/> Active</Link>
   <div className="activation-hero"><ServiceLogo serviceId={a.serviceId} name={a.service||a.serviceId}/><div><h1>{a.service||a.serviceId}</h1><div className="hero-meta"><span className={statusClass(a.status)}>{a.status}</span><span>₹{(a.pricePaise/100).toFixed(2)}</span></div></div></div>
