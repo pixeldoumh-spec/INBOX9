@@ -26,7 +26,7 @@ test('service logo sprite has the expected 48px tile grid',()=>{
 test('service logo manifest uses stable service IDs with unique sprite tiles',()=>{
   assert.match(manifest,/SERVICE_LOGO_SPRITE/);
   assert.match(manifest,/SERVICE_LOGO_MANIFEST/);
-  const matches=[...manifest.matchAll(/"([^"]+)":\s*\{\s*spriteIndex:\s*(\d+)\s*\}/g)];
+  const matches=[...manifest.matchAll(/"([^"]+)":\s*\{\s*"spriteIndex":\s*(\d+)\s*\}/g)];
   assert.equal(matches.length,155);
   const ids=matches.map(m=>m[1]);
   const indices=matches.map(m=>Number(m[2]));
