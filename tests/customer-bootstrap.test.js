@@ -88,7 +88,11 @@ test('hard reload masks the previous app shell before the next document arrives'
   const pageHideEnd = app.indexOf('\n}\n', pageHideStart);
   assert.ok(pageHideEnd > pageHideStart);
   const pageHide = app.slice(pageHideStart, pageHideEnd + 2);
+  assert.match(pageHide, /if \(state\.user\) writeSessionHint\(state\.user\)/);
   assert.match(pageHide, /if \(event\.persisted\) return/);
   assert.match(pageHide, /showStartupSplash\(\)/);
+  assert.match(app, /window\.addEventListener\('pageshow', handlePageShow\)/);
   assert.match(app, /window\.addEventListener\('pagehide', handlePageHide\)/);
+  assert.equal((app.match(/window\.addEventListener\('pageshow', handlePageShow\)/g) || []).length, 1);
+  assert.equal((app.match(/window\.addEventListener\('pagehide', handlePageHide\)/g) || []).length, 1);
 });
