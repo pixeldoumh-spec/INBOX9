@@ -5,6 +5,7 @@ import { ActivationPage } from '../features/activations/ActivationPage';
 import { ActivePage } from '../features/activations/ActivePage';
 import { AppsPage } from '../features/apps/AppsPage';
 import { LoginPage } from '../features/auth/LoginPage';
+import { NotificationsPage } from '../features/notifications/NotificationsPage';
 import { ServicePage } from '../features/services/ServicePage';
 import { SupportPage } from '../features/support/SupportPage';
 import { WalletPage } from '../features/wallet/WalletPage';
@@ -24,6 +25,7 @@ export const appRouter = createBrowserRouter([
       { path: 'active', Component: ActivePage },
       { path: 'active/:activationId', Component: ActivationPage },
       { path: 'wallet', Component: WalletPage },
+      { path: 'notifications', Component: NotificationsPage },
       { path: 'support', Component: SupportPage },
       { path: 'account', Component: AccountPage },
     ],
