@@ -11,10 +11,7 @@ import { SupportPage } from '../features/support/SupportPage';
 import { WalletPage } from '../features/wallet/WalletPage';
 
 export const appRouter = createBrowserRouter([
-  {
-    path: '/login',
-    Component: LoginPage,
-  },
+  { path: '/login', Component: LoginPage },
   {
     path: '/',
     Component: AppShell,
@@ -25,6 +22,7 @@ export const appRouter = createBrowserRouter([
       { path: 'active', Component: ActivePage },
       { path: 'active/:activationId', Component: ActivationPage },
       { path: 'wallet', Component: WalletPage },
+      { path: 'buy', element: <Navigate to="/wallet" replace /> },
       { path: 'notifications', Component: NotificationsPage },
       { path: 'support', Component: SupportPage },
       { path: 'account', Component: AccountPage },
