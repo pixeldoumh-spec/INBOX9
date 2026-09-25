@@ -20,7 +20,15 @@ export default async function handler(req, res) {
     return res.status(503).json({ error: 'Unable to cancel activation safely' });
   }
   if (!item) return res.status(404).json({ error: 'Activation not found' });
-  if (item.activation) return res.status(200).json({ ...item.activation, refundPaise: item.activation.refundPaise ?? item.activation.pricePaise, walletBalancePaise: item.balancePaise });
+  if (item.activation) {
+    const status = item.pending ? 202 : 200;
+    return res.status(status).json({
+      ...item.activation,
+      refundPaise: item.activation.refundPaise ?? item.activation.pricePaise,
+      ...(item.pending ? { pending: true } : {}),
+      ...(item.balancePaise == null ? {} : { walletBalancePaise: item.balancePaise }),
+    });
+  }
   if (!dbEnabled() && item.refundPaise && !item.refundCredited) {
     item.refundCredited = true;
     const walletBalancePaise = creditMockWallet(user, Number(item.refundPaise), item.id, `Activation refund • ${item.service || ''}`);
