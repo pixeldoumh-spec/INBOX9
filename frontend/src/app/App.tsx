@@ -39,7 +39,7 @@ function Icon({name,size=20}:{name:IconName;size?:number}){return <svg width={si
 import { SERVICE_LOGO_MANIFEST, SERVICE_LOGO_SPRITE } from './serviceLogoManifest';
 
 function ServiceLogo({serviceId,name,size='md'}:{serviceId:string;name:string;size?:'sm'|'md'|'lg'}){
- const d=size==='lg'?104:size==='sm'?52:72;
+ const d=72;
  const inner=Math.max(0,d-2);
  const {tileSize,columns,rows,path}=SERVICE_LOGO_SPRITE;
  const logo=SERVICE_LOGO_MANIFEST[serviceId];
