@@ -40,6 +40,7 @@ import adminProviders from './api/admin/_providers.js';
 import adminProvidersHealth from './api/admin/_providers-health.js';
 import adminAudit from './api/admin/_audit.js';
 import adminSupport from './api/admin/support/_index.js';
+import adminNotifications from './api/admin/_notifications.js';
 import adminSupportById from './api/admin/support/_id.js';
 import adminWalletReconciliation from './api/admin/_wallet-reconciliation.js';
 import adminPaymentReconciliation from './api/admin/_payment-reconciliation.js';
@@ -212,6 +213,8 @@ function routeFor(method, pathname) {
     ['GET /api/admin/providers-health', adminProvidersHealth],
     ['GET /api/admin/audit', adminAudit],
     ['GET /api/admin/support', adminSupport],
+    ['GET /api/admin/notifications', adminNotifications],
+    ['POST /api/admin/notifications', adminNotifications],
     ['GET /api/admin/wallet-reconciliation', adminWalletReconciliation],
     ['GET /api/admin/payment-reconciliation', adminPaymentReconciliation],
     ['GET /api/admin/payment-settings', adminPaymentSettings],
