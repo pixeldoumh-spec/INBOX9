@@ -73,7 +73,7 @@ async function providerRowChecks(pool, provider, qualificationProvider) {
   const staleOperations = Number(staleResult.rows[0]?.count || 0);
   const latestStatus = latestRecon.rows[0]?.status || 'None';
 
-  const mappingOk = activeRoutes > 0 && mappedRoutes === activeRoutes;
+  const mappingOk = provider.adapter_key === 'synthetic' ? activeRoutes > 0 : activeRoutes > 0 && mappedRoutes === activeRoutes;
   const reconciliationOk = pendingOperations === 0 && staleOperations === 0 && latestStatus !== 'Running' && latestStatus !== 'Failed';
   const routeHealthOk = openCircuits === 0 && maxConsecutiveFailures === 0;
 
@@ -88,7 +88,11 @@ async function providerRowChecks(pool, provider, qualificationProvider) {
 
   let health = { healthy: false, configured: configuredFor(provider) };
   try {
-    health = await getProviderAdapter(provider.adapter_key).health();
+    if (!configuredFor(provider)) {
+      health = { healthy: false, configured: false };
+    } else {
+      health = await getProviderAdapter(provider.adapter_key).health();
+    }
   } catch (error) {
     health = {
       healthy: false,
