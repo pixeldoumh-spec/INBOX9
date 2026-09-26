@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Component, useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties, FormEvent, ReactNode } from 'react';
 import { QueryClient, QueryClientProvider, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { createBrowserRouter, Link, Navigate, NavLink, Outlet, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { createBrowserRouter, isRouteErrorResponse, Link, Navigate, NavLink, Outlet, useLocation, useNavigate, useParams, useRouteError, useSearchParams } from 'react-router-dom';
 import { RouterProvider } from 'react-router-dom';
 import { getMe, login, logout, register } from '../api/auth';
 import { cancelActivation, createActivation, getActivation, getActivations } from '../api/activations';
@@ -24,7 +24,62 @@ import { AdminServicesPage } from '../features/admin/AdminServices';
 type IconName='apps'|'buy'|'active'|'account'|'bell'|'wallet'|'search'|'back'|'copy'|'plus'|'clock'|'close'|'arrow'|'support'|'check';
 const ONGOING_ACTIVATION_STATUSES=new Set(['Active','CancellationPending','ExpirationPending']);
 const TERMINAL_ACTIVATION_STATUSES=new Set(['Completed','Expired','Refunded','Cancelled']);
-const activationStateIsOngoing=(status:string)=>ONGOING_ACTIVATION_STATUSES.has(String(status||''));
+const activationStateIsOngoing=(status:string)=>ONGOING_ACTIVATION_STATUSES.has(String(status||''));\ntype RuntimeErrorBoundaryState = { hasError: boolean };
+
+class AppErrorBoundary extends Component<{ children: ReactNode }, RuntimeErrorBoundaryState> {
+ state: RuntimeErrorBoundaryState = { hasError: false };
+
+ static getDerivedStateFromError(): RuntimeErrorBoundaryState {
+  return { hasError: true };
+ }
+
+ componentDidCatch(error: unknown) {
+  try {
+   console.error('INBOX9 runtime error', error);
+  } catch {}
+ }
+
+ render() {
+  if (this.state.hasError) return <RuntimeErrorScreen />;
+  return this.props.children;
+ }
+}
+
+function RuntimeErrorScreen() {
+ return <main className="runtime-error-page">
+  <div className="runtime-error-card">
+   <div className="runtime-error-mark">I9</div>
+   <span className="catalog-eyebrow">INBOX9</span>
+   <h1>Something went wrong</h1>
+   <p>The page hit an unexpected error. Your account and data are safe. Reload the app to continue.</p>
+   <div className="runtime-error-actions">
+    <button type="button" className="primary-button" onClick={() => window.location.reload()}>Reload INBOX9</button>
+    <button type="button" className="outline-button" onClick={() => { window.location.assign('/apps'); }}>Go to Apps</button>
+   </div>
+  </div>
+ </main>;
+}
+
+function RouteErrorScreen() {
+ const error = useRouteError();
+ const detail = isRouteErrorResponse(error)
+  ? (error.status === 404 ? 'That page could not be found.' : 'INBOX9 could not load this page.')
+  : 'INBOX9 could not load this page.';
+ return <main className="runtime-error-page">
+  <div className="runtime-error-card">
+   <div className="runtime-error-mark">I9</div>
+   <span className="catalog-eyebrow">INBOX9</span>
+   <h1>We couldn’t open this page</h1>
+   <p>{detail} Try again or return to Apps.</p>
+   <div className="runtime-error-actions">
+    <button type="button" className="primary-button" onClick={() => window.location.reload()}>Retry</button>
+    <button type="button" className="outline-button" onClick={() => { window.location.assign('/apps'); }}>Go to Apps</button>
+   </div>
+  </div>
+ </main>;
+}
+
+
 const activationStateIsTerminal=(status:string)=>TERMINAL_ACTIVATION_STATUSES.has(String(status||''));
 
 const iconPaths:Record<IconName,ReactNode>={
@@ -660,6 +715,6 @@ function RecoverPage(){
  async function submit(e:FormEvent){e.preventDefault();setError(null);if(password!==confirm){setError('Passwords do not match.');return}setPending(true);try{const r=await recoverPassword(email.trim(),code.trim(),password);setUser(r.user);setBootstrap('ready');navigate('/apps',{replace:true})}catch(reason){setError(reason instanceof Error?reason.message:'Password recovery failed')}finally{setPending(false)}}
  return <AuthLayout title="Recover password" subtitle="Use a recovery code generated from your signed-in account." footer={<Link to="/login">Back to sign in</Link>}><form className="form-stack" onSubmit={submit}><label className="field"><span>Email</span><input value={email} onChange={e=>setEmail(e.target.value)} type="email" required/></label><label className="field"><span>Recovery code</span><input value={code} onChange={e=>setCode(e.target.value.toUpperCase())} placeholder="REC-..." required/></label><label className="field"><span>New password</span><input value={password} onChange={e=>setPassword(e.target.value)} type="password" minLength={8} maxLength={128} required/></label><label className="field"><span>Confirm password</span><input value={confirm} onChange={e=>setConfirm(e.target.value)} type="password" minLength={8} maxLength={128} required/></label>{error?<div className="form-error" role="alert">{error}</div>:null}<button className="primary-button" disabled={pending}>{pending?'Resetting...':'Reset password'}</button></form></AuthLayout>
 }
-const router=createBrowserRouter([{path:'/login',Component:LoginPage},{path:'/register',Component:RegisterPage},{path:'/recover',Component:RecoverPage},{path:'/',Component:AppShell,children:[{index:true,element:<Navigate to="/apps" replace/>},{path:'apps',Component:AppsPage},{path:'apps/service/:serviceId',Component:ServicePage},{path:'buy',Component:BuyPage},{path:'active',Component:ActivePage},{path:'active/:activationId',Component:ActivationPage},{path:'wallet',Component:WalletPage},{path:'notifications',Component:NotificationsPage},{path:'support',Component:SupportPage},{path:'account',Component:AccountPage},{path:'support/:ticketId',Component:SupportThreadPage}]},{path:'/admin',Component:AdminAccessGate,children:[{index:true,Component:AdminDashboardPage},{path:'users',children:[{index:true,Component:AdminUsersPage},{path:':userId',Component:AdminUsersPage}]},{path:'services',Component:AdminServicesPage},{path:'payments',Component:AdminPaymentsPage}]}]);
+const router=createBrowserRouter([{path:'/login',Component:LoginPage},{path:'/register',Component:RegisterPage},{path:'/recover',Component:RecoverPage},{path:'/',Component:AppShell,errorElement:<RouteErrorScreen/>,children:[{index:true,element:<Navigate to="/apps" replace/>},{path:'apps',Component:AppsPage},{path:'apps/service/:serviceId',Component:ServicePage},{path:'buy',Component:BuyPage},{path:'active',Component:ActivePage},{path:'active/:activationId',Component:ActivationPage},{path:'wallet',Component:WalletPage},{path:'notifications',Component:NotificationsPage},{path:'support',Component:SupportPage},{path:'account',Component:AccountPage},{path:'support/:ticketId',Component:SupportThreadPage}]},{path:'/admin',Component:AdminAccessGate,errorElement:<RouteErrorScreen/>,children:[{index:true,Component:AdminDashboardPage},{path:'users',children:[{index:true,Component:AdminUsersPage},{path:':userId',Component:AdminUsersPage}]},{path:'services',Component:AdminServicesPage},{path:'payments',Component:AdminPaymentsPage}]}]);
 const queryClient=new QueryClient({defaultOptions:{queries:{retry:1,refetchOnWindowFocus:false}}});
-export function App(){return <QueryClientProvider client={queryClient}><SessionBootstrap/><RouterProvider router={router}/></QueryClientProvider>}
+export function App(){return <AppErrorBoundary><QueryClientProvider client={queryClient}><SessionBootstrap/><RouterProvider router={router}/></QueryClientProvider></AppErrorBoundary>}
