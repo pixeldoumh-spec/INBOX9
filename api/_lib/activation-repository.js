@@ -6,22 +6,12 @@ import { beginCancellation, completeCancellation } from './provider-operations.j
 import { debitForActivation, getBalanceForClient } from './wallet-repository.js';
 import { completeActivationKey, markActivationKeyStuckSafe } from './idempotency.js';
 import { claimSyntheticSlot, releaseSyntheticSlot, shouldRestoreSyntheticStock, shouldRequireSyntheticReservation } from './synthetic-inventory-repository.js';
-import { getProviderAdapter } from './provider-registry.js';
-import { providerCapabilities } from './provider-gateway.js';
 
 const TTL_MS = 25 * 60 * 1000;
 const SYNTHETIC_SLOT_RESERVATION_ATTEMPTS = 8;
 export const ACTIVATION_QUOTA_LIMIT = 10;
 
-function virtualSmsCanaryCap() {
-  const value = Number(process.env.VIRTUALSMS_CANARY_MAX_ALLOCATIONS || 30);
-  return Number.isFinite(value) && value >= 1 ? Math.min(Math.trunc(value), 1000) : 30;
-}
-
-async function enforceActivationQuotas(client, { userId, serviceId, provider }) {
-  const adapterKey = String(provider?.adapter_key || '').trim().toLowerCase();
-  if (adapterKey === 'synthetic') return;
-
+async function enforceActivationQuotas(client, { userId, serviceId }) {
   await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1, 0))', [String(userId) + ':' + String(serviceId)]);
   const active = await client.query(
     `SELECT COUNT(*)::int AS count
@@ -34,31 +24,15 @@ async function enforceActivationQuotas(client, { userId, serviceId, provider }) 
     const error = new Error('You can have at most 10 active allocations for this service on this account');
     error.code = 'ACTIVATION_QUOTA_EXCEEDED';
     throw error;
-  }
-
-  if (adapterKey === 'virtualsms' && String(process.env.VIRTUALSMS_CANARY_ENABLED || '').trim().toLowerCase() === 'true') {
-    await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1, 0))', ['virtualsms-canary-budget']);
-    const used = await client.query(
-      `SELECT COUNT(*)::int AS count
-         FROM activations a
-         JOIN providers p ON p.id=a.provider_id
-        WHERE p.adapter_key='virtualsms'`
-    );
-    if (Number(used.rows[0]?.count || 0) >= virtualSmsCanaryCap()) {
-      const error = new Error('VirtualSMS canary allocation budget has been reached');
-      error.code = 'VIRTUALSMS_CANARY_CAP_REACHED';
-      throw error;
-    }
-  }
-}
+  }}
 
 /**
  * Build the canonical payload sent to a fulfillment provider for a number reservation.
  *
  * Provider adapters own their provider-specific request details. INBOX9 only supplies
- * canonical service/account data plus an idempotency key. Internal synthetic-server
- * selection is permitted only in non-production synthetic QA and is never forwarded to
- * a real provider.
+ * canonical service/account data plus an idempotency key. A requested server is
+ * forwarded only for the synthetic fulfillment adapter so internal server selection
+ * never leaks to a future external adapter.
  */
 export function buildProviderReserveInput({
   catalogService,
@@ -79,20 +53,11 @@ export function buildProviderReserveInput({
   };
 
   const adapterKey = String(provider?.adapter_key || provider?.adapterKey || '').trim().toLowerCase();
-  if (adapterKey === 'synthetic' && nodeEnv !== 'production') {
+  if (adapterKey === 'synthetic') {
     input.serverId = serverId ? String(serverId).trim().toLowerCase() : null;
   }
 
   return input;
-}
-
-function providerCanCancel(adapterKey) {
-  if (!adapterKey) return false;
-  try {
-    return providerCapabilities(getProviderAdapter(adapterKey)).cancelActivation === true;
-  } catch {
-    return false;
-  }
 }
 
 function mapActivation(row) {
@@ -139,12 +104,6 @@ export async function createActivation(service, userId, idempotency = null, opti
     throw error;
   }
   provider = providerRoute.rows[0];
-
-  if (process.env.NODE_ENV === 'production' && provider.adapter_key === 'synthetic') {
-    const error = new Error('Real activation provider is not configured');
-    error.code = 'REAL_PROVIDER_REQUIRED';
-    throw error;
-  }
 
   for (let attempt = 1; attempt <= SYNTHETIC_SLOT_RESERVATION_ATTEMPTS; attempt += 1) {
     try {
@@ -196,7 +155,7 @@ export async function createActivation(service, userId, idempotency = null, opti
         const serviceName = dbService.name;
         const currency = dbService.currency || 'INR';
         const country = dbService.country || 'IN';
-        await enforceActivationQuotas(client, { userId, serviceId: service.id, provider });
+        await enforceActivationQuotas(client, { userId, serviceId: service.id });
         if (country !== 'IN' || currency !== 'INR') {
           const error = new Error('Service is unavailable');
           error.code = 'SERVICE_UNAVAILABLE';
@@ -322,11 +281,6 @@ export async function getActivation(id, userId) {
   if (!snapshotResult.rowCount) return null;
 
   const snapshot = snapshotResult.rows[0];
-  if (process.env.NODE_ENV === 'production' && snapshot.adapter_key === 'synthetic' && snapshot.status === 'Active') {
-    const error = new Error('Real activation provider is not configured');
-    error.code = 'REAL_PROVIDER_REQUIRED';
-    throw error;
-  }
   if (!snapshot.provider_id || !snapshot.provider_activation_id || snapshot.status !== 'Active') {
     return mapActivation(snapshot);
   }
