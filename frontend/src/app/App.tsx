@@ -191,7 +191,7 @@ function Catalog(){
    if(Array.isArray(parsed))setRecentIds(parsed.filter((id):id is string=>typeof id==='string').slice(0,8));
   }catch{}
  },[]);
- const all=q.data?.services??[];
+ const all=Array.isArray(q.data?.services)?q.data.services:[];
  const categories=useMemo(()=>{
   const counts=new Map<string,number>();
   for(const item of all){const c=(item.category||'Other').trim()||'Other';counts.set(c,(counts.get(c)||0)+1);}
@@ -246,7 +246,7 @@ function BuyServiceWorkspace({serviceId}:{serviceId:string}){
  const [allocationElapsed,setAllocationElapsed]=useState(0);
  const services=useQuery({queryKey:['services'],queryFn:getServices,staleTime:60_000});
  const wallet=useQuery({queryKey:['wallet'],queryFn:getWallet,staleTime:10_000,refetchOnReconnect:true,refetchOnWindowFocus:true});
- const service=services.data?.services.find(s=>s.id===serviceId);
+ const service=Array.isArray(services.data?.services)?services.data.services.find(s=>s.id===serviceId):undefined;
  useEffect(()=>{
   const update=()=>setOnline(navigator.onLine);
   update();
