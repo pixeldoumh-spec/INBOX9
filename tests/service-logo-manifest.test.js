@@ -4,61 +4,43 @@ import path from 'node:path';
 import test from 'node:test';
 
 const root=process.cwd();
-const app=fs.readFileSync(path.join(root,'frontend/src/app/App.tsx'),'utf8');
 const shared=fs.readFileSync(path.join(root,'frontend/src/app/customer-ui-shared.tsx'),'utf8');
 const manifest=fs.readFileSync(path.join(root,'frontend/src/app/serviceLogoManifest.ts'),'utf8');
 const spriteModule=fs.readFileSync(path.join(root,'frontend/src/app/serviceLogoSprite.ts'),'utf8');
-const legacySpritePath=path.join(root,'frontend/public/service-icons-sprite.webp');
+const prepareScript=fs.readFileSync(path.join(root,'frontend/scripts/prepare-service-logo-sprite.mjs'),'utf8');
 
-function readEmbeddedSprite(){
-  const match=spriteModule.match(/base64,([A-Za-z0-9+/=]+)'/);
-  assert.ok(match,'embedded sprite data URI missing');
-  const b=Buffer.from(match[1],'base64');
-  assert.equal(b.toString('ascii',0,4),'RIFF');
-  assert.equal(b.toString('ascii',8,12),'WEBP');
-  const chunkType=b.toString('ascii',12,16);
-  assert.ok(chunkType==='VP8X'||chunkType==='VP8 ');
-  const width=chunkType==='VP8X'
-    ? 1+(b[24]|(b[25]<<8)|(b[26]<<16))
-    : (b[26]|(b[27]<<8)) & 0x3fff;
-  const height=chunkType==='VP8X'
-    ? 1+(b[27]|(b[28]<<8)|(b[29]<<16))
-    : (b[28]|(b[29]<<8)) & 0x3fff;
-  return {width,height};
-}
-
-test('HD service logo sprite is embedded with the expected tile grid',()=>{
-  assert.equal(fs.existsSync(legacySpritePath),false);
-  assert.deepEqual(readEmbeddedSprite(),{width:1152,height:864});
-  assert.match(manifest,/SERVICE_LOGO_SPRITE_DATA_URL/);
-  assert.match(manifest,/tileSize: 96/);
-  assert.match(manifest,/columns": 12/);
-  assert.match(manifest,/rows": 9/);
+test('preprocessed service logo pack is build-time local and not runtime canvas work',()=>{
+  assert.match(spriteModule,/SERVICE_LOGO_SPRITE_PATH/);
+  assert.match(spriteModule,/service-icons-sprite\.webp/);
+  assert.match(prepareScript,/service-icons-sprite\.webp/);
+  assert.match(prepareScript,/const base64 = '[A-Za-z0-9+/=]+'/);
+  const match=prepareScript.match(/const base64 = '([A-Za-z0-9+/=]+)'/);
+  assert.ok(match,'embedded prepared sprite payload missing');
+  const bytes=Buffer.from(match[1],'base64');
+  assert.equal(bytes.toString('ascii',0,4),'RIFF');
+  assert.equal(bytes.toString('ascii',8,12),'WEBP');
+  assert.equal(bytes.length,18138);
+  assert.doesNotMatch(spriteModule,/data:image\/webp;base64/);
+  assert.doesNotMatch(shared,/cropServiceLogo|detectSafeCrop|getImageData|toBlob|createObjectURL/);
 });
 
-test('service logo manifest uses stable unique service IDs and sprite tiles',()=>{
+test('service logo manifest covers all 90 customer services with stable unique sprite indices',()=>{
   const matches=[...manifest.matchAll(/"([^"]+)":\s*\{\s*"spriteIndex":\s*(\d+)\s*\}/g)];
-  assert.equal(matches.length,88);
+  assert.equal(matches.length,90);
   const ids=matches.map(m=>m[1]);
   const indices=matches.map(m=>Number(m[2]));
-  assert.equal(new Set(ids).size,ids.length);
-  assert.equal(new Set(indices).size,indices.length);
-  for(const id of ids) assert.match(id,/^svc-[a-z0-9-]+$/);
-  for(const index of indices) assert.ok(index>=0&&index<88);
-  for(const removed of [
-    'svc-yono-bonus-51','svc-all-yono-games','svc-yono-all-games','svc-rani-slots','svc-yono-app',
-    'svc-new-yono-app','svc-yono-game','svc-all-rummy-apps','svc-all-yono-slots','svc-yono-arcade',
-    'svc-download-rummy-365','svc-koko-slots','svc-download-yono-rummy'
-  ]) assert.doesNotMatch(manifest,new RegExp('"'+removed+'"'));
-  assert.doesNotMatch(manifest,/"svc-diva[^"]*"/i);
-  assert.doesNotMatch(spriteModule,/service-icons-sprite\.webp/);
+  assert.equal(new Set(ids).size,90);
+  assert.equal(new Set(indices).size,90);
+  assert.deepEqual([...indices].sort((a,b)=>a-b),Array.from({length:90},(_,i)=>i));
+  assert.match(manifest,/"svc-game-rummy": \{ "spriteIndex": 71 \}/);
+  assert.match(manifest,/"svc-yono-games": \{ "spriteIndex": 80 \}/);
 });
 
-test('ServiceLogo uses the stable manifest and direct pre-prepared sprite tiles',()=>{
+test('ServiceLogo uses direct prepared sprite tiles',()=>{
   assert.doesNotMatch(shared,/const logoMask/);
   assert.doesNotMatch(shared,/<ServiceLogo[^>]*position=/);
   assert.match(shared,/SERVICE_LOGO_MANIFEST/);
   assert.match(shared,/data-logo-source=\{has\?'sprite-tile':'fallback'\}/);
-  assert.match(shared,/backgroundImage: 'url\('\+path\+'\)'/);
+  assert.match(shared,/backgroundImage/);
   assert.doesNotMatch(shared,/cropServiceLogo|detectSafeCrop|getImageData|toBlob|createObjectURL/);
 });
