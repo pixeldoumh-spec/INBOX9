@@ -104,5 +104,5 @@ The backend exposes the 90-service India/INR catalog from the Diwa Play cutoff. 
 Phase 0 — Baseline: established.
 Phase 1 — Foundation: completed.
 Phase 2 — Core flow: shell, Apps, Buy, OTP — core launcher work completed and Radium Night launcher re-certified (2026-09-26).
-Phase 3 — Account surfaces: implementation exists; modernization/certification continues after the current contrast repairs.
+Phase 3 — Account surfaces: Wallet, Active, Notifications, Account, Support — completed and customer-scoped Radium contrast certified (2026-09-26).
 Phase 4 — Polish: pending.
