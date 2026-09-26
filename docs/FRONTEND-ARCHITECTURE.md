@@ -1,6 +1,6 @@
 # INBOX9 Frontend Architecture — v1
 
-Status: Phase 2 Apps launcher certified; later customer phases remain separately tracked.
+Status: Phase 4 wallet, notifications, support, account + resilience completed; Phase 2 Apps launcher re-certified.
 
 ## Source basis
 
