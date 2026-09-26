@@ -272,7 +272,7 @@ async function readServiceRoutes(client, serviceId) {
   }));
 }
 
-async function validateAndNormalizeRoutes(client, routes) {
+async function validateAndNormalizeRoutes(client, serviceId, routes) {
   if (!Array.isArray(routes)) throw new Error('Routes must be an array');
   if (routes.length > 25) throw new Error('A service can have at most 25 provider routes');
   const seen = new Set();
@@ -306,7 +306,7 @@ async function validateAndNormalizeRoutes(client, routes) {
            FROM provider_service_mappings
           WHERE provider_id=$1 AND service_id=$2 AND active=TRUE
           LIMIT 1`,
-        [provider.id, routes.__serviceId]
+        [provider.id, serviceId]
       );
       if (!mapping.rowCount) {
         throw new Error(`Provider service mapping is required before activating ${provider.name}`);
@@ -333,7 +333,7 @@ export async function updateService(adminUserId, serviceId, patch = {}) {
 
     let afterRoutes = beforeRoutes;
     if (Object.prototype.hasOwnProperty.call(patch, 'routes')) {
-      const desiredRoutes = await validateAndNormalizeRoutes(client, Object.assign([], patch.routes, { __serviceId: serviceId }));
+      const desiredRoutes = await validateAndNormalizeRoutes(client, serviceId, patch.routes);
       await client.query('UPDATE service_provider_routes SET active=FALSE WHERE service_id=$1', [serviceId]);
       for (const route of desiredRoutes) {
         await client.query(
