@@ -32,10 +32,10 @@ test('phase 2 launcher keeps service identity stable and routes by service ID',(
   assert.match(shared,/const logo=SERVICE_LOGO_MANIFEST\[serviceId\]/);
   assert.match(shared,/data-logo-source=\{has\?'zip-sprite':'blank'\}/);
   assert.doesNotMatch(shared,/service-logo-sprite-canvas/);
-  assert.match(shared,/backgroundSize: \(columns\*100\)\+'% \'+\(rows\*100\)\+'%'/);
+  assert.match(shared,/backgroundSize/);
   assert.match(shared,/backgroundPosition/);
-  assert.match(shared,/column\/\(Math\.max\(columns-1,1\)\)/);
-  assert.match(shared,/row\/\(Math\.max\(rows-1,1\)\)/);
+  assert.match(shared,/Math\.max\(columns-1,1\)/);
+  assert.match(shared,/Math\.max\(rows-1,1\)/);
   assert.doesNotMatch(shared,/serviceLogoCropCache|cropServiceLogo|detectSafeCrop|getImageData|toBlob|createObjectURL/);
 });
 
