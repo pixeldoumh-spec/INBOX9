@@ -21,7 +21,7 @@ test('phase 11.7 admin support is filtered, threaded, assigned, audited and isol
   assert.match(repo, /support\.ticket_updated/);
   assert.match(repo, /support_messages/);
   assert.match(repo, /ILIKE/);
-  assert.match(repo, /status=$3/);
+  assert.match(repo, /s\.status=\$3/);
   assert.match(byId, /requireAdmin/);
   assert.match(byId, /enforceSameOrigin/);
   assert.match(byId, /validateBodySize/);
