@@ -1,3 +1,5 @@
+import crypto from 'node:crypto';
+
 export const SYNTHETIC_CAPACITY = 100;
 export const SYNTHETIC_SERVER_COUNT = 11;
 
@@ -33,9 +35,35 @@ export function listSyntheticServers(capacity = SYNTHETIC_CAPACITY, count = SYNT
   });
 }
 
+/**
+ * Issue one synthetic server for a reservation.
+ *
+ * A caller may pin a valid server only for synthetic QA. Normal synthetic
+ * allocations issue a server internally from the slot pool so the customer
+ * request does not have to choose an internal server.
+ */
+export function issueSyntheticServer({ requestedServerId = null, capacity = SYNTHETIC_CAPACITY, count = SYNTHETIC_SERVER_COUNT } = {}) {
+  const cap = normalizePositiveInt(capacity, SYNTHETIC_CAPACITY);
+  const servers = listSyntheticServers(cap, count);
+  const requested = String(requestedServerId || '').trim().toLowerCase();
+
+  if (requested) {
+    const server = servers.find((candidate) => candidate.id === requested);
+    if (!server) {
+      const error = new Error('Unknown synthetic server');
+      error.code = 'UNKNOWN_SYNTHETIC_SERVER';
+      throw error;
+    }
+    return server;
+  }
+
+  const issuedSlot = crypto.randomInt(1, cap + 1);
+  return servers.find((server) => issuedSlot >= server.startSlot && issuedSlot <= server.endSlot) || null;
+}
+
 export function getSyntheticServer(serverId, capacity = SYNTHETIC_CAPACITY) {
   const key = String(serverId || '').trim().toLowerCase();
-  if (!/^server-\d+$/.test(key)) return null;
+  if (!/^server-d+$/.test(key)) return null;
   return listSyntheticServers(capacity).find((server) => server.id === key) || null;
 }
 
