@@ -39,6 +39,8 @@ test('phase 11.6 payment review preserves verification and audit safeguards', as
   assert.match(walletRepo, /Verified payment amount and UTR are required before approval/);
   assert.match(walletRepo, /Verified payment amount does not match the recharge amount/);
   assert.match(walletRepo, /Verified UTR does not match the submitted UTR/);
+  assert.match(walletRepo, /normalizeCustomerPaidAt/);
+  assert.match(walletRepo, /customer_paid_at/);
   assert.match(walletRepo, /recordAuditTx\(client, adminUserId, 'recharge\.approve'/);
   assert.match(walletRepo, /recordAuditTx\(client, adminUserId, 'recharge\.reject'/);
   assert.match(reviewRoute, /requireUser/);

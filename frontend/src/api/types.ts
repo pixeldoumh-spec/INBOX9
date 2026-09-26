@@ -31,7 +31,7 @@ export type MeResponse = {
 
 export type Recharge = {
   id: string; amountPaise: number; utr: string; paymentMethod: string; upiId: string | null; status: string;
-  rejectionReason?: string | null; submittedAt: number; reviewedAt?: number | null; flaggedAt?: number | null;
+  rejectionReason?: string | null; submittedAt: number; customerPaidAt?: number | null; reviewedAt?: number | null; flaggedAt?: number | null;
   flagReason?: string | null; verifiedAmountPaise?: number | null; verifiedUtr?: string | null; externalReference?: string | null;
 };
 

@@ -43,5 +43,7 @@ test('payment endpoints are wired through the runtime', () => {
   assert.match(wallet, /paymentSettings\.enabled/);
   assert.match(migration, /038_manual_payment_operations/);
   assert.match(recharge, /paymentSettings\.upiId/);
+  assert.match(recharge, /customerPaidAt/);
+  assert.match(recharge, /paymentSettings\.enabled/);
   assert.match(wallet, /paymentSettings\.enabled/);
 });

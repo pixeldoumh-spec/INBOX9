@@ -35,6 +35,7 @@ function mapRecharge(row) {
     externalReference: row.external_reference || null,
     reviewedBy: row.reviewed_by || null,
     flaggedBy: row.flagged_by || null,
+    customerPaidAt: row.customer_paid_at ? new Date(row.customer_paid_at).getTime() : null,
   };
 }
 
@@ -122,7 +123,18 @@ export async function getWalletSummary(userId) {
   };
 }
 
-export async function createRecharge(userId, amountPaise, utr, submissionSessionId = null, upiIdOverride = null) {
+export function normalizeCustomerPaidAt(value) {
+  if (value == null || value === '') return null;
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) throw new Error('Enter a valid payment date and time');
+  const now = Date.now();
+  const timestamp = date.getTime();
+  if (timestamp > now + 5 * 60 * 1000) throw new Error('Payment time cannot be in the future');
+  if (timestamp < now - 30 * 24 * 60 * 60 * 1000) throw new Error('Payment time must be within the last 30 days');
+  return date.toISOString();
+}
+
+export async function createRecharge(userId, amountPaise, utr, submissionSessionId = null, upiIdOverride = null, customerPaidAt = null) {
   const upiId = String(upiIdOverride || UPI_ID || '').trim();
   if (!upiId) { const error = new Error('UPI recharge is not configured'); error.code = 'UPI_DESTINATION_NOT_CONFIGURED'; throw error; }
   if (!Number.isInteger(amountPaise) || amountPaise < MIN_RECHARGE_PAISE || amountPaise > MAX_RECHARGE_PAISE) {
@@ -130,15 +142,16 @@ export async function createRecharge(userId, amountPaise, utr, submissionSession
   }
   const normalizedUtr = String(utr || '').trim();
   if (!/^[A-Za-z0-9._-]{4,64}$/.test(normalizedUtr)) throw new Error('Enter a valid UTR / transaction reference');
+  const normalizedCustomerPaidAt = normalizeCustomerPaidAt(customerPaidAt);
   return withTransaction(async client => {
     const existing = await client.query('SELECT id FROM recharge_requests WHERE LOWER(utr)=LOWER($1)', [normalizedUtr]);
     if (existing.rowCount) throw new Error('This UTR has already been submitted');
     let result;
     try {
       result = await client.query(
-        `INSERT INTO recharge_requests (id,user_id,amount_paise,utr,payment_method,upi_id,submission_session_id)
-         VALUES ($1,$2,$3,$4,'UPI',$5,$6) RETURNING *`,
-        [id('RCH'), userId, amountPaise, normalizedUtr, upiId, submissionSessionId || null]
+        `INSERT INTO recharge_requests (id,user_id,amount_paise,utr,payment_method,upi_id,submission_session_id,customer_paid_at)
+         VALUES ($1,$2,$3,$4,'UPI',$5,$6,$7) RETURNING *`,
+        [id('RCH'), userId, amountPaise, normalizedUtr, upiId, submissionSessionId || null, normalizedCustomerPaidAt]
       );
     } catch (error) {
       if (error?.code === '23505' && error?.constraint === 'uq_recharge_utr') {
