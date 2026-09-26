@@ -12,7 +12,8 @@ test('shared customer service icon uses one enhanced Android-style frame everywh
   assert.match(shared,/className="service-logo-frame"/);
   assert.match(shared,/className="service-logo-sheen"/);
   assert.match(shared,/data-service-id={serviceId}/);
-  assert.match(shared,/SERVICE_LOGO_MANIFEST[serviceId]/);
+  assert.match(shared,/SERVICE_LOGO_MANIFEST/);
+  assert.match(shared,/SERVICE_LOGO_MANIFEST\[serviceId\]/);
   assert.match(shared,/decoding="async"/);
 });
 
