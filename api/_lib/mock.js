@@ -1,6 +1,6 @@
 import crypto from 'node:crypto';
 import { generateSyntheticOtp, syntheticOtpTiming } from './synthetic-otp.js';
-import { getSyntheticServer, getServerForSlot, SYNTHETIC_CAPACITY } from './synthetic-servers.js';
+import { issueSyntheticServer, SYNTHETIC_CAPACITY } from './synthetic-servers.js';
 
 const activations = new Map();
 const activationIdempotency = new Map();
@@ -17,16 +17,11 @@ export function makeId(prefix = 'ORD') {
 export function reserveMock(service) {
   const now = Date.now();
   const requestedServerId = String(service?.serverId || '').trim().toLowerCase();
-  const server = requestedServerId ? getSyntheticServer(requestedServerId, SYNTHETIC_CAPACITY) : null;
-  if (requestedServerId && !server) {
-    const error = new Error('Unknown synthetic server');
-    error.code = 'UNKNOWN_SYNTHETIC_SERVER';
-    throw error;
-  }
-  const index = server
-    ? crypto.randomInt(server.startSlot, server.endSlot + 1)
-    : crypto.randomInt(1, SYNTHETIC_CAPACITY + 1);
-  const assignedServer = server || getServerForSlot(index, SYNTHETIC_CAPACITY);
+  const server = issueSyntheticServer({
+    requestedServerId,
+    capacity: SYNTHETIC_CAPACITY,
+  });
+  const index = crypto.randomInt(server.startSlot, server.endSlot + 1);
   const providerActivationId = `SYN-LOCAL-${crypto.randomUUID()}`;
   const numberRevealAt = now + 5_000;
   const mockOtpAt = now + syntheticOtpTiming(service.id || service.name, index, providerActivationId);
@@ -46,16 +41,17 @@ export function reserveMock(service) {
     createdAt: now,
     expiresAt: now + TTL_MS,
     mockOtpAt,
-    serverId: assignedServer?.id || null,
+    serverId: server?.id || null,
     providerActivationId,
     syntheticOtp: generateSyntheticOtp(service.id || service.name, index, providerActivationId),
     metadata: {
       engine: 'synthetic-local',
       numberRevealAt,
       slot: index,
-      serverId: assignedServer?.id || null,
-      serverName: assignedServer?.name || null,
-      serverCapacity: assignedServer?.capacity || null
+      serverId: server?.id || null,
+      serverName: server?.name || null,
+      serverCapacity: server?.capacity || null,
+      serverSelection: requestedServerId ? 'qa-pinned' : 'issued'
     }
   };
   activations.set(activation.id, activation);
