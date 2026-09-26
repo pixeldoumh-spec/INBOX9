@@ -1,0 +1,47 @@
+import { useEffect, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { getAdminActivation, getAdminActivations, cancelAdminActivation, type AdminActivation } from '../../api/admin';
+
+function money(paise:number){return '₹'+(Number(paise||0)/100).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function when(value:number|null|undefined){return value?new Date(value).toLocaleString():'—';}
+function statusClass(status:string){return 'admin-activation-status status-'+String(status||'').toLowerCase().replace(/[^a-z]+/g,'-');}
+const statuses=['all','Active','CancellationPending','ExpirationPending','Completed','Expired','Refunded','Cancelled'];
+function StatusBadge({status}:{status:string}){return <span className={statusClass(status)}>{status}</span>;}
+
+export function AdminActivationsPage(){
+ const client=useQueryClient();
+ const [input,setInput]=useState(''); const [q,setQ]=useState(''); const [status,setStatus]=useState('all'); const [offset,setOffset]=useState(0); const [selectedId,setSelectedId]=useState<string|null>(null);
+ const pageSize=40;
+ useEffect(()=>{const timer=window.setTimeout(()=>{setQ(input.trim());setOffset(0)},250);return()=>window.clearTimeout(timer)},[input]);
+ const list=useQuery({queryKey:['admin-activations',q,status,offset],queryFn:()=>getAdminActivations({q,status,limit:pageSize,offset}),staleTime:5000,refetchInterval:5000,refetchOnReconnect:true});
+ const detail=useQuery({queryKey:['admin-activation',selectedId],queryFn:()=>getAdminActivation(selectedId!),enabled:Boolean(selectedId),staleTime:3000,refetchInterval:5000,refetchOnReconnect:true});
+ const cancel=useMutation({mutationFn:()=>cancelAdminActivation(selectedId!),onSuccess:async()=>{await Promise.all([client.invalidateQueries({queryKey:['admin-activations']}),client.invalidateQueries({queryKey:['admin-activation',selectedId]}),client.invalidateQueries({queryKey:['admin-overview']})])}});
+ useEffect(()=>{const rows=list.data?.activations??[];if(!rows.length){setSelectedId(null);return;}if(!selectedId||!rows.some(row=>row.id===selectedId))setSelectedId(rows[0].id)},[list.data?.activations,selectedId]);
+ const selected:AdminActivation|undefined=detail.data?.activation;
+ const summary=list.data?.summary;
+ const pageEnd=Math.min(offset+(list.data?.activations.length??0),summary?.total??0);
+ function requestCancel(){if(!selectedId||selected?.status!=='Active')return;if(window.confirm('Cancel this active activation and refund the customer after provider confirmation?'))cancel.mutate();}
+ return <section className="admin-page admin-activations-page">
+  <div className="admin-page-heading"><div><span className="admin-eyebrow">LIFECYCLE OPERATIONS</span><h1>Activations</h1><p>Monitor number lifecycle, provider state and operational exceptions without entering the customer Buy workspace.</p></div><button className="outline-button" type="button" onClick={()=>void Promise.all([list.refetch(),selectedId?detail.refetch():Promise.resolve()])} disabled={list.isFetching||detail.isFetching}>{list.isFetching||detail.isFetching?'Refreshing…':'Refresh'}</button></div>
+  <div className="admin-overview-grid admin-activation-summary-grid"><div className="admin-metric"><span>Total</span><strong>{summary?.total??'—'}</strong><small>Matching activations</small></div><div className="admin-metric"><span>Active</span><strong>{summary?.active??'—'}</strong><small>Currently running</small></div><div className="admin-metric"><span>Cancellation pending</span><strong>{summary?.cancellationPending??'—'}</strong><small>Awaiting provider confirmation</small></div><div className="admin-metric"><span>Expiration pending</span><strong>{summary?.expirationPending??'—'}</strong><small>Awaiting expiry reconciliation</small></div></div>
+  <div className="admin-activation-toolbar"><input className="admin-search-input" value={input} onChange={e=>setInput(e.target.value)} placeholder="Search activation, service, number, email or user ID" aria-label="Search activations"/><select className="admin-filter-select" value={status} onChange={e=>{setStatus(e.target.value);setOffset(0)}} aria-label="Filter activation status">{statuses.map(value=><option value={value} key={value}>{value==='all'?'All statuses':value}</option>)}</select></div>
+  {list.isError?<div className="admin-alert" role="alert"><strong>Activations unavailable.</strong><span>Could not load the lifecycle directory.</span><button className="outline-button" type="button" onClick={()=>void list.refetch()}>Retry</button></div>:null}
+  <div className="admin-activations-layout">
+   <section className="admin-panel admin-activation-list-panel"><div className="admin-panel-heading"><div><span className="admin-eyebrow">LIVE DIRECTORY</span><h2>Activation records</h2></div><span className="admin-status-badge">{pageEnd?(offset+1)+'–'+pageEnd:'0'}</span></div>
+    {list.isPending?<div className="admin-activation-list">{Array.from({length:7},(_,i)=><div className="admin-activation-skeleton" key={i}/>)}</div>:list.data?.activations.length?<div className="admin-activation-list">{list.data.activations.map(a=><button type="button" key={a.id} className={'admin-activation-row'+(a.id===selectedId?' is-selected':'')} onClick={()=>setSelectedId(a.id)}><span className="admin-activation-main"><strong>{a.service||a.serviceId}</strong><span>{a.email||a.userId||'Unknown account'}</span><small>{a.id}</small></span><span className="admin-activation-side"><StatusBadge status={a.status}/><strong>{money(a.pricePaise)}</strong><small>{a.number||'No number'} · {a.providerName||a.providerId||'No provider'}</small>{a.pendingOperations?<small>{a.pendingOperations} pending provider operation{a.pendingOperations===1?'':'s'}</small>:null}</span></button>)}</div>:<div className="empty-state compact-empty"><h3>No activations found</h3><p>Adjust the search or lifecycle filter.</p></div>}
+    <div className="admin-pagination"><button className="outline-button" type="button" disabled={offset===0||list.isFetching} onClick={()=>setOffset(v=>Math.max(0,v-pageSize))}>Previous</button><span>{pageEnd?(offset+1)+'–'+pageEnd+' of '+(summary?.total??0):'No results'}</span><button className="outline-button" type="button" disabled={!list.data?.pagination.hasMore||list.isFetching} onClick={()=>setOffset(v=>v+pageSize)}>Next</button></div>
+   </section>
+   <section className="admin-panel admin-activation-detail-panel">
+    {!selectedId?<div className="admin-user-detail-empty"><div className="admin-detail-mark">A</div><h2>Select an activation</h2><p>Choose an activation to inspect its lifecycle and provider operation history.</p></div>:detail.isPending?<div className="admin-user-detail-empty"><div className="admin-detail-mark">…</div><h2>Loading activation</h2><p>Fetching the latest provider and lifecycle state.</p></div>:detail.isError?<div className="admin-user-detail-empty"><div className="admin-detail-mark">!</div><h2>Activation unavailable</h2><p>The activation detail could not be loaded.</p></div>:selected?<div className="admin-activation-detail">
+      <div className="admin-user-detail-head"><div className="admin-user-detail-identity"><div className="admin-detail-mark">A</div><div><span className="admin-eyebrow">ACTIVATION</span><h2>{selected.service||selected.serviceId}</h2><p>{selected.email||selected.userId}</p><small>{selected.id}</small></div></div><StatusBadge status={selected.status}/></div>
+      <div className="admin-detail-meta"><span>Created {when(selected.createdAt)}</span><span>Expires {when(selected.expiresAt)}</span><span>Provider {selected.providerName||selected.providerId||'—'}</span><span>Adapter {selected.adapterKey||'—'}</span></div>
+      <div className="admin-user-detail-metrics"><div><span>Number</span><strong>{selected.number||'—'}</strong></div><div><span>Price</span><strong>{money(selected.pricePaise)}</strong></div><div><span>Provider ref</span><strong>{selected.providerActivationId||'—'}</strong></div><div><span>Pending ops</span><strong>{selected.pendingOperations??0}</strong></div></div>
+      {selected.otp?<div className="admin-detail-section"><div className="admin-panel-heading"><div><span className="admin-eyebrow">OTP</span><h3>Verification code</h3></div></div><div className="admin-otp-value">{selected.otp}</div></div>:null}
+      <div className="admin-user-actions">{selected.status==='Active'?<button className="secondary-danger" type="button" onClick={requestCancel} disabled={cancel.isPending}>{cancel.isPending?'Cancelling…':'Cancel & refund'}</button>:null}</div>
+      {cancel.isError?<div className="form-error" role="alert">{cancel.error instanceof Error?cancel.error.message:'Activation cancellation failed'}</div>:null}
+      <div className="admin-detail-section"><div className="admin-panel-heading"><div><span className="admin-eyebrow">PROVIDER OPERATIONS</span><h3>Operation history</h3></div></div>{detail.data.operations.length?<div className="admin-mini-list">{detail.data.operations.map(op=><div key={op.id}><div><strong>{op.type}</strong><StatusBadge status={op.status}/></div><small>{op.providerActivationId||'No provider reference'} · attempts {op.attempts} · updated {when(op.updatedAt)}</small>{op.error?<small className="admin-error-copy">{op.error}</small>:null}</div>)}</div>:<p className="admin-muted-copy">No provider operations recorded.</p>}</div>
+     </div>:null}
+   </section>
+  </div>
+ </section>;
+}
