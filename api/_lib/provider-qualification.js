@@ -47,8 +47,25 @@ async function liveCatalogForProvider(provider) {
   try {
     const adapter = getProviderAdapter(provider.adapter_key);
     const raw = await adapter.listServices({ country: 'IN' });
+    const country = String(raw?.country || '').trim().toUpperCase();
     const services = providerCatalogRows(raw);
-    return { status: 'catalog_verified', configured: true, services, error: null, checkedAt: Date.now() };
+    if (country !== 'IN') {
+      const error = new Error('Provider India catalog returned an unexpected country');
+      error.code = 'PROVIDER_COUNTRY_CATALOG_MISMATCH';
+      throw error;
+    }
+    if (!services.length) {
+      const error = new Error('Provider India catalog is empty');
+      error.code = 'PROVIDER_INDIA_CATALOG_EMPTY';
+      throw error;
+    }
+    const conflictingCountry = services.find(row => row?.country != null && String(row.country).trim().toUpperCase() !== 'IN');
+    if (conflictingCountry) {
+      const error = new Error('Provider India catalog contains a non-India service route');
+      error.code = 'PROVIDER_COUNTRY_CATALOG_MISMATCH';
+      throw error;
+    }
+    return { status: 'catalog_verified', configured: true, country: 'IN', services, error: null, checkedAt: Date.now() };
   } catch (error) {
     return { status: 'catalog_unavailable', configured: true, services: [], error: String(error?.code || error?.message || 'Provider catalog unavailable').slice(0, 160), checkedAt: Date.now() };
   }
