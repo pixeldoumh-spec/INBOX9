@@ -39,7 +39,20 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_provider_reconciliation_running
   ON public.provider_reconciliation_runs(status)
   WHERE status='Running';
 
-REVOKE ALL ON TABLE public.provider_reconciliation_runs FROM anon, authenticated;
-REVOKE ALL ON TABLE public.provider_reconciliation_events FROM anon, authenticated;
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname='anon') THEN
+    REVOKE ALL ON TABLE public.provider_reconciliation_runs FROM anon;
+    REVOKE ALL ON TABLE public.provider_reconciliation_events FROM anon;
+  END IF;
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname='authenticated') THEN
+    REVOKE ALL ON TABLE public.provider_reconciliation_runs FROM authenticated;
+    REVOKE ALL ON TABLE public.provider_reconciliation_events FROM authenticated;
+  END IF;
+END $$;
+
+INSERT INTO schema_migrations(version)
+VALUES ('043_provider_reconciliation_journal')
+ON CONFLICT (version) DO NOTHING;
 
 COMMIT;
