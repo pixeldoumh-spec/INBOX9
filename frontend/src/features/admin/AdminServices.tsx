@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   getAdminProviders,
+  getAdminProviderQualification,
   getAdminServices,
   updateAdminService,
   type AdminService,
@@ -59,6 +60,14 @@ export function AdminServicesPage() {
     queryFn: getAdminProviders,
     staleTime: 15_000,
     refetchInterval: 30_000,
+    refetchOnReconnect: true,
+  });
+
+  const qualification = useQuery({
+    queryKey: ['admin-provider-qualification'],
+    queryFn: getAdminProviderQualification,
+    staleTime: 15_000,
+    refetchInterval: 60_000,
     refetchOnReconnect: true,
   });
 
@@ -130,6 +139,8 @@ export function AdminServicesPage() {
   const providerHealth = providers.data?.health ?? [];
   const installed = useMemo(() => new Set(providers.data?.installedAdapters ?? []), [providers.data?.installedAdapters]);
   const availableProviders = providers.data?.providers ?? [];
+  const qualificationByProvider = qualification.data?.providers ?? [];
+  const selectedQualification = qualification.data?.services.find((service) => service.id === selectedId) ?? null;
 
   function addRoute() {
     const candidate = availableProviders.find(
@@ -204,6 +215,35 @@ export function AdminServicesPage() {
           {!availableProviders.length && !providers.isPending ? <div className="admin-muted-copy">No providers are registered.</div> : null}
         </div>
       </div>
+
+      <section className="admin-panel">
+        <div className="admin-panel-heading">
+          <div>
+            <span className="admin-eyebrow">PHASE 4 QUALIFICATION</span>
+            <h2>Provider qualification</h2>
+          </div>
+          <span className="admin-status-badge">{qualification.data?.activeServiceCount ?? 0} services</span>
+        </div>
+        {qualification.isError ? <div className="admin-alert" role="alert"><strong>Qualification unavailable.</strong><span>Provider catalog qualification could not be loaded.</span><button className="outline-button" type="button" onClick={() => void qualification.refetch()}>Retry</button></div> : null}
+        <div className="admin-provider-list">
+          {qualificationByProvider.map((provider) => (
+            <div className="admin-provider-card" key={provider.id}>
+              <div>
+                <strong>{provider.name}</strong>
+                <span>{provider.adapterKey} · {provider.catalogCount} catalog services</span>
+              </div>
+              <div className="admin-provider-state">
+                <span className={provider.status === 'live_internal' ? 'admin-provider-pill is-on' : 'admin-provider-pill'}>{provider.status.replaceAll('_', ' ')}</span>
+                <small>{provider.verifiedMappings} verified · {provider.candidateMappings} candidates · {provider.staleMappings} stale</small>
+              </div>
+            </div>
+          ))}
+        </div>
+        {selected && selectedQualification ? <div className="admin-routing-help" style={{ marginTop: 12 }}>
+          <strong>{selected.name}:</strong>{' '}
+          {Object.entries(selectedQualification.providers).map(([adapter, state]) => adapter + ' → ' + state.status.replaceAll('_', ' ') + (state.mapping ? ' (' + state.mapping + ')' : state.candidate ? ' [candidate ' + state.candidate + ']' : '')).join(' · ')}
+        </div> : null}
+      </section>
 
       <div className="admin-services-layout">
         <section className="admin-panel admin-service-list-panel">
