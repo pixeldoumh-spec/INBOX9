@@ -42,11 +42,11 @@ export default async function handler(req, res) {
       runtime: { status: 'healthy', mode: runtimeMode(), uptimeSeconds: runtime.uptimeSeconds },
       productionConfiguration: { status: config.database && config.appOrigin && config.cronAuth ? 'healthy' : 'critical', database: config.database, appOrigin: config.appOrigin, cronAuth: config.cronAuth, persistentRuntime: config.persistentRuntime, syntheticRuntime: config.syntheticRuntime },
       providers: { status: providerFailures ? 'critical' : 'healthy', total: providers.length, failures: providerFailures, items: providers },
-      providerOperations: { status: providerOperations.summary.failed > 0 ? 'degraded' : (providerOperations.summary.pending > 0 ? 'degraded' : 'healthy'), pending: providerOperations.summary.pending, failed: providerOperations.summary.failed, oldestPendingAt: providerOperations.summary.oldestPendingAt },
+      providerOperations: { status: providerOperations.summary.failed > 0 ? 'degraded' : (providerOperations.summary.pending > 5 ? 'degraded' : 'healthy'), pending: providerOperations.summary.pending, failed: providerOperations.summary.failed, oldestPendingAt: providerOperations.summary.oldestPendingAt },
       walletReconciliation: { status: walletRecon?.status === 'Passed' && openReconIssues.length === 0 ? 'healthy' : 'critical', latestStatus: walletRecon?.status || 'No run', walletsChecked: walletRecon?.walletsChecked || 0, mismatches: walletRecon?.mismatchesFound || 0, openIssues: openReconIssues.length },
       serviceRouting: { status: routingGaps ? 'critical' : 'healthy', totalServices: Number(services.rows[0].total || 0), activeServices: Number(services.rows[0].active || 0), activeServicesWithoutUsableRoute: routingGaps },
-      support: { status: supportOpen > 0 ? 'degraded' : 'healthy', open: supportOpen, inProgress: supportInProgress },
-      notifications: { status: unreadNotifications > 100 ? 'degraded' : 'healthy', unread: unreadNotifications }
+      support: { status: supportOpen > 25 ? 'degraded' : 'healthy', open: supportOpen, inProgress: supportInProgress },
+      notifications: { status: unreadNotifications > 1000 ? 'degraded' : 'healthy', unread: unreadNotifications }
     };
     const criticals = Object.values(checks).filter(check => check.status === 'critical').length;
     const degraded = Object.values(checks).filter(check => check.status === 'degraded').length;
