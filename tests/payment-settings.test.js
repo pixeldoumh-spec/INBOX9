@@ -14,6 +14,9 @@ test('payment settings normalize valid merchant destination', () => {
   assert.equal(value.merchantName, 'INBOX9 Payments');
   assert.equal(value.qrImage, 'https://example.com/qr.png');
   assert.equal(value.enabled, null);
+  assert.equal(normalizePaymentSettings({ upiId: 'merchant@upi', enabled: true }).enabled, true);
+  assert.equal(normalizePaymentSettings({ upiId: 'merchant@upi', enabled: false }).enabled, false);
+  assert.equal(value.enabled, null);
 });
 
 test('payment settings accept bounded QR data URLs', () => {
@@ -36,6 +39,8 @@ test('payment endpoints are wired through the runtime', () => {
   assert.match(server, /GET \/api\/admin\/payment-settings/);
   assert.match(server, /PATCH \/api\/admin\/payment-settings/);
   assert.match(wallet, /getPaymentSettings/);
+  assert.match(wallet, /paymentSettings\.enabled/);
+  assert.match(server, /038_manual_payment_operations/);
   assert.match(recharge, /paymentSettings\.upiId/);
   assert.match(wallet, /paymentSettings\.enabled/);
 });

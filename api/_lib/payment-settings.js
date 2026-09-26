@@ -40,7 +40,9 @@ function normalizeQrImage(value) {
 }
 
 export function normalizePaymentSettings(input = {}) {
+  const enabled = input.enabled == null ? null : Boolean(input.enabled);
   return {
+    enabled,
     upiId: normalizeUpiId(input.upiId),
     merchantName: clean(input.merchantName || DEFAULT_MERCHANT, 80) || DEFAULT_MERCHANT,
     instructions: clean(input.instructions || DEFAULT_INSTRUCTIONS, 500) || DEFAULT_INSTRUCTIONS,
@@ -64,6 +66,7 @@ export async function getPaymentSettings() {
   if (!dbEnabled()) {
     return {
       id: SETTINGS_ID,
+      enabled: null,
       upiId: String(process.env.INBOX9_UPI_ID || '').trim() || null,
       merchantName: DEFAULT_MERCHANT,
       instructions: DEFAULT_INSTRUCTIONS,
@@ -73,11 +76,11 @@ export async function getPaymentSettings() {
   }
   const pool = await getPool();
   const result = await pool.query(
-    'SELECT id,upi_id,merchant_name,instructions,qr_image,updated_at FROM payment_settings WHERE id=$1',
+    'SELECT id,enabled,upi_id,merchant_name,instructions,qr_image,updated_at FROM payment_settings WHERE id=$1',
     [SETTINGS_ID]
   );
   if (!result.rowCount) {
-    return { id: SETTINGS_ID, upiId: null, merchantName: DEFAULT_MERCHANT, instructions: DEFAULT_INSTRUCTIONS, qrImage: null, updatedAt: null };
+    return { id: SETTINGS_ID, enabled: null, upiId: null, merchantName: DEFAULT_MERCHANT, instructions: DEFAULT_INSTRUCTIONS, qrImage: null, updatedAt: null };
   }
   const settings = mapSettings(result.rows[0]);
   if (!settings.upiId) settings.upiId = String(process.env.INBOX9_UPI_ID || '').trim() || null;
@@ -87,26 +90,29 @@ export async function getPaymentSettings() {
 export async function updatePaymentSettings(adminUserId, input = {}) {
   return withTransaction(async client => {
     const currentResult = await client.query(
-      'SELECT id,upi_id,merchant_name,instructions,qr_image FROM payment_settings WHERE id=$1 FOR UPDATE',
+      'SELECT id,enabled,upi_id,merchant_name,instructions,qr_image FROM payment_settings WHERE id=$1 FOR UPDATE',
       [SETTINGS_ID]
     );
     const current = currentResult.rows[0] || {
       id: SETTINGS_ID,
+      enabled: null,
       upi_id: null,
       merchant_name: DEFAULT_MERCHANT,
       instructions: DEFAULT_INSTRUCTIONS,
       qr_image: null
     };
     const merged = normalizePaymentSettings({
+      enabled: Object.prototype.hasOwnProperty.call(input, 'enabled') ? input.enabled : current.enabled,
       upiId: Object.prototype.hasOwnProperty.call(input, 'upiId') ? input.upiId : current.upi_id,
       merchantName: Object.prototype.hasOwnProperty.call(input, 'merchantName') ? input.merchantName : current.merchant_name,
       instructions: Object.prototype.hasOwnProperty.call(input, 'instructions') ? input.instructions : current.instructions,
       qrImage: Object.prototype.hasOwnProperty.call(input, 'qrImage') ? input.qrImage : current.qr_image
     });
     const result = await client.query(
-      `INSERT INTO payment_settings (id,upi_id,merchant_name,instructions,qr_image,updated_at,updated_by)
-       VALUES ($1,$2,$3,$4,$5,NOW(),$6)
+      `INSERT INTO payment_settings (id,enabled,upi_id,merchant_name,instructions,qr_image,updated_at,updated_by)
+       VALUES ($1,$2,$3,$4,$5,$6,NOW(),$7)
        ON CONFLICT (id) DO UPDATE SET
+         enabled=EXCLUDED.enabled,
          upi_id=EXCLUDED.upi_id,
          merchant_name=EXCLUDED.merchant_name,
          instructions=EXCLUDED.instructions,
@@ -114,7 +120,7 @@ export async function updatePaymentSettings(adminUserId, input = {}) {
          updated_at=NOW(),
          updated_by=EXCLUDED.updated_by
        RETURNING id,upi_id,merchant_name,instructions,qr_image,updated_at`,
-      [SETTINGS_ID, merged.upiId, merged.merchantName, merged.instructions, merged.qrImage, adminUserId]
+      [SETTINGS_ID, merged.enabled, merged.upiId, merged.merchantName, merged.instructions, merged.qrImage, adminUserId]
     );
     await recordAuditTx(client, adminUserId, 'payment.settings.update', 'payment_settings', SETTINGS_ID, {
       upiChanged: String(current.upi_id || '') !== String(merged.upiId || ''),
