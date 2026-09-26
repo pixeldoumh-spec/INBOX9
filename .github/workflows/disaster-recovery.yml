@@ -41,7 +41,10 @@ jobs:
           set -euo pipefail
           docker run --detach --rm --name inbox9-dr-postgres -e POSTGRES_PASSWORD=postgres -p 5432:5432 postgres:17
           for i in {1..60}; do
-            if docker exec inbox9-dr-postgres pg_isready -U postgres >/dev/null 2>&1; then exit 0; fi
+            if docker exec inbox9-dr-postgres pg_isready -U postgres >/dev/null 2>&1 && docker inspect -f '{{.State.Running}}' inbox9-dr-postgres | grep -Fxq true; then
+              sleep 2
+              if docker exec inbox9-dr-postgres pg_isready -U postgres >/dev/null 2>&1; then exit 0; fi
+            fi
             sleep 1
           done
           echo "PostgreSQL did not become ready" >&2
@@ -50,8 +53,8 @@ jobs:
       - name: Create rehearsal databases
         run: |
           set -euo pipefail
-          psql -v ON_ERROR_STOP=1 -c "CREATE DATABASE $DB_SOURCE;"
-          psql -v ON_ERROR_STOP=1 -c "CREATE DATABASE $DB_RESTORE;"
+          docker exec inbox9-dr-postgres psql -v ON_ERROR_STOP=1 -U postgres -c "CREATE DATABASE $DB_SOURCE;"
+          docker exec inbox9-dr-postgres psql -v ON_ERROR_STOP=1 -U postgres -c "CREATE DATABASE $DB_RESTORE;"
 
       - name: Build source schema from production migration tree
         env:
@@ -90,7 +93,7 @@ jobs:
           INSERT INTO activations
             (id,service_id,service_name,country,phone_number,price_paise,currency,status,otp,created_at,expires_at,user_id,provider_id,provider_activation_id,provider_metadata)
           SELECT 'DR-ACT-1',s.id,s.name,'IN','+919999000001',s.price_paise,'INR','Completed','123456',
-            NOW(),NOW()+INTERVAL '25 minutes','DR-USER-1','provider-mock','DR-PROVIDER-ACT-1','{}'::jsonb
+            NOW(),NOW()+INTERVAL '20 minutes','DR-USER-1','provider-mock','DR-PROVIDER-ACT-1','{}'::jsonb
           FROM services s
           WHERE s.active=TRUE
           ORDER BY s.id
