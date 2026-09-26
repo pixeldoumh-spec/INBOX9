@@ -62,7 +62,9 @@ export function AdminServicesPage() {
     refetchOnReconnect: true,
   });
 
-  const selected = services.data?.services.find((service) => service.id === selectedId) ?? null;
+  const selected = Array.isArray(services.data?.services)
+    ? services.data.services.find((service) => service.id === selectedId) ?? null
+    : null;
 
   useEffect(() => {
     if (!services.data?.services.length) {
