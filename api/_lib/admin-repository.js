@@ -462,7 +462,9 @@ export async function listAuditLogs(filters = {}) {
     metadata: row.metadata || {},
     createdAt: new Date(row.created_at).getTime(),
   }));
-}');
+}
+
+export async function recordAuditTx');
   const pattern = '%' + escaped + '%';
   const where = `($1='' OR a.id ILIKE $2 ESCAPE '\\\\' OR COALESCE(u.email,'') ILIKE $2 ESCAPE '\\\\' OR a.action ILIKE $2 ESCAPE '\\\\' OR a.target_type ILIKE $2 ESCAPE '\\\\' OR COALESCE(a.target_id,'') ILIKE $2 ESCAPE '\\\\')
     AND ($3='all' OR a.action=$3)
