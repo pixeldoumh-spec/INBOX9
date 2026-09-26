@@ -26,7 +26,7 @@ test('phase 11.3 service catalog is admin-only and searchable', async () => {
   assert.match(repository, /ON CONFLICT \(service_id,provider_id\)/);
   assert.match(server, /GET \/api\/admin\/services/);
   assert.match(server, /PATCH \/api\/admin\/services\/\:id/);
-  assert.match(ui, /Provider routes/);
+  assert.match(ui, /PROVIDER ROUTES/);
   assert.match(ui, /Visible to customers/);
   assert.match(ui, /Add route/);
   assert.match(client, /getAdminServices/);
