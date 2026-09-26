@@ -1885,3 +1885,80 @@
   .app-shell .catalog-heading h1 { font-size: 25px; }
   .app-shell .catalog-heading p { font-size: 12px; }
 }
+
+
+/* Phase 10.1 follow-up — customer dark-surface authority
+ * Keeps legacy component selectors inside the customer shell on the Radium Night surface.
+ * Intentionally scoped to .app-shell; admin console styling is untouched.
+ */
+.app-shell :where(.notification-row, .account-panel, .detail-card, .number-card, .otp-card, .countdown-card, .wallet-header, .ledger-row, .activation-card, .ticket-row, .menu-row) {
+  background: var(--i9-surface);
+  border-color: var(--i9-border);
+  color: var(--i9-text);
+  box-shadow: none;
+}
+.app-shell :where(.notification-row, .account-panel, .detail-card, .number-card, .otp-card, .countdown-card, .wallet-header, .ledger-row, .activation-card, .ticket-row, .menu-row) :where(h2, h3, strong, b) {
+  color: var(--i9-text);
+}
+.app-shell :where(.notification-row, .account-panel, .detail-card, .number-card, .otp-card, .countdown-card, .wallet-header, .ledger-row, .activation-card, .ticket-row, .menu-row) :where(span, small, p, time) {
+  color: var(--i9-text-muted);
+}
+.app-shell .notification-row.unread {
+  background: #141a10;
+  border-color: rgb(182 255 59 / 28%);
+}
+.app-shell .notification-row.unread .notification-icon {
+  background: #192614;
+  color: var(--i9-accent);
+}
+.app-shell .notification-row .notification-title strong,
+.app-shell .notification-row .notification-link-label {
+  color: var(--i9-text) !important;
+}
+.app-shell .notification-row .notification-link-label {
+  color: var(--i9-accent) !important;
+}
+.app-shell .notification-row .notification-title time,
+.app-shell .notification-row p {
+  color: var(--i9-text-muted) !important;
+}
+.app-shell .account-panel {
+  background: var(--i9-surface);
+  border-color: var(--i9-border);
+}
+.app-shell .account-panel .section-heading h2,
+.app-shell .account-panel .field span,
+.app-shell .account-panel .panel-copy {
+  color: var(--i9-text-muted);
+}
+.app-shell .account-panel .section-heading h2 {
+  color: var(--i9-text) !important;
+}
+.app-shell .detail-card strong,
+.app-shell .detail-card span,
+.app-shell .detail-card small,
+.app-shell .number-card .big-number,
+.app-shell .otp-card .otp-value,
+.app-shell .countdown-card strong,
+.app-shell .countdown-card span {
+  color: var(--i9-text);
+}
+.app-shell .detail-card span,
+.app-shell .detail-card small,
+.app-shell .countdown-card span,
+.app-shell .card-label {
+  color: var(--i9-text-muted);
+}
+.app-shell .otp-card.otp-ready {
+  background: #141a10;
+  border-color: rgb(182 255 59 / 28%);
+}
+.app-shell .otp-card .otp-wait {
+  color: var(--i9-text-muted);
+}
+.app-shell .number-card,
+.app-shell .otp-card,
+.app-shell .countdown-card,
+.app-shell .detail-card {
+  box-shadow: 0 8px 26px rgb(0 0 0 / 18%);
+}
