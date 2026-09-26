@@ -1149,3 +1149,122 @@
   .app-shell .buy-empty-workspace,
   .app-shell .empty-state { border-color: var(--i9-border-strong); }
 }
+
+
+/* Customer UI Phase 2 — Apps launcher polish
+ * Customer/common-auth only. Keeps the mobile launcher readable in Radium Night
+ * while preserving the fixed four-column app-grid contract.
+ */
+.app-shell .catalog-apps {
+  color: var(--i9-text);
+}
+
+.app-shell .catalog-apps .search-field {
+  background: #0f140f;
+  border-color: var(--i9-border);
+  box-shadow: 0 8px 22px rgb(0 0 0 / 18%);
+}
+
+.app-shell .catalog-apps .search-field input {
+  color: var(--i9-text);
+}
+
+.app-shell .catalog-apps .search-field input::placeholder {
+  color: #707970;
+}
+
+.app-shell .catalog-apps .category-chip {
+  background: var(--i9-surface);
+  border-color: var(--i9-border);
+  color: var(--i9-text-muted);
+}
+
+.app-shell .catalog-apps .category-chip span {
+  color: var(--i9-text-subtle);
+}
+
+.app-shell .catalog-apps .category-chip.is-selected,
+.app-shell .catalog-apps .category-chip.is-selected span {
+  color: var(--i9-accent);
+}
+
+.app-shell .catalog-apps .recent-section h2,
+.app-shell .catalog-apps .catalog-section-title h2 {
+  color: var(--i9-text);
+}
+
+.app-shell .catalog-apps .section-subtle,
+.app-shell .catalog-apps .catalog-section-title > div > span {
+  color: var(--i9-text-subtle);
+}
+
+.app-shell .catalog-apps .recent-tile span,
+.app-shell .catalog-apps .service-name {
+  color: var(--i9-text-muted);
+  font-weight: 650;
+}
+
+.app-shell .catalog-apps .service-tile {
+  min-height: 99px;
+  border: 1px solid transparent;
+}
+
+.app-shell .catalog-apps .service-tile:hover,
+.app-shell .catalog-apps .service-tile:focus-visible {
+  border-color: var(--i9-border);
+  background: rgb(182 255 59 / 4%);
+  outline: none;
+}
+
+.app-shell .catalog-apps .service-tile:active {
+  background: rgb(182 255 59 / 7%);
+}
+
+.app-shell .catalog-apps .service-logo {
+  border-color: var(--i9-border-strong);
+  box-shadow: 0 6px 18px rgb(0 0 0 / 22%);
+}
+
+.app-shell .catalog-apps .service-logo-fallback-content {
+  color: var(--i9-accent);
+}
+
+.app-shell .catalog-apps .service-grid-placeholder .tile-skeleton {
+  background: linear-gradient(90deg, #111611, #171d17, #111611);
+}
+
+.app-shell .catalog-apps .catalog-section-title .text-button {
+  background: var(--i9-surface);
+  border-color: var(--i9-border);
+  color: var(--i9-accent);
+}
+
+@media (max-width: 720px) {
+  .app-shell .catalog-apps .service-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    column-gap: 7px;
+    row-gap: 18px;
+  }
+
+  .app-shell .catalog-apps .service-name {
+    font-size: 10.5px;
+    line-height: 1.25;
+  }
+}
+
+@media (max-width: 380px) {
+  .app-shell .catalog-apps .service-grid {
+    column-gap: 5px;
+    row-gap: 16px;
+  }
+
+  .app-shell .catalog-apps .service-name {
+    font-size: 10px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-shell .catalog-apps .service-tile {
+    transition: none;
+  }
+}
