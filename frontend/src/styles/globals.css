@@ -1015,3 +1015,23 @@ body{
     width: 100%;
   }
 }
+
+.admin-activations-layout{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:16px;align-items:start}
+.admin-activation-toolbar{display:flex;gap:10px;margin:14px 0}
+.admin-activation-list{display:grid;gap:8px}
+.admin-activation-row{width:100%;display:flex;justify-content:space-between;gap:14px;text-align:left;border:1px solid var(--border,#e6e6ed);background:var(--card,#fff);border-radius:16px;padding:14px;cursor:pointer}
+.admin-activation-row:hover,.admin-activation-row.is-selected{border-color:#8b63ff;box-shadow:0 6px 18px rgba(40,30,80,.08)}
+.admin-activation-main,.admin-activation-side{display:grid;gap:4px;min-width:0}
+.admin-activation-main span,.admin-activation-main small,.admin-activation-side small{color:var(--muted,#74747f);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.admin-activation-side{text-align:right;justify-items:end}
+.admin-activation-status{display:inline-flex;align-items:center;padding:5px 9px;border-radius:999px;font-size:12px;font-weight:700;background:#f1f1f5;color:#555}
+.admin-activation-status.status-active{background:#e8f8ee;color:#14733a}
+.admin-activation-status.status-cancellation-pending,.admin-activation-status.status-expiration-pending{background:#fff3dd;color:#8a5a00}
+.admin-activation-status.status-completed,.admin-activation-status.status-refunded{background:#e9f1ff;color:#2456a6}
+.admin-activation-status.status-expired,.admin-activation-status.status-cancelled{background:#f0f0f2;color:#666}
+.admin-activation-detail{display:grid;gap:16px}
+.admin-otp-value{font:800 34px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.18em;padding:18px;border:1px dashed var(--border,#ddd);border-radius:14px;text-align:center;background:#fafafd}
+.admin-error-copy{color:#b42318!important}
+.admin-activation-skeleton{height:92px;border-radius:16px;background:linear-gradient(90deg,#f2f2f5,#fbfbfc,#f2f2f5);background-size:200% 100%;animation:i9-shimmer 1.4s infinite}
+@media (max-width:900px){.admin-activations-layout{grid-template-columns:1fr}.admin-activation-side{justify-items:start;text-align:left}.admin-activation-row{flex-direction:column}.admin-activation-toolbar{flex-direction:column}}
+@keyframes i9-shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
