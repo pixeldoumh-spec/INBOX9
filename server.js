@@ -34,6 +34,7 @@ import adminUserById from './api/admin/users/_id.js';
 import adminServices from './api/admin/_services.js';
 import adminServiceById from './api/admin/services/_id.js';
 import adminActivations from './api/admin/_activations.js';
+import adminActivationById from './api/admin/activations/_id.js';
 import adminLedger from './api/admin/_ledger.js';
 import adminProviders from './api/admin/_providers.js';
 import adminProvidersHealth from './api/admin/_providers-health.js';
@@ -253,6 +254,9 @@ function routeFor(method, pathname) {
 
   match = pathname.match(/^\/api\/admin\/services\/([^/]+)$/);
   if (match) return { handler: adminServiceById, query: { id: decodeURIComponent(match[1]) } };
+
+  match = pathname.match(/^\/api\/admin\/activations\/([^/]+)$/);
+  if (match) return { handler: adminActivationById, query: { id: decodeURIComponent(match[1]) } };
 
   return null;
 }
