@@ -11,5 +11,5 @@ test('customer navigation keeps Buy as the canonical number/OTP workspace', asyn
   assert.ok(source.includes('function BuyPage()'));
   assert.ok(!source.includes('function BuyPage(){return <Catalog mode="buy"'));
   assert.ok(source.includes('function BuyActivationWorkspace({activationId,serviceId}'));
-  assert.ok(source.includes("n.kind==='activation'&&n.sourceId?'/buy?activationId='"));
+  assert.ok(account.includes("n.kind==='activation'&&n.sourceId?'/buy?activationId='"));
 });
