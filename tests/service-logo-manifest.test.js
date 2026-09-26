@@ -9,7 +9,7 @@ const shared=fs.readFileSync(path.join(root,'frontend/src/app/customer-ui-shared
 const manifest=fs.readFileSync(path.join(root,'frontend/src/app/serviceLogoManifest.ts'),'utf8');
 const spriteModule=fs.readFileSync(path.join(root,'frontend/src/app/serviceLogoSprite.ts'),'utf8');
 const prepareScript=fs.readFileSync(path.join(root,'frontend/scripts/prepare-service-logo-sprite.mjs'),'utf8');
-const partsDir=path.join(root,'frontend/assets/service-logo-sprite');
+const partsDir=path.join(root,'frontend/src/app/service-logo-sprite-parts');
 
 test('preprocessed service logo pack is build-time local and not runtime canvas work',()=>{
   assert.match(spriteModule,/SERVICE_LOGO_SPRITE_PATH/);
