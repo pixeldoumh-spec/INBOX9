@@ -27,7 +27,7 @@ export const asmsProvider = createProviderAdapter({
   async listServices(service = {}) {
     const country = countryCode(service);
     const data = await requestJson(BASE_URL + '/api/v1/otp/services?country=' + encodeURIComponent(country), { headers: headers() });
-    return { provider: 'asms', configured: true, country, services: Array.isArray(data?.services) ? data.services : [] };
+    return { provider: 'asms', configured: true, country: String(country).toUpperCase(), services: Array.isArray(data?.services) ? data.services : [] };
   },
   async reserveNumber(service) {
     const createdAt = Date.now();
