@@ -108,3 +108,17 @@ test('allocation contract preserves server selection only for non-production syn
 
   assert.equal(input.serverId, 'server-7');
 });
+
+test('synthetic flow issues an internal server before creating an activation', async () => {
+  const allocation = await syntheticProvider.reserveNumber({
+    id: 'svc-example',
+    name: 'Example',
+  });
+  const serverId = allocation.metadata?.serverId;
+  assert.match(serverId, /^server-\\d+$/);
+  assert.equal(allocation.metadata?.serverSelection, 'issued');
+  const slot = Number(allocation.metadata?.slot);
+  assert.ok(Number.isInteger(slot));
+  assert.ok(slot >= allocation.metadata?.serverStartSlot);
+  assert.ok(slot <= allocation.metadata?.serverEndSlot);
+});
