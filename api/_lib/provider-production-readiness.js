@@ -64,6 +64,10 @@ async function providerRowChecks(pool, provider, qualificationProvider) {
   const latestRecon = await pool.query(
     "SELECT status,started_at,completed_at FROM provider_reconciliation_runs ORDER BY started_at DESC LIMIT 1",
   );
+  const latestCanary = await pool.query(
+    "SELECT id,status,provider_activation_id,provider_service_code,observed_price_usd,started_at,completed_at,error_code,error_message,details FROM provider_lifecycle_certifications WHERE provider_id=$1 ORDER BY created_at DESC LIMIT 1",
+    [provider.id],
+  );
 
   const activeRoutes = Number(routeResult.rows[0]?.active_routes || 0);
   const mappedRoutes = Number(routeResult.rows[0]?.mapped_routes || 0);
@@ -84,7 +88,11 @@ async function providerRowChecks(pool, provider, qualificationProvider) {
 
   const lifecycleCanary = provider.adapter_key === 'synthetic'
     ? await runSyntheticLifecycleCanary().then(value => ({ status: 'passed', evidence: value })).catch(error => ({ status: 'failed', evidence: null, error: String(error?.message || 'Synthetic canary failed').slice(0,300) }))
-    : { status: 'not_run', evidence: null, error: null };
+    : latestCanary.rows[0]?.status === 'passed'
+      ? { status: 'passed', evidence: latestCanary.rows[0] }
+      : latestCanary.rows[0]?.status === 'failed'
+        ? { status: 'failed', evidence: latestCanary.rows[0], error: latestCanary.rows[0].error_code || latestCanary.rows[0].error_message || 'External lifecycle canary failed' }
+        : { status: 'not_run', evidence: latestCanary.rows[0] || null, error: latestCanary.rows[0]?.status === 'awaiting_otp' ? 'External lifecycle canary is awaiting OTP and is not certified' : null };
 
   let health = { healthy: false, configured: configuredFor(provider) };
   try {
@@ -164,6 +172,19 @@ async function providerRowChecks(pool, provider, qualificationProvider) {
       nonCancellableReserveAllowed: nonCancellableReserveAllowed(),
       lifecycleCanaryEvidence: lifecycleCanary.evidence,
       lifecycleCanaryError: lifecycleCanary.error,
+      latestLifecycleCertification: latestCanary.rows[0]
+        ? {
+            certificationId: latestCanary.rows[0].id,
+            status: latestCanary.rows[0].status,
+            providerActivationId: latestCanary.rows[0].provider_activation_id || null,
+            providerServiceCode: latestCanary.rows[0].provider_service_code || null,
+            observedPriceUsd: latestCanary.rows[0].observed_price_usd == null ? null : Number(latestCanary.rows[0].observed_price_usd),
+            startedAt: latestCanary.rows[0].started_at ? new Date(latestCanary.rows[0].started_at).getTime() : null,
+            completedAt: latestCanary.rows[0].completed_at ? new Date(latestCanary.rows[0].completed_at).getTime() : null,
+            errorCode: latestCanary.rows[0].error_code || null,
+            errorMessage: latestCanary.rows[0].error_message || null,
+          }
+        : null,
     },
   };
 }
@@ -200,6 +221,7 @@ export async function getProviderProductionReadiness({ persist = true } = {}) {
       externalProvidersRequireReconciliationClear: true,
       externalProvidersRequireRouteHealthClear: true,
       externalProvidersRequireLifecycleCanary: true,
+      externalLifecycleCanaryIsExplicitlyOptIn: true,
       publicSharedSourcesExcludedFromFulfillment: true,
       syntheticLifecycleCanaryIsNonBillable: true,
     },
