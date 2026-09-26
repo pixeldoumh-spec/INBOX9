@@ -1,0 +1,754 @@
+/* INBOX9 Customer Modern Foundation — Phase 1
+ * Scope: customer shell + common auth only.
+ * Deliberately contains no admin selectors or admin visual rules.
+ */
+
+.app-shell,
+.auth-page {
+  --background: var(--i9-bg);
+  --card: var(--i9-surface);
+  --border: var(--i9-border);
+  --border-strong: var(--i9-border-strong);
+  --shadow: var(--i9-shadow-card);
+  --surface-2: var(--i9-surface-subtle);
+  --success-soft: #eaf7f0;
+  --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: var(--i9-text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+.app-shell {
+  min-height: 100vh;
+  background: var(--i9-bg);
+}
+
+.app-shell :where(*) {
+  box-sizing: border-box;
+}
+
+.app-shell :where(button, input, textarea, select) {
+  font: inherit;
+}
+
+.app-shell :where(a) {
+  color: inherit;
+}
+
+.app-shell :where(button, a) {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.app-shell .top-header {
+  min-height: 68px;
+  padding: max(env(safe-area-inset-top), 0px) 16px 10px;
+  background: rgb(255 255 255 / 94%);
+  border-bottom: 1px solid var(--i9-border);
+  box-shadow: 0 1px 0 rgb(25 18 40 / 2%);
+  backdrop-filter: blur(18px);
+}
+
+.app-shell .brand {
+  min-height: 44px;
+  gap: 9px;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -.02em;
+}
+
+.app-shell .brand-mark,
+.app-shell .splash-mark {
+  border-radius: 12px;
+  background: var(--i9-accent);
+  box-shadow: 0 7px 18px rgb(109 62 231 / 18%);
+}
+
+.app-shell .brand-mark {
+  width: 36px;
+  height: 36px;
+}
+
+.app-shell .header-actions {
+  gap: 7px;
+}
+
+.app-shell .wallet-pill,
+.app-shell .notification-button,
+.app-shell .profile-button {
+  min-width: var(--i9-control-md);
+  min-height: var(--i9-control-md);
+  border-radius: var(--i9-radius-control);
+  border: 1px solid var(--i9-border);
+  box-shadow: none;
+}
+
+.app-shell .wallet-pill {
+  padding-inline: 11px;
+  background: var(--i9-surface);
+  color: var(--i9-text);
+  font-size: 13px;
+}
+
+.app-shell .wallet-add {
+  width: 24px;
+  height: 24px;
+  border-radius: 8px;
+  background: var(--i9-accent-soft);
+  color: var(--i9-accent);
+}
+
+.app-shell .notification-button {
+  background: var(--i9-surface);
+  color: var(--i9-text-muted);
+  animation: none;
+}
+
+.app-shell .notification-dot {
+  box-shadow: 0 0 0 3px var(--i9-surface);
+}
+
+.app-shell .notification-badge {
+  min-width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  font-size: 10px;
+  box-shadow: 0 0 0 3px var(--i9-surface);
+}
+
+.app-shell .profile-button {
+  background: var(--i9-surface);
+}
+
+.app-shell .profile-button span {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: var(--i9-accent-soft);
+  color: var(--i9-accent);
+  font-size: 12px;
+}
+
+.app-shell .offline-banner {
+  min-height: 36px;
+  padding: 8px 14px;
+  gap: 10px;
+  background: #fff8e7;
+  border-bottom: 1px solid #f0dfaf;
+  color: #745a18;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.app-shell .offline-banner button {
+  min-height: 32px;
+  border-radius: 9px;
+  border: 1px solid #e5cd88;
+  background: #fffdf8;
+  color: #745a18;
+  font-size: 12px;
+}
+
+.app-shell .page-content {
+  max-width: 1160px;
+  padding: 24px 16px calc(92px + env(safe-area-inset-bottom));
+}
+
+.app-shell .page-section {
+  padding-bottom: 28px;
+}
+
+.app-shell :where(.catalog-heading h1, .service-hero h1, .activation-hero h1, .account-hero h1) {
+  font-size: 30px;
+  line-height: 1.12;
+  letter-spacing: -.045em;
+}
+
+.app-shell :where(.catalog-heading p, .service-hero p, .account-hero p) {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--i9-text-muted);
+}
+
+.app-shell .catalog-eyebrow,
+.app-shell .card-label {
+  font-size: 11px;
+  line-height: 1.2;
+  letter-spacing: .09em;
+}
+
+.app-shell .catalog-chip {
+  min-height: 32px;
+  padding: 7px 11px;
+  border-color: var(--i9-border);
+  background: var(--i9-surface);
+  color: var(--i9-text-muted);
+  font-size: 12px;
+}
+
+.app-shell .search-field {
+  min-height: 52px;
+  margin-bottom: 16px;
+  padding-inline: 14px;
+  border: 1px solid var(--i9-border);
+  border-radius: 14px;
+  background: var(--i9-surface);
+  color: var(--i9-text-subtle);
+  box-shadow: none;
+}
+
+.app-shell .search-field:focus-within {
+  border-color: rgb(109 62 231 / 42%);
+  box-shadow: 0 0 0 4px rgb(109 62 231 / 8%);
+}
+
+.app-shell .search-field input {
+  min-height: 44px;
+  font-size: 16px;
+}
+
+.app-shell .search-field input::placeholder {
+  color: #918b98;
+}
+
+.app-shell .search-field button {
+  width: 36px;
+  height: 36px;
+}
+
+.app-shell .category-scroll {
+  gap: 8px;
+  margin-bottom: 16px;
+  scrollbar-width: none;
+}
+
+.app-shell .category-chip {
+  min-height: 36px;
+  padding-inline: 12px;
+  border-color: var(--i9-border);
+  border-radius: 999px;
+  background: var(--i9-surface);
+  color: var(--i9-text-muted);
+  font-size: 12px;
+}
+
+.app-shell .category-chip span {
+  font-size: 11px;
+}
+
+.app-shell .category-chip.is-selected {
+  border-color: rgb(109 62 231 / 28%);
+  background: var(--i9-accent-soft);
+  color: var(--i9-accent);
+}
+
+.app-shell :where(.service-tile, .recent-tile) {
+  min-width: 0;
+}
+
+.app-shell .service-logo {
+  border-radius: 16px;
+  border-color: var(--i9-border);
+  box-shadow: none;
+  background: var(--i9-surface);
+}
+
+.app-shell .service-tile {
+  border-color: var(--i9-border);
+  border-radius: var(--i9-radius-card);
+  background: var(--i9-surface);
+  box-shadow: none;
+  transition: border-color var(--i9-motion-base) var(--i9-ease-standard),
+              transform var(--i9-motion-base) var(--i9-ease-standard),
+              box-shadow var(--i9-motion-base) var(--i9-ease-standard);
+}
+
+.app-shell .service-tile:hover {
+  border-color: #d8d0e6;
+  box-shadow: var(--i9-shadow-card);
+  transform: translateY(-1px);
+}
+
+.app-shell .service-tile:active {
+  transform: translateY(0);
+}
+
+.app-shell .service-tile-name,
+.app-shell .recent-tile span {
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.app-shell .recent-section {
+  margin-bottom: 18px;
+}
+
+.app-shell .section-heading,
+.app-shell .section-heading-row {
+  margin-top: 24px;
+}
+
+.app-shell .section-heading h2,
+.app-shell .section-heading-row h2 {
+  font-size: 18px;
+  line-height: 1.3;
+  letter-spacing: -.025em;
+}
+
+.app-shell .section-subtle {
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--i9-text-subtle);
+}
+
+.app-shell :where(.primary-button, .outline-button, .secondary-danger, .text-button) {
+  min-height: var(--i9-control-lg);
+  border-radius: var(--i9-radius-control);
+  font-size: 14px;
+  line-height: 1.25;
+}
+
+.app-shell .primary-button {
+  background: var(--i9-accent);
+  box-shadow: 0 8px 20px rgb(109 62 231 / 18%);
+}
+
+.app-shell .primary-button:hover {
+  background: var(--i9-accent-hover);
+}
+
+.app-shell .outline-button {
+  border-color: var(--i9-border-strong);
+  background: var(--i9-surface);
+}
+
+.app-shell .text-button {
+  min-width: 40px;
+}
+
+.app-shell :where(.field span, .detail-card span) {
+  color: var(--i9-text-muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.app-shell :where(.panel-copy, .info-card p, .error-card p, .success-card p) {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--i9-text-muted);
+}
+
+.app-shell :where(.field input, .support-form input, .support-form textarea, .support-form select) {
+  border-color: var(--i9-border-strong);
+  border-radius: var(--i9-radius-control);
+  background: var(--i9-surface);
+  color: var(--i9-text);
+  font-size: 14px;
+}
+
+.app-shell :where(.field input, .support-form input, .support-form select) {
+  min-height: 48px;
+}
+
+.app-shell :where(.support-form textarea, .reply-form textarea) {
+  min-height: 112px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.app-shell :where(.field input, .support-form input, .support-form textarea, .support-form select, .reply-form textarea):focus {
+  border-color: rgb(109 62 231 / 42%);
+  box-shadow: 0 0 0 4px rgb(109 62 231 / 8%);
+}
+
+.app-shell :where(.form-error, .error-card, .info-card, .success-card) {
+  border-radius: var(--i9-radius-card);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.app-shell .form-error {
+  color: var(--i9-danger);
+}
+
+.app-shell :where(.empty-state, .detail-card, .activation-card, .ledger-row, .notification-row, .ticket-row, .menu-row, .recharge-card, .support-panel, .account-panel) {
+  border-color: var(--i9-border);
+  box-shadow: none;
+}
+
+.app-shell .empty-state {
+  min-height: 260px;
+  border-radius: var(--i9-radius-card);
+  background: rgb(255 255 255 / 72%);
+}
+
+.app-shell .empty-state h3 {
+  font-size: 16px;
+}
+
+.app-shell .empty-state p {
+  max-width: 44rem;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.app-shell .detail-card strong {
+  font-size: 18px;
+}
+
+.app-shell .detail-card small {
+  font-size: 12px;
+  color: var(--i9-text-subtle);
+}
+
+.app-shell .activation-card,
+.app-shell .ledger-row,
+.app-shell .notification-row,
+.app-shell .ticket-row,
+.app-shell .menu-row {
+  border-radius: var(--i9-radius-card);
+}
+
+.app-shell :where(.activation-title strong, .notification-title strong) {
+  font-size: 14px;
+}
+
+.app-shell :where(.notification-title time, .notification-row p, .notification-link-label) {
+  font-size: 12px;
+}
+
+.app-shell .notification-row p {
+  line-height: 1.5;
+  color: var(--i9-text-muted);
+}
+
+.app-shell .notification-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+}
+
+.app-shell .notification-strip {
+  border-color: var(--i9-border);
+  border-radius: var(--i9-radius-card);
+  background: var(--i9-surface);
+  box-shadow: none;
+}
+
+.app-shell .notification-strip-copy strong {
+  font-size: 14px;
+}
+
+.app-shell .notification-strip-copy span {
+  font-size: 12px;
+  color: var(--i9-text-muted);
+}
+
+.app-shell .notification-glow {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  box-shadow: 0 0 0 4px rgb(109 62 231 / 6%);
+}
+
+.app-shell .buy-wallet-strip,
+.app-shell .wallet-header,
+.app-shell .wallet-overview,
+.app-shell .wallet-detail-card,
+.app-shell .ticket-hero,
+.app-shell .ticket-thread-hero {
+  border-color: var(--i9-border);
+  border-radius: var(--i9-radius-card);
+  background: var(--i9-surface);
+  box-shadow: none;
+}
+
+.app-shell .buy-wallet-strip span,
+.app-shell .wallet-header span,
+.app-shell .wallet-overview-main span {
+  font-size: 12px;
+}
+
+.app-shell :where(.buy-wallet-strip strong, .wallet-header strong, .wallet-overview-main strong) {
+  font-size: 28px;
+}
+
+.app-shell .wallet-stat-grid > div {
+  border-color: var(--i9-border);
+}
+
+.app-shell .wallet-section-heading h2 {
+  font-size: 18px;
+}
+
+.app-shell .wallet-section-heading > span {
+  font-size: 12px;
+}
+
+.app-shell .wallet-step {
+  border-color: var(--i9-border);
+  border-radius: var(--i9-radius-control);
+}
+
+.app-shell .wallet-step strong {
+  font-size: 13px;
+}
+
+.app-shell .wallet-step small {
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.app-shell .wallet-filter-tab,
+.app-shell .notification-filter-tab,
+.app-shell .support-view-tab {
+  min-height: 40px;
+  border-radius: 10px;
+  font-size: 12px;
+}
+
+.app-shell .wallet-status-pill {
+  font-size: 11px !important;
+}
+
+.app-shell :where(.wallet-detail-grid span, .wallet-detail-grid strong) {
+  font-size: 12px;
+}
+
+.app-shell .card-label {
+  font-weight: 800;
+  color: var(--i9-text-subtle);
+}
+
+.app-shell .number-card,
+.app-shell .otp-card,
+.app-shell .countdown-card {
+  border-color: var(--i9-border);
+  border-radius: var(--i9-radius-card);
+  box-shadow: none;
+}
+
+.app-shell .number-card {
+  padding: 20px;
+}
+
+.app-shell .otp-card {
+  padding: 18px;
+}
+
+.app-shell .countdown-card span {
+  font-size: 12px;
+}
+
+.app-shell .countdown-card strong {
+  font-size: 18px;
+}
+
+.app-shell .reference-strip a {
+  font-size: 12px;
+  border-radius: 10px;
+}
+
+.app-shell .thread-message {
+  border-radius: 16px;
+  box-shadow: none;
+}
+
+.app-shell .thread-message span,
+.app-shell .thread-message time {
+  font-size: 11px;
+}
+
+.app-shell .thread-message p {
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.app-shell .support-quick-card small,
+.app-shell .support-category-chip {
+  font-size: 12px;
+}
+
+.app-shell .support-quick-card {
+  border-color: var(--i9-border);
+  border-radius: var(--i9-radius-card);
+  background: var(--i9-surface);
+  box-shadow: none;
+}
+
+.app-shell .support-category-chip {
+  min-height: 40px;
+  border-color: var(--i9-border-strong);
+  border-radius: 11px;
+}
+
+.app-shell .reply-form textarea {
+  border-color: var(--i9-border-strong);
+  border-radius: var(--i9-radius-control);
+  background: var(--i9-surface);
+}
+
+.app-shell .splash {
+  background: var(--i9-bg);
+  color: var(--i9-text-muted);
+  font-size: 13px;
+}
+
+.app-shell .bottom-nav {
+  min-height: 68px;
+  padding: 7px 8px calc(7px + env(safe-area-inset-bottom));
+  background: rgb(255 255 255 / 96%);
+  border-top-color: var(--i9-border);
+  box-shadow: 0 -8px 28px rgb(25 18 40 / 5%);
+  backdrop-filter: blur(18px);
+}
+
+.app-shell .bottom-nav-item {
+  min-height: 48px;
+  gap: 4px;
+  color: #8b8592;
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 12px;
+}
+
+.app-shell .bottom-nav-item.is-active {
+  color: var(--i9-accent);
+}
+
+.app-shell .bottom-nav-item.is-active:before {
+  width: 28px;
+  height: 3px;
+  border-radius: 999px;
+}
+
+.app-shell :where(a, button, input, select, textarea, summary):focus-visible {
+  outline: 3px solid rgb(109 62 231 / 34%);
+  outline-offset: 2px;
+}
+
+.auth-page {
+  min-height: 100svh;
+  padding: 24px 16px;
+  background: var(--i9-bg);
+}
+
+.auth-page .auth-card {
+  width: min(100%, 460px);
+  padding: 24px;
+  border: 1px solid var(--i9-border);
+  border-radius: var(--i9-radius-sheet);
+  background: var(--i9-surface);
+  box-shadow: var(--i9-shadow-float);
+}
+
+.auth-page .auth-brand {
+  min-height: 44px;
+  gap: 10px;
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.auth-page .auth-brand .brand-mark {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: var(--i9-accent);
+  box-shadow: 0 7px 18px rgb(109 62 231 / 18%);
+}
+
+.auth-page .auth-heading {
+  margin: 28px 0 22px;
+}
+
+.auth-page .auth-heading h1 {
+  font-size: 32px;
+  line-height: 1.12;
+  letter-spacing: -.045em;
+}
+
+.auth-page .auth-heading p {
+  margin-top: 8px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--i9-text-muted);
+}
+
+.auth-page .form-stack {
+  gap: 16px;
+}
+
+.auth-page .field {
+  gap: 8px;
+}
+
+.auth-page .field span {
+  font-size: 13px;
+  line-height: 1.35;
+  color: var(--i9-text-muted);
+}
+
+.auth-page .field input {
+  min-height: 48px;
+  border: 1px solid var(--i9-border-strong);
+  border-radius: var(--i9-radius-control);
+  padding-inline: 14px;
+  background: var(--i9-surface);
+  color: var(--i9-text);
+  font-size: 16px;
+}
+
+.auth-page .field input:focus {
+  border-color: rgb(109 62 231 / 42%);
+  box-shadow: 0 0 0 4px rgb(109 62 231 / 8%);
+}
+
+.auth-page .primary-button {
+  min-height: 48px;
+  margin-top: 2px;
+  border-radius: var(--i9-radius-control);
+  background: var(--i9-accent);
+  box-shadow: 0 8px 20px rgb(109 62 231 / 18%);
+  font-size: 15px;
+}
+
+.auth-page .auth-footer {
+  margin-top: 22px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--i9-text-muted);
+}
+
+.auth-page .auth-footer a {
+  color: var(--i9-accent);
+}
+
+.auth-page .form-error {
+  padding: 11px 12px;
+  border-radius: 12px;
+  background: #fff3f4;
+  border: 1px solid #efd4d8;
+  color: var(--i9-danger);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+@media (min-width: 640px) {
+  .auth-page {
+    padding: 36px 24px;
+  }
+
+  .auth-page .auth-card {
+    padding: 30px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-shell *,
+  .auth-page * {
+    scroll-behavior: auto !important;
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+  }
+}
