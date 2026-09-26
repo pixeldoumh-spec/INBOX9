@@ -303,11 +303,8 @@ function activationErrorMessage(reason:unknown){
   switch(reason.code){
    case 'INSUFFICIENT_BALANCE': return 'Your wallet balance is too low for this number.';
    case 'OUT_OF_STOCK': return 'This service is temporarily out of stock. Please try again shortly.';
-   case 'SERVICE_UNAVAILABLE':
-   case 'NO_PROVIDER':
-   case 'NO_PROVIDER_AVAILABLE': return 'This service is temporarily unavailable. Please try another service.';
-   case 'CANCELLATION_UNAVAILABLE':
-   case 'PROVIDER_CANCEL_FAILED': return 'Cancellation is temporarily unavailable. Please try again shortly.';
+   case 'SERVICE_UNAVAILABLE': return 'This service is temporarily unavailable. Please try another service.';
+   case 'CANCELLATION_UNAVAILABLE': return 'Cancellation is temporarily unavailable. Please try again shortly.';
    case 'IDEMPOTENCY_IN_PROGRESS': return 'This request is already being processed. Please wait a moment.';
    default: return reason.message && !/(provider|adapter|synthetic|mock|debug|test|development)/i.test(reason.message)
     ? reason.message
