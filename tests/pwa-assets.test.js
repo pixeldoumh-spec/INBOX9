@@ -7,7 +7,6 @@ const root=process.cwd();
 const manifestPath=path.join(root,'frontend/public/manifest.webmanifest');
 const indexPath=path.join(root,'frontend/index.html');
 const mainPath=path.join(root,'frontend/src/main.tsx');
-const swPath=path.join(root,'frontend/public/sw.js');
 
 function pngDimensions(file){
   const b=fs.readFileSync(file);
@@ -34,7 +33,6 @@ test('PWA icons have declared dimensions',()=>{
 test('mobile metadata is wired and stale service-worker caching is retired',()=>{
   const index=fs.readFileSync(indexPath,'utf8');
   const main=fs.readFileSync(mainPath,'utf8');
-  const sw=fs.readFileSync(swPath,'utf8');
   assert.match(index,/apple-mobile-web-app-capable/);
   assert.match(index,/apple-touch-icon/);
   assert.match(index,/manifest\.webmanifest/);
@@ -42,6 +40,4 @@ test('mobile metadata is wired and stale service-worker caching is retired',()=>
   assert.match(main,/registration\.unregister\(\)/);
   assert.match(main,/key\.startsWith\('inbox9-shell-'\)/);
   assert.doesNotMatch(main,/serviceWorker\.register\('\/sw\.js'\)/);
-  assert.match(sw,/CACHE_NAME='inbox9-shell-v2'/);
-  assert.match(sw,/url\.pathname\.startsWith\('\/api\/'\)/);
 });
