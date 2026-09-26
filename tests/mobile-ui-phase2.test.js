@@ -30,7 +30,9 @@ test('phase 2 launcher keeps service identity stable and routes by service ID',(
   assert.match(app,/key={item\.id} to={\`\/buy\?serviceId=\$\{encodeURIComponent\(item\.id\)\}\`}/);
   assert.match(shared,/data-service-id={serviceId}/);
   assert.match(shared,/const logo=SERVICE_LOGO_MANIFEST\[serviceId\]/);
-  assert.match(shared,/serviceLogoCropCache/);
+  assert.match(shared,/data-logo-source=\{has\?'sprite-tile':'fallback'\}/);
+  assert.match(shared,/backgroundPosition/);
+  assert.doesNotMatch(shared,/serviceLogoCropCache|cropServiceLogo|detectSafeCrop|getImageData|toBlob|createObjectURL/);
 });
 
 test('phase 2 launcher preserves app-like navigation and unread notification access',()=>{
