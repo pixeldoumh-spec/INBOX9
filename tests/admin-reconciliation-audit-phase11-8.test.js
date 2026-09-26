@@ -25,6 +25,8 @@ test('phase 11.8 wallet reconciliation is admin-only, audited and non-mutating',
   assert.doesNotMatch(repo, /UPDATE wallets SET balance_paise/);
   assert.doesNotMatch(repo, /UPDATE wallet_ledger SET/);
   assert.match(server, /adminWalletReconciliation/);
+  assert.match(server, /POST \/api\/admin\/wallet-reconciliation/);
+  assert.match(server, /PATCH \/api\/admin\/wallet-reconciliation/);
   assert.match(ui, /Run reconciliation/);
   assert.match(ui, /does not change wallet balances/);
   assert.match(app, /AdminReconciliationPage/);
