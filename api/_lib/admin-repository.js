@@ -369,18 +369,45 @@ export async function updateService(adminUserId, serviceId, patch = {}) {
     };
   });
 }
-export async function listAdminActivations(limit = 100) {
+export async function listAdminActivations(filters = {}) {
+  const input = typeof filters === 'number' ? { limit: filters } : (filters || {});
+  const safeLimit = Math.min(Math.max(Number(input.limit) || 40, 1), 100);
+  const safeOffset = Math.min(Math.max(Number(input.offset) || 0, 0), 100000);
+  const query = String(input.query || '').trim().slice(0, 120);
+  const allowedStatuses = ['all','Active','CancellationPending','ExpirationPending','Completed','Expired','Refunded','Cancelled'];
+  const status = allowedStatuses.includes(String(input.status)) ? String(input.status) : 'all';
+  const escapedQuery = query.replace(/[%_]/g, '\\$&');
+  const pattern = '%' + escapedQuery + '%';
+  const where = "($1='' OR a.id ILIKE $2 ESCAPE '\\\\' OR a.service_name ILIKE $2 ESCAPE '\\\\' OR a.phone_number ILIKE $2 ESCAPE '\\\\' OR u.email ILIKE $2 ESCAPE '\\\\' OR u.id ILIKE $2 ESCAPE '\\\\') AND ($3='all' OR a.status=$3)";
   const pool = await getPool();
-  const safeLimit = Math.min(Math.max(Number(limit) || 100, 1), 250);
-  const result = await pool.query(
-    `SELECT a.*, u.email
-     FROM activations a
-     LEFT JOIN users u ON u.id=a.user_id
-     ORDER BY a.created_at DESC LIMIT $1`, [safeLimit]
-  );
-  return result.rows.map(mapActivation);
+  const summarySql = 'SELECT COUNT(*)::int AS total, COUNT(*) FILTER (WHERE a.status=\'Active\')::int AS active, COUNT(*) FILTER (WHERE a.status=\'CancellationPending\')::int AS cancellation_pending, COUNT(*) FILTER (WHERE a.status=\'ExpirationPending\')::int AS expiration_pending, COUNT(*) FILTER (WHERE a.status=\'Completed\')::int AS completed, COUNT(*) FILTER (WHERE a.status=\'Expired\')::int AS expired, COUNT(*) FILTER (WHERE a.status=\'Refunded\')::int AS refunded, COUNT(*) FILTER (WHERE a.status=\'Cancelled\')::int AS cancelled FROM activations a LEFT JOIN users u ON u.id=a.user_id WHERE ' + where;
+  const rowsSql = 'SELECT a.*,u.email,u.display_name,p.name AS provider_name,p.adapter_key,COALESCE(po.pending_operations,0)::int AS pending_operations,COALESCE(po.failed_operations,0)::int AS failed_operations,po.latest_operation_type,po.latest_operation_status,po.latest_operation_error,po.latest_operation_updated_at FROM activations a LEFT JOIN users u ON u.id=a.user_id LEFT JOIN providers p ON p.id=a.provider_id LEFT JOIN LATERAL (SELECT COUNT(*) FILTER (WHERE x.status=\'Pending\') AS pending_operations,COUNT(*) FILTER (WHERE x.status=\'Failed\') AS failed_operations,(array_agg(x.operation_type ORDER BY x.updated_at DESC))[1] AS latest_operation_type,(array_agg(x.status ORDER BY x.updated_at DESC))[1] AS latest_operation_status,(array_agg(x.last_error ORDER BY x.updated_at DESC))[1] AS latest_operation_error,(array_agg(x.updated_at ORDER BY x.updated_at DESC))[1] AS latest_operation_updated_at FROM provider_operations x WHERE x.activation_id=a.id) po ON TRUE WHERE ' + where + ' ORDER BY CASE WHEN a.status IN (\'Active\',\'CancellationPending\',\'ExpirationPending\') THEN 0 ELSE 1 END,a.created_at DESC,a.id LIMIT $4 OFFSET $5';
+  const [summary,result] = await Promise.all([pool.query(summarySql,[query,pattern,status]),pool.query(rowsSql,[query,pattern,status,safeLimit,safeOffset])]);
+  const total = Number(summary.rows[0].total || 0);
+  return {
+    activations: result.rows.map(row => ({
+      ...mapActivation(row), userId: row.user_id, email: row.email || null, displayName: row.display_name || '',
+      providerName: row.provider_name || null, adapterKey: row.adapter_key || null,
+      pendingOperations: Number(row.pending_operations || 0), failedOperations: Number(row.failed_operations || 0),
+      latestOperation: row.latest_operation_type ? { type: row.latest_operation_type, status: row.latest_operation_status, error: row.latest_operation_error || null, updatedAt: row.latest_operation_updated_at ? new Date(row.latest_operation_updated_at).getTime() : null } : null,
+    })),
+    summary: { total, active: Number(summary.rows[0].active || 0), cancellationPending: Number(summary.rows[0].cancellation_pending || 0), expirationPending: Number(summary.rows[0].expiration_pending || 0), completed: Number(summary.rows[0].completed || 0), expired: Number(summary.rows[0].expired || 0), refunded: Number(summary.rows[0].refunded || 0), cancelled: Number(summary.rows[0].cancelled || 0) },
+    pagination: { limit: safeLimit, offset: safeOffset, hasMore: safeOffset + result.rows.length < total },
+  };
 }
 
+export async function getAdminActivation(activationId) {
+  const pool = await getPool();
+  const target = String(activationId || '').trim();
+  const result = await pool.query('SELECT a.*,u.email,u.display_name,p.name AS provider_name,p.adapter_key FROM activations a LEFT JOIN users u ON u.id=a.user_id LEFT JOIN providers p ON p.id=a.provider_id WHERE a.id=$1',[target]);
+  if (!result.rowCount) throw Object.assign(new Error('Activation not found'),{statusCode:404});
+  const row=result.rows[0];
+  const operations=await pool.query('SELECT id,operation_type,status,provider_id,provider_activation_id,attempts,last_error,created_at,updated_at,completed_at FROM provider_operations WHERE activation_id=$1 ORDER BY created_at DESC LIMIT 20',[target]);
+  return {
+    activation:{...mapActivation(row),userId:row.user_id,email:row.email||null,displayName:row.display_name||'',providerName:row.provider_name||null,adapterKey:row.adapter_key||null},
+    operations:operations.rows.map(op=>({id:op.id,type:op.operation_type,status:op.status,providerId:op.provider_id,providerActivationId:op.provider_activation_id,attempts:Number(op.attempts||0),error:op.last_error||null,createdAt:new Date(op.created_at).getTime(),updatedAt:new Date(op.updated_at).getTime(),completedAt:op.completed_at?new Date(op.completed_at).getTime():null})),
+  };
+}
 export async function listAdminLedger(limit = 100) {
   const pool = await getPool();
   const safeLimit = Math.min(Math.max(Number(limit) || 100, 1), 250);
