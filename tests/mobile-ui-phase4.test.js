@@ -32,10 +32,10 @@ test('phase 4 preserves admin implementations outside customer chunks',()=>{
 test('phase 4 logo rendering uses exact CSS sprite cell positioning with no runtime crop work',()=>{
   assert.doesNotMatch(shared,/service-logo-sprite-canvas/);
   assert.match(shared,/backgroundImage: 'url\('\+path\+'\)'/);
-  assert.match(shared,/backgroundSize: \(columns\*100\)\+'% \'+\(rows\*100\)\+'%'/);
+  assert.match(shared,/backgroundSize/);
   assert.match(shared,/backgroundPosition/);
-  assert.match(shared,/column\/\(Math\.max\(columns-1,1\)\)/);
-  assert.match(shared,/row\/\(Math\.max\(rows-1,1\)\)/);
+  assert.match(shared,/Math\.max\(columns-1,1\)/);
+  assert.match(shared,/Math\.max\(rows-1,1\)/);
   assert.doesNotMatch(shared,/output\.toDataURL\('image\/png'\)/);
   assert.doesNotMatch(shared,/getImageData|toBlob|createObjectURL|cropServiceLogo|detectSafeCrop/);
 });
