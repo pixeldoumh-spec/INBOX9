@@ -7,7 +7,7 @@ test('Phase 11.2 admin user operations are isolated, searchable and auditable', 
   const detailRoute=await fs.readFile(new URL('../api/admin/users/_id.js',import.meta.url),'utf8');
   const repository=await fs.readFile(new URL('../api/_lib/admin-repository.js',import.meta.url),'utf8');
   const ui=await fs.readFile(new URL('../frontend/src/features/admin/AdminUsers.tsx',import.meta.url),'utf8');
-  assert.match(route,/requireAdmin/); assert.match(route,/req\.method!=='GET'/);
+  assert.match(route,/requireAdmin/); assert.match(route,/req\.method !== 'GET'/);
   assert.match(detailRoute,/requireAdmin/); assert.match(detailRoute,/enforceSameOrigin/); assert.match(detailRoute,/logout_all/);
   assert.match(repository,/user.disabled/); assert.match(repository,/user.enabled/); assert.match(repository,/user.sessions_revoked/);
   assert.match(repository,/DELETE FROM sessions WHERE user_id=\$1/);
