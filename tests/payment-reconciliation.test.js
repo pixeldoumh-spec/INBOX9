@@ -50,3 +50,26 @@ test('recharge endpoint binds a database-backed submission to the authenticated 
   assert.match(route, /submissionSessionId/);
   assert.match(auth, /export async function getSessionIdForRequest/);
 });
+
+test('customer manual recharge flow exposes payment evidence, reference, support and status filters', () => {
+  const app = fs.readFileSync(new URL('../frontend/src/app/App.tsx', import.meta.url), 'utf8');
+  const api = fs.readFileSync(new URL('../frontend/src/api/recharges.ts', import.meta.url), 'utf8');
+  assert.match(app, /customerPaidAt/);
+  assert.match(app, /submittedRechargeId/);
+  assert.match(app, /Recharge submitted/);
+  assert.match(app, /Need help with this recharge/);
+  assert.match(app, /rechargeFilter/);
+  assert.match(app, /Payment completed at/);
+  assert.match(api, /createRecharge\(amount:number,utr:string,customerPaidAt\?:string\)/);
+});
+
+test('admin manual review flow requires explicit evidence acknowledgement and removes gateway settlement UI', () => {
+  const app = fs.readFileSync(new URL('../frontend/src/app/App.tsx', import.meta.url), 'utf8');
+  assert.match(app, /I verified the payment record/);
+  assert.match(app, /decision==='approve'&&!reviewConfirmed/);
+  assert.match(app, /No gateway settlement is used here/);
+  assert.match(app, /Pending value/);
+  assert.match(app, /Flagged/);
+  assert.match(app, /Payment events & flags/);
+  assert.doesNotMatch(app, /No webhook events/);
+});
