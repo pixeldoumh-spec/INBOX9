@@ -5,6 +5,7 @@ import test from 'node:test';
 
 const root=process.cwd();
 const app=fs.readFileSync(path.join(root,'frontend/src/app/App.tsx'),'utf8');
+const shared=fs.readFileSync(path.join(root,'frontend/src/app/customer-ui-shared.tsx'),'utf8');
 const customerCss=fs.readFileSync(path.join(root,'frontend/src/styles/customer-modern.css'),'utf8');
 const globalsCss=fs.readFileSync(path.join(root,'frontend/src/styles/globals.css'),'utf8');
 const catalog=fs.readFileSync(path.join(root,'api/_lib/catalog.js'),'utf8');
@@ -27,9 +28,9 @@ test('phase 2 launcher renders the fixed four-column mobile grid without changin
 
 test('phase 2 launcher keeps service identity stable and routes by service ID',()=>{
   assert.match(app,/key={item\.id} to={\`\/buy\?serviceId=\$\{encodeURIComponent\(item\.id\)\}\`}/);
-  assert.match(app,/data-service-id={serviceId}/);
-  assert.match(app,/const logo=SERVICE_LOGO_MANIFEST\[serviceId\]/);
-  assert.match(app,/serviceLogoCropCache/);
+  assert.match(shared,/data-service-id={serviceId}/);
+  assert.match(shared,/const logo=SERVICE_LOGO_MANIFEST\[serviceId\]/);
+  assert.match(shared,/serviceLogoCropCache/);
 });
 
 test('phase 2 launcher preserves app-like navigation and unread notification access',()=>{

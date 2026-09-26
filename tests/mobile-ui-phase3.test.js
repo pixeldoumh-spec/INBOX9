@@ -5,6 +5,8 @@ import test from 'node:test';
 
 const root=process.cwd();
 const app=fs.readFileSync(path.join(root,'frontend/src/app/App.tsx'),'utf8');
+const activity=fs.readFileSync(path.join(root,'frontend/src/app/customer-activity-pages.tsx'),'utf8');
+const account=fs.readFileSync(path.join(root,'frontend/src/app/customer-account-pages.tsx'),'utf8');
 const css=fs.readFileSync(path.join(root,'frontend/src/styles/customer-modern.css'),'utf8');
 
 test('phase 3 mounts all five customer account surfaces as independent routes',()=>{
@@ -16,61 +18,61 @@ test('phase 3 mounts all five customer account surfaces as independent routes',(
 });
 
 test('phase 3 wallet surface is server-backed and preserves manual recharge rules',()=>{
-  assert.match(app,/function WalletPage\(\)/);
-  assert.match(app,/queryKey:\['wallet'\],queryFn:getWallet/);
-  assert.match(app,/createRecharge\(Number\(amount\),utr\.trim\(\)/);
-  assert.match(app,/min="100"/);
-  assert.match(app,/max="5000"/);
-  assert.match(app,/className="payment-paid-button"/);
-  assert.match(app,/manual verification protects the wallet/i);
-  assert.match(app,/Wallet credit is applied only after verification/);
+  assert.match(account,/function WalletPage\(\)/);
+  assert.match(account,/queryKey:\['wallet'\],queryFn:getWallet/);
+  assert.match(account,/createRecharge\(Number\(amount\),utr\.trim\(\)/);
+  assert.match(account,/min="100"/);
+  assert.match(account,/max="5000"/);
+  assert.match(account,/className="payment-paid-button"/);
+  assert.match(account,/manual verification protects the wallet/i);
+  assert.match(account,/Wallet credit is applied only after verification/);
 });
 
 test('phase 3 Active surface tracks ongoing and historical activations and exposes cancellation/OTP states',()=>{
-  assert.match(app,/function ActivePage\(\)/);
-  assert.match(app,/queryKey:\['activations'\],queryFn:getActivations/);
-  assert.match(app,/className="active-tabs"/);
-  assert.match(app,/No ongoing activations/);
-  assert.match(app,/function ActivationPage\(\)/);
-  assert.match(app,/refetchInterval:query=>.*2_000/);
-  assert.match(app,/className=\{`otp-card/);
-  assert.match(app,/cancelActivation\(activationId!/);
-  assert.match(app,/Cancel & refund/);
+  assert.match(activity,/function ActivePage\(\)/);
+  assert.match(activity,/queryKey:\['activations'\],queryFn:getActivations/);
+  assert.match(activity,/className="active-tabs"/);
+  assert.match(activity,/No ongoing activations/);
+  assert.match(activity,/function ActivationPage\(\)/);
+  assert.match(activity,/refetchInterval:query=>.*2_000/);
+  assert.match(activity,/className=\{`otp-card/);
+  assert.match(activity,/cancelActivation\(activationId!/);
+  assert.match(activity,/Cancel & refund/);
 });
 
 test('phase 3 Notifications surface persists read state and deep-links related records',()=>{
-  assert.match(app,/function NotificationsPage\(\)/);
-  assert.match(app,/queryKey:\['notifications'\],queryFn:getNotifications/);
-  assert.match(app,/markAllNotificationsRead/);
-  assert.match(app,/markNotificationRead/);
-  assert.match(app,/n\.kind==='activation'.*sourceId/);
-  assert.match(app,/n\.page==='wallet'/);
-  assert.match(app,/n\.page==='support'/);
-  assert.match(app,/aria-label="Notification filter"/);
+  assert.match(account,/function NotificationsPage\(\)/);
+  assert.match(account,/queryKey:\['notifications'\],queryFn:getNotifications/);
+  assert.match(account,/markAllNotificationsRead/);
+  assert.match(account,/markNotificationRead/);
+  assert.match(account,/n\.kind==='activation'.*sourceId/);
+  assert.match(account,/n\.page==='wallet'/);
+  assert.match(account,/n\.page==='support'/);
+  assert.match(account,/aria-label="Notification filter"/);
 });
 
 test('phase 3 Support surface provides categorized tickets, references, threads and replies',()=>{
-  assert.match(app,/function SupportPage\(\)/);
-  assert.match(app,/getSupportTickets/);
-  assert.match(app,/createSupportTicket/);
-  assert.match(app,/activationId/);
-  assert.match(app,/rechargeId/);
-  assert.match(app,/function SupportThreadPage\(\)/);
-  assert.match(app,/replySupportTicket\(/);
-  assert.match(app,/className="message-thread support-message-thread"/);
-  assert.match(app,/Continue the conversation/);
+  assert.match(account,/function SupportPage\(\)/);
+  assert.match(account,/getSupportTickets/);
+  assert.match(account,/createSupportTicket/);
+  assert.match(account,/activationId/);
+  assert.match(account,/rechargeId/);
+  assert.match(account,/function SupportThreadPage\(\)/);
+  assert.match(account,/replySupportTicket\(/);
+  assert.match(account,/className="message-thread support-message-thread"/);
+  assert.match(account,/Continue the conversation/);
 });
 
 test('phase 3 Account surface provides profile, password, recovery, sessions and global sign-out',()=>{
-  assert.match(app,/function AccountPage\(\)/);
-  assert.match(app,/updateProfile\(name\)/);
-  assert.match(app,/changePassword\(currentPassword,newPassword\)/);
-  assert.match(app,/issueRecoveryCode/);
-  assert.match(app,/getSessions/);
-  assert.match(app,/revokeSession\(id\)/);
-  assert.match(app,/logoutAll/);
-  assert.match(app,/Sign out everywhere/);
-  assert.match(app,/Open recovery screen/);
+  assert.match(account,/function AccountPage\(\)/);
+  assert.match(account,/updateProfile\(name\)/);
+  assert.match(account,/changePassword\(currentPassword,newPassword\)/);
+  assert.match(account,/issueRecoveryCode/);
+  assert.match(account,/getSessions/);
+  assert.match(account,/revokeSession\(id\)/);
+  assert.match(account,/logoutAll/);
+  assert.match(account,/Sign out everywhere/);
+  assert.match(account,/Open recovery screen/);
 });
 
 test('phase 3 Radium surface styling keeps the five account areas customer-scoped',()=>{

@@ -53,13 +53,14 @@ test('recharge endpoint binds a database-backed submission to the authenticated 
 
 test('customer manual recharge flow exposes payment evidence, reference, support and status filters', () => {
   const app = fs.readFileSync(new URL('../frontend/src/app/App.tsx', import.meta.url), 'utf8');
+  const customerAccount = fs.readFileSync(new URL('../frontend/src/app/customer-account-pages.tsx', import.meta.url), 'utf8');
   const api = fs.readFileSync(new URL('../frontend/src/api/recharges.ts', import.meta.url), 'utf8');
-  assert.match(app, /customerPaidAt/);
-  assert.match(app, /submittedRechargeId/);
-  assert.match(app, /Recharge submitted/);
-  assert.match(app, /Need help with this recharge/);
-  assert.match(app, /rechargeFilter/);
-  assert.match(app, /Payment completed at/);
+  assert.match(customerAccount, /customerPaidAt/);
+  assert.match(customerAccount, /submittedRechargeId/);
+  assert.match(customerAccount, /Recharge submitted/);
+  assert.match(customerAccount, /Need help with this recharge/);
+  assert.match(customerAccount, /rechargeFilter/);
+  assert.match(customerAccount, /Payment completed at/);
   assert.match(api, /createRecharge\(amount:number,utr:string,customerPaidAt\?:string\)/);
 });
 
