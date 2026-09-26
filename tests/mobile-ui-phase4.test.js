@@ -30,11 +30,11 @@ test('phase 4 preserves admin implementations outside customer chunks',()=>{
 });
 
 test('phase 4 logo rendering deduplicates work and uses cached blob URLs',()=>{
-  assert.match(shared,/serviceLogoCropPromiseCache/);
+  assert.match(shared,/backgroundPosition/);
   assert.match(shared,/serviceLogoCropPromiseCache\.set\(index,job\)/);
-  assert.match(shared,/URL\.createObjectURL\(blob\)/);
+  assert.doesNotMatch(shared,/URL\.createObjectURL\(blob\)/);
   assert.doesNotMatch(shared,/output\.toDataURL\('image\/png'\)/);
-  assert.match(shared,/decoding="async"/);
+  assert.doesNotMatch(shared,/getImageData|toBlob|createObjectURL|cropServiceLogo|detectSafeCrop/);
 });
 
 test('phase 4 customer motion and offscreen containment are scoped to customer/auth UI',()=>{
