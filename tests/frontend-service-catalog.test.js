@@ -27,3 +27,12 @@ test('admin service console guards service selection against malformed catalog p
   assert.doesNotMatch(source, /services\.data\?\.services\.find\(/);
   assert.match(source, /Array\.isArray\(services\.data\?\.services\)/);
 });
+
+test('app router defines explicit runtime error handlers', async () => {
+  const source = await fs.readFile(new URL('../frontend/src/app/App.tsx', import.meta.url), 'utf8');
+  assert.match(source, /class AppErrorBoundary extends Component/);
+  assert.match(source, /function RouteErrorScreen\(\)/);
+  assert.match(source, /errorElement:<RouteErrorScreen\/>/);
+  assert.match(source, /<AppErrorBoundary>/);
+  assert.match(source, /Reload INBOX9/);
+});
