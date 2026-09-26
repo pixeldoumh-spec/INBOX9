@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { getAdminSupport, updateAdminSupport, type AdminSupportTicket } from '../../api/admin-support';
+import { getAdminUsers } from '../../api/admin';
 
 const statuses = ['All','Open','In Progress','Resolved','Closed'] as const;
 
@@ -27,6 +28,8 @@ export function AdminSupportPage() {
   const [actionError,setActionError] = useState<string|null>(null);
   const [message,setMessage] = useState<string|null>(null);
 
+  const adminsQ = useQuery({queryKey:['admin-support-admins'],queryFn:()=>getAdminUsers({role:'admin',status:'active',limit:100}),staleTime:30000,refetchOnReconnect:true});
+
   const q = useQuery({
     queryKey:['admin-support',query,status],
     queryFn:()=>getAdminSupport({q:query,status:status==='All'?'all':status}),
@@ -52,13 +55,9 @@ export function AdminSupportPage() {
     setMessage(null);
   },[selectedId]);
 
-  const admins = useMemo(()=>{
-    const map = new Map<string,string>();
-    for(const ticket of tickets) {
-      if(ticket.assignedAdminId && ticket.assignedAdminEmail) map.set(ticket.assignedAdminId,ticket.assignedAdminEmail);
-    }
-    return [...map.entries()];
-  },[tickets]);
+  const admins = useMemo(()=>(
+    adminsQ.data?.users?.map(admin=>[admin.id,admin.email] as [string,string]) ?? []
+  ),[adminsQ.data?.users]);
 
   const mutation = useMutation({
     mutationFn:()=> {
