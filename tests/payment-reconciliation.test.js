@@ -37,7 +37,7 @@ test('admin payment reconciliation exposes summary and flagged requests', () => 
 
 test('recharge requests capture the originating session and admin queue exposes payment history context', () => {
   assert.match(sessionMigration, /submission_session_id/);
-  assert.match(walletRepo, /createRecharge\(userId, amountPaise, utr, submissionSessionId = null, upiIdOverride = null\)/);
+  assert.match(walletRepo, /createRecharge\(userId, amountPaise, utr, submissionSessionId = null, upiIdOverride = null, customerPaidAt = null\)/);
   assert.match(walletRepo, /submission_session_id\)/);
   assert.match(walletRepo, /recent_payment_history/);
   assert.match(walletRepo, /active_session_count/);
