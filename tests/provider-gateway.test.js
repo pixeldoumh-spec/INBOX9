@@ -1,9 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { invokeAdapter, invokeProvider, getProviderGatewayMetrics, providerCapabilities, resetProviderGatewayMetrics } from '../api/_lib/provider-gateway.js';
+import { listProviderAdapters } from '../api/_lib/provider-registry.js';
 import { syntheticProvider } from '../api/_lib/synthetic-provider.js';
 
 test.afterEach(() => resetProviderGatewayMetrics());
+
+test('provider registry contains only the synthetic fulfillment adapter', () => {
+  assert.deepEqual(listProviderAdapters(), ['synthetic']);
+});
 
 test('provider adapters expose explicit gateway capabilities', () => {
   assert.equal(providerCapabilities(syntheticProvider).cancelActivation, true);
