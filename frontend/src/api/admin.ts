@@ -14,7 +14,9 @@ export type AdminService={id:string;name:string;category:string;country:string;c
 export type AdminServicesResponse={services:AdminService[];summary:{total:number;active:number;inactive:number};pagination:{limit:number;offset:number;hasMore:boolean}};
 export type AdminProvider={id:string;name:string;adapterKey:string;active:boolean;priority:number;routedServices:number};
 export type AdminProviderHealth={id:string;name:string;adapterKey:string;healthy:boolean;latencyMs?:number;error?:string;message?:string};
-export type AdminProvidersResponse={providers:AdminProvider[];health:AdminProviderHealth[];installedAdapters:string[];gateway:{version:number;timeoutsMs:Record<string,number>;metrics:string;safeReserveRetry:string}};
+export type AdminRouteHealth={providerId:string;providerName:string;adapterKey:string;serviceId:string;serviceName:string;consecutiveFailures:number;openedUntil:number|null;lastErrorCode:string|null;lastErrorMessage:string|null;lastFailureAt:number|null;lastSuccessAt:number|null;updatedAt:number};
+export type AdminRouteAttempt={id:string;serviceId:string;serviceName:string;providerId:string;providerName:string;adapterKey:string;operationType:string;outcome:string;safeToFailover:boolean;errorCode:string|null;latencyMs:number|null;createdAt:number};
+export type AdminProvidersResponse={providers:AdminProvider[];health:AdminProviderHealth[];installedAdapters:string[];gateway:{version:number;timeoutsMs:Record<string,number>;metrics:string;safeReserveRetry:string;externalRoutingEnabled:boolean};routeHealth:AdminRouteHealth[];routeAttempts:AdminRouteAttempt[]};
 export function getAdminServices(params:{q?:string;status?:'all'|'active'|'inactive';limit?:number;offset?:number}={}){
   const p=new URLSearchParams();
   if(params.q)p.set('q',params.q);
