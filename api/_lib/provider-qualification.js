@@ -76,8 +76,12 @@ export async function qualifyProviders() {
     const rows = providerCatalogRows(catalog?.services);
     const mappingRows = mappingResult.rows.filter(row => row.provider_id === provider.id && row.active);
     const liveCodes = new Set(rows.map(serviceIdentity).filter(Boolean).map(String));
+    const byName = serviceCatalogByName(rows);
+    const candidateMappings = catalog.status === 'catalog_verified'
+      ? catalogServices.filter(service => (byName.get(normalized(service.name)) || []).length === 1).length
+      : 0;
     const verifiedMappings = mappingRows.filter(row => liveCodes.has(String(row.provider_service_code))).length;
-    return { id: provider.id, name: provider.name, adapterKey: provider.adapter_key, active: Boolean(provider.active), priority: Number(provider.priority), status: catalog.status, configured: catalog.configured, catalogCount: rows.length, verifiedMappings, candidateMappings: 0, staleMappings: mappingRows.filter(row => catalog.status === 'catalog_verified' && !liveCodes.has(String(row.provider_service_code))).length, error: catalog.error };
+    return { id: provider.id, name: provider.name, adapterKey: provider.adapter_key, active: Boolean(provider.active), priority: Number(provider.priority), status: catalog.status, configured: catalog.configured, catalogCount: rows.length, verifiedMappings, candidateMappings, staleMappings: mappingRows.filter(row => catalog.status === 'catalog_verified' && !liveCodes.has(String(row.provider_service_code))).length, error: catalog.error };
   });
 
   const serviceRows = catalogServices.map(service => {
