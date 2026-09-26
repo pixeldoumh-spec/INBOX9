@@ -1,5 +1,6 @@
 import crypto from 'node:crypto';
 import { getPool, withTransaction } from './db.js';
+import { recordAuditTx } from './admin-repository.js';
 
 function id(prefix) { return `${prefix}-${crypto.randomUUID()}`; }
 
@@ -17,7 +18,7 @@ function mapIssue(row) {
   };
 }
 
-export async function reconcileWallets({ limit = 10000 } = {}) {
+export async function reconcileWallets({ limit = 10000, adminUserId = null } = {}) {
   const safeLimit = Math.min(Math.max(Number(limit) || 10000, 1), 100000);
   return withTransaction(async client => {
     const runId = id('WALLET-REC');
@@ -57,6 +58,11 @@ export async function reconcileWallets({ limit = 10000 } = {}) {
        SET status=$2, wallets_checked=$3, mismatches_found=$4, completed_at=NOW()
        WHERE id=$1`, [runId, status, result.rowCount, issues.length]
     );
+    if (adminUserId) {
+      await recordAuditTx(client, adminUserId, 'wallet.reconciliation_completed', 'wallet_reconciliation_run', runId, {
+        status, walletsChecked: result.rowCount, mismatchesFound: issues.length
+      });
+    }
 
     return {
       runId,
@@ -100,4 +106,31 @@ export async function listOpenWalletReconciliationIssues(limit = 100) {
      ORDER BY i.created_at DESC LIMIT $1`, [safeLimit]
   );
   return result.rows.map(mapIssue);
+}
+
+
+export async function resolveWalletReconciliationIssue(adminUserId, issueId, resolved = true) {
+  return withTransaction(async client => {
+    const current = await client.query(
+      `SELECT i.*, u.email FROM wallet_reconciliation_issues i
+       JOIN users u ON u.id=i.user_id
+       WHERE i.id=$1 FOR UPDATE`,
+      [String(issueId || '').trim()]
+    );
+    if (!current.rowCount) throw Object.assign(new Error('Reconciliation issue not found'), { statusCode: 404 });
+    const row = current.rows[0];
+    const next = Boolean(resolved);
+    const updated = await client.query(
+      'UPDATE wallet_reconciliation_issues SET resolved_at=$2 WHERE id=$1 RETURNING *',
+      [row.id, next ? new Date() : null]
+    );
+    await recordAuditTx(client, adminUserId, next ? 'wallet.reconciliation_issue_resolved' : 'wallet.reconciliation_issue_reopened',
+      'wallet_reconciliation_issue', row.id, {
+        userId: row.user_id, email: row.email,
+        recordedBalancePaise: Number(row.recorded_balance_paise),
+        ledgerBalancePaise: Number(row.ledger_balance_paise),
+        differencePaise: Number(row.difference_paise)
+      });
+    return mapIssue({ ...updated.rows[0], email: row.email });
+  });
 }
