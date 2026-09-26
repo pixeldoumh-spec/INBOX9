@@ -1742,24 +1742,7 @@
   background-color: #0a0d0a;
 }
 
-.app-shell .service-logo-fallback-content {
-  width: 100%;
-  height: 100%;
-  display: grid;
-  place-items: center;
-  align-content: center;
-  gap: 2px;
-  border-radius: 15px;
-  background: linear-gradient(145deg, #183015, #0e170e);
-  color: var(--i9-accent);
-}
-
-.app-shell .service-logo-fallback-content span {
-  font-size: 18px;
-  font-weight: 900;
-  letter-spacing: -.06em;
-  color: var(--i9-accent);
-}
+.app-shell .service-logo-blank-art { background: #000 !important; }
 
 .app-shell .service-logo-sheen {
   position: absolute;
