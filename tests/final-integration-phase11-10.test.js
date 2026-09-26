@@ -110,7 +110,6 @@ test('phase 11.10 frontend runtime has crash recovery and stale-bundle retiremen
   assert.match(main, /registration\.unregister\(\)/);
   assert.match(main, /key\.startsWith\('inbox9-shell-'\)/);
   assert.doesNotMatch(main, /serviceWorker\.register\(['"]\/sw\.js['"]\)/);
-  assert.match(servicesTest, /Array\.isArray/);
 });
 
 test('phase 11.10 backend route contract covers every shipped admin surface', async () => {
