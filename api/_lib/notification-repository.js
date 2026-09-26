@@ -136,9 +136,10 @@ export async function createAdminNotification(adminUserId, input = {}) {
   if (title.length < 3) throw Object.assign(new Error('Notification title must be at least 3 characters'),{statusCode:400});
   if (body.length < 2) throw Object.assign(new Error('Notification message must be at least 2 characters'),{statusCode:400});
   return (await import('./db.js')).withTransaction(async client => {
-    const target=await client.query('SELECT id,email,active FROM users WHERE id=$1 FOR UPDATE',[userId]);
+    const target=await client.query('SELECT id,email,active,role FROM users WHERE id=$1 FOR UPDATE',[userId]);
     if(!target.rowCount) throw Object.assign(new Error('Customer user was not found'),{statusCode:404});
     if(!target.rows[0].active) throw Object.assign(new Error('Disabled customers cannot receive targeted notifications'),{statusCode:409});
+    if(target.rows[0].role!=='user') throw Object.assign(new Error('Targeted notifications can only be sent to customer accounts'),{statusCode:400});
     const notificationId=id();
     await client.query(`INSERT INTO notifications (id,user_id,kind,source_type,source_id,event_key,title,body,page,tone) VALUES ($1,$2,$3,'admin_message',$4,$5,$6,$7,$8,$9)`,
       [notificationId,userId,kind,notificationId,'admin:'+notificationId,title,body,page,tone]);
