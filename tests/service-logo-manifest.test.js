@@ -22,7 +22,7 @@ test('preprocessed service logo pack is build-time local and not runtime canvas 
   assert.equal(bytes.toString('ascii',0,4),'RIFF');
   assert.equal(bytes.toString('ascii',8,12),'WEBP');
   assert.equal(bytes.length,18138);
-  assert.doesNotMatch(spriteModule,/data:image\\/webp;base64/);
+  assert.doesNotMatch(spriteModule,/data:image\/webp;base64/);
   assert.doesNotMatch(shared,/cropServiceLogo|detectSafeCrop|getImageData|toBlob|createObjectURL/);
 });
 
