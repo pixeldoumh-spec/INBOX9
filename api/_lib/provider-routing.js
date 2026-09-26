@@ -112,14 +112,14 @@ export async function reserveNumberWithFailover({ service, serviceId, serverId =
         operation: 'reserveNumber',
         input,
       });
-      await noteSuccess(pool, { serviceId, providerId: route.provider_id });
-      await writeAttempt(pool, { serviceId, providerId: route.provider_id, outcome: 'succeeded', safeToFailover: false, latencyMs: Date.now() - startedAt });
+      await noteSuccess(pool, { serviceId, providerId: route.provider_id }).catch(() => {});
+      await writeAttempt(pool, { serviceId, providerId: route.provider_id, outcome: 'succeeded', safeToFailover: false, latencyMs: Date.now() - startedAt }).catch(() => {});
       return { provider: { id: route.provider_id, name: route.provider_name, adapter_key: route.adapter_key, routePriority: Number(route.route_priority) }, reserved, attempts: failures.length + 1 };
     } catch (error) {
       const decision = failoverDecision(error);
       const failure = { providerId: route.provider_id, providerName: route.provider_name, adapterKey: route.adapter_key, code: error?.code || 'PROVIDER_OPERATION_FAILED', message: error?.message || 'Provider route failed', safeToFailover: decision.safeToFailover };
       failures.push(failure);
-      await writeAttempt(pool, { serviceId, providerId: route.provider_id, outcome: 'failed', safeToFailover: decision.safeToFailover, errorCode: error?.code, latencyMs: Date.now() - startedAt });
+      await writeAttempt(pool, { serviceId, providerId: route.provider_id, outcome: 'failed', safeToFailover: decision.safeToFailover, errorCode: error?.code, latencyMs: Date.now() - startedAt }).catch(() => {});
       if (!decision.safeToFailover) {
         const blocked = new Error('Provider allocation outcome is uncertain; automatic failover is disabled');
         blocked.code = 'PROVIDER_FAILOVER_BLOCKED';
@@ -131,7 +131,7 @@ export async function reserveNumberWithFailover({ service, serviceId, serverId =
         blocked.failures = failures;
         throw blocked;
       }
-      await noteFailure(pool, { serviceId, providerId: route.provider_id, error });
+      await noteFailure(pool, { serviceId, providerId: route.provider_id, error }).catch(() => {});
     }
   }
 
