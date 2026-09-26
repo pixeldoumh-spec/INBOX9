@@ -30,7 +30,7 @@ test('phase 2 keeps launcher tiles inside narrow mobile columns',()=>{
 test('phase 2.1 normalizes the shared logo frame and bottom-nav icon sizing',()=>{
   assert.match(shared,/className="service-logo-art"/);
   assert.match(shared,/cropServiceLogo/);
-  assert.match(app,/data-logo-source=\{src\?'cropped-sprite'/);
+  assert.match(shared,/data-logo-source=\{src\?'cropped-sprite'/);
   assert.match(css,/\.service-logo\s*\{[\s\S]*?position:relative/);
   assert.match(css,/\.service-logo-art\s*\{[\s\S]*?inset:1px/);
   assert.match(css,/\.bottom-nav-icon\s*\{[\s\S]*?width:24px/);
@@ -47,7 +47,7 @@ test('phase 2.2 uses one canonical service-logo size across customer surfaces',(
 test('phase 2.4 crops logo artwork to visible bounds then contains the full image',()=>{
   assert.match(shared,/cropServiceLogo/);
   assert.match(shared,/URL\.createObjectURL\(blob\)/);
-  assert.match(app,/data-logo-source=\{src\?'cropped-sprite'/);
+  assert.match(shared,/data-logo-source=\{src\?'cropped-sprite'/);
   assert.match(css,/\.service-logo-art img\s*\{[\s\S]*?object-fit:contain/);
 });
 
