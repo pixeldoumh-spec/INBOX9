@@ -31,16 +31,17 @@ export async function syncUserNotifications(userId) {
   await pool.query(
     `INSERT INTO notifications (id,user_id,kind,source_type,source_id,event_key,title,body,page,tone,created_at)
      SELECT $1 || substr(md5(a.id || a.status || a.user_id),1,18), a.user_id, 'activation', 'activation', a.id, 'status:'||a.status,
-       CASE a.status WHEN 'Active' THEN 'Number allocated successfully' WHEN 'Completed' THEN 'OTP received successfully' WHEN 'Expired' THEN 'Number expired' WHEN 'Refunded' THEN 'Activation refunded' ELSE 'Activation closed' END,
+       CASE a.status WHEN 'Active' THEN 'Number allocated successfully' WHEN 'CancellationPending' THEN 'Cancellation in progress' WHEN 'Completed' THEN 'OTP received successfully' WHEN 'Expired' THEN 'Number expired' WHEN 'Refunded' THEN 'Activation refunded' ELSE 'Activation closed' END,
        CASE a.status WHEN 'Active' THEN 'Your ' || a.service_name || ' number ' || a.phone_number || ' is ready to use.'
+                    WHEN 'CancellationPending' THEN 'Your cancellation request for order ' || a.id || ' is being confirmed. Your wallet is refunded after cancellation succeeds.'
                     WHEN 'Completed' THEN 'Verification code is ready for order ' || a.id || '.'
                     WHEN 'Expired' THEN 'Order ' || a.id || ' reached its validity limit.'
                     WHEN 'Refunded' THEN 'Order ' || a.id || ' was cancelled and refunded.'
                     ELSE 'Order ' || a.id || ' is now closed.' END,
-       CASE a.status WHEN 'Active' THEN 'buy' WHEN 'Completed' THEN 'buy' ELSE 'buy' END,
-       CASE a.status WHEN 'Active' THEN 'success' WHEN 'Completed' THEN 'success' ELSE 'info' END, a.updated_at
+       'buy',
+       CASE a.status WHEN 'Active' THEN 'success' WHEN 'Completed' THEN 'success' WHEN 'Refunded' THEN 'success' WHEN 'CancellationPending' THEN 'warning' ELSE 'info' END, a.updated_at
      FROM activations a
-     WHERE a.user_id=$2 AND a.status IN ('Active','Completed','Expired','Refunded','Cancelled')
+     WHERE a.user_id=$2 AND a.status IN ('Active','CancellationPending','Completed','Expired','Refunded','Cancelled')
      ON CONFLICT DO NOTHING`,
     [id(),userId]
   );
