@@ -11,10 +11,6 @@ export default async function handler(req, res) {
   const user = dbEnabled() ? await getSessionUser(req) : getMockSession(req);
   try { requireUser(user); } catch (e) { return res.status(401).json({ error: e.message }); }
   if (!await rateLimitAsync(req, res, 'activation-status', 30, 60_000, `${user.id}:${String(req.query?.id || '')}`)) return;
-  try {
-    const item = dbEnabled() ? await getPersistedActivation(req.query.id, user.id) : getMock(req.query.id, user);
-    return item ? res.status(200).json(item) : res.status(404).json({ error: 'Activation not found' });
-  } catch (error) {
-    throw error;
-  }
+  const item = dbEnabled() ? await getPersistedActivation(req.query.id, user.id) : getMock(req.query.id, user);
+  return item ? res.status(200).json(item) : res.status(404).json({ error: 'Activation not found' });
 }
