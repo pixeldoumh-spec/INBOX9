@@ -28,7 +28,7 @@ test('phase 2 launcher renders the fixed four-column mobile grid without changin
 
 test('phase 2 launcher keeps service identity stable and routes by service ID',()=>{
   assert.match(app,/key={item\.id} to={\`\/buy\?serviceId=\$\{encodeURIComponent\(item\.id\)\}\`}/);
-  assert.match(app,/data-service-id={serviceId}/);
+  assert.match(shared,/data-service-id={serviceId}/);
   assert.match(app,/const logo=SERVICE_LOGO_MANIFEST\[serviceId\]/);
   assert.match(app,/serviceLogoCropCache/);
 });
