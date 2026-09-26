@@ -1,14 +1,13 @@
 import crypto from 'node:crypto';
 import { createProviderAdapter, normalizeProviderActivation } from './provider.js';
 import { generateSyntheticIdentity, generateSyntheticIndianNumber, generateSyntheticOtp, syntheticOtpTiming } from './synthetic-otp.js';
-import { SYNTHETIC_CAPACITY, getSyntheticServer, getServerForSlot } from './synthetic-servers.js';
+import { SYNTHETIC_CAPACITY, issueSyntheticServer } from './synthetic-servers.js';
 
 const TTL_MS = 25 * 60 * 1000;
 const CAPACITY = SYNTHETIC_CAPACITY;
 
 function id() { return `SYN-${crypto.randomUUID()}`; }
 function slot(server) {
-  if (!server) return crypto.randomInt(1, CAPACITY + 1);
   return crypto.randomInt(server.startSlot, server.endSlot + 1);
 }
 
@@ -18,14 +17,11 @@ export const syntheticProvider = createProviderAdapter({
   async reserveNumber(service) {
     const createdAt = Date.now();
     const requestedServerId = String(service?.serverId || service?.syntheticServerId || '').trim();
-    const server = requestedServerId ? getSyntheticServer(requestedServerId, CAPACITY) : null;
-    if (requestedServerId && !server) {
-      const error = new Error('Unknown synthetic server');
-      error.code = 'UNKNOWN_SYNTHETIC_SERVER';
-      throw error;
-    }
+    const server = issueSyntheticServer({
+      requestedServerId,
+      capacity: CAPACITY,
+    });
     const index = slot(server);
-    const assignedServer = server || getServerForSlot(index, CAPACITY);
     const providerActivationId = id();
     const serviceKey = service.id || service.name;
     const numberRevealAt = createdAt + 5_000;
@@ -47,11 +43,12 @@ export const syntheticProvider = createProviderAdapter({
         serviceId: service.id,
         slot: index,
         capacityPerService: CAPACITY,
-        serverId: assignedServer?.id || null,
-        serverName: assignedServer?.name || null,
-        serverCapacity: assignedServer?.capacity || null,
-        serverStartSlot: assignedServer?.startSlot || null,
-        serverEndSlot: assignedServer?.endSlot || null,
+        serverId: server?.id || null,
+        serverName: server?.name || null,
+        serverCapacity: server?.capacity || null,
+        serverStartSlot: server?.startSlot || null,
+        serverEndSlot: server?.endSlot || null,
+        serverSelection: requestedServerId ? 'qa-pinned' : 'issued',
         identity: generateSyntheticIdentity(serviceKey, index, CAPACITY)
       },
     });
