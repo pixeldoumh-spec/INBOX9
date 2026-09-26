@@ -6,17 +6,43 @@ if (!pool) {
   process.exit(2);
 }
 
-const requiredTables = ['users','sessions','services','activations','wallets','wallet_ledger','recharge_requests','providers','service_provider_routes','audit_logs','wallet_reconciliation_runs','wallet_reconciliation_issues'];
-const tables = await pool.query(`SELECT table_name FROM information_schema.tables WHERE table_schema='public' AND table_name = ANY($1)`, [requiredTables]);
+const requiredTables = [
+  'users',
+  'sessions',
+  'services',
+  'activations',
+  'wallets',
+  'wallet_ledger',
+  'recharge_requests',
+  'providers',
+  'service_provider_routes',
+  'audit_logs',
+  'wallet_reconciliation_runs',
+  'wallet_reconciliation_issues',
+  'provider_production_readiness',
+];
+const tables = await pool.query(
+  'SELECT table_name FROM information_schema.tables WHERE table_schema=\'public\' AND table_name = ANY($1)',
+  [requiredTables],
+);
 const found = new Set(tables.rows.map(r => r.table_name));
 const missing = requiredTables.filter(t => !found.has(t));
 const migrations = await pool.query('SELECT version FROM schema_migrations ORDER BY version');
+const migrationVersions = migrations.rows.map(r => r.version);
 const activationNulls = await pool.query('SELECT COUNT(*)::int AS count FROM activations WHERE user_id IS NULL');
 const adminCount = await pool.query("SELECT COUNT(*)::int AS count FROM users WHERE role='admin'");
+const phase7MigrationApplied = migrationVersions.includes('044_provider_production_readiness');
 const result = {
-  ok: missing.length === 0 && Number(activationNulls.rows[0].count) === 0,
+  ok:
+    missing.length === 0 &&
+    Number(activationNulls.rows[0].count) === 0 &&
+    phase7MigrationApplied,
   tables: { required: requiredTables.length, found: found.size, missing },
-  migrations: migrations.rows.map(r => r.version),
+  migrations: migrationVersions,
+  phase7: {
+    migrationApplied: phase7MigrationApplied,
+    readinessTablePresent: found.has('provider_production_readiness'),
+  },
   activationRowsWithoutOwner: Number(activationNulls.rows[0].count),
   adminUsers: Number(adminCount.rows[0].count),
 };
