@@ -42,6 +42,9 @@ test('external readiness requires lifecycle canary and deterministic cancellatio
     if (target.endsWith('/api/v1/services')) {
       return new Response(JSON.stringify({ services: [{ code: 'test-service', name: 'WhatsApp' }] }), { status: 200, headers: { 'content-type': 'application/json' } });
     }
+    if (target.includes('/api/v1/operators?country=IN')) {
+      return new Response(JSON.stringify({ operators: [{ service: 'test-service', price: 0.2, count: 5 }] }), { status: 200, headers: { 'content-type': 'application/json' } });
+    }
     if (target.endsWith('/api/v1/account')) {
       return new Response(JSON.stringify({ balance: 10 }), { status: 200, headers: { 'content-type': 'application/json' } });
     }
