@@ -1,5 +1,6 @@
 import { getPool, withTransaction } from './db.js';
 import crypto from 'node:crypto';
+import { listProviderAdapters } from './provider-registry.js';
 
 function id(prefix) { return `${prefix}-${crypto.randomUUID()}`; }
 
@@ -174,18 +175,114 @@ export async function revokeAdminUserSessions(adminUserId,targetUserId){
   });
 }
 
-export async function listAdminServices(limit = 250) {
+export async function listAdminServices(filters = {}) {
+  const input = typeof filters === 'number' ? { limit: filters } : (filters || {});
+  const safeLimit = Math.min(Math.max(Number(input.limit) || 50, 1), 100);
+  const safeOffset = Math.min(Math.max(Number(input.offset) || 0, 0), 100_000);
+  const query = String(input.query || '').trim().slice(0, 120);
+  const status = ['all', 'active', 'inactive'].includes(String(input.status)) ? String(input.status) : 'active';
+  const escapedQuery = query.replace(/[%_]/g, '\\$&');
+  const pattern = '%' + escapedQuery + '%';
+  const where = `($1='' OR s.name ILIKE $2 ESCAPE '\\\\' OR s.id ILIKE $2 ESCAPE '\\\\' OR s.category ILIKE $2 ESCAPE '\\\\')
+    AND ($3='all' OR ($3='active' AND s.active=TRUE) OR ($3='inactive' AND s.active=FALSE))`;
   const pool = await getPool();
-  const safeLimit = Math.min(Math.max(Number(limit) || 250, 1), 500);
-  const result = await pool.query(
-    `SELECT s.*, COUNT(r.provider_id)::int AS routed_providers
-     FROM services s
-     LEFT JOIN service_provider_routes r ON r.service_id=s.id AND r.active=TRUE
-     GROUP BY s.id
-     ORDER BY s.active DESC, s.category, s.name
-     LIMIT $1`, [safeLimit]
+  const [summary, result] = await Promise.all([
+    pool.query(`SELECT
+      COUNT(*)::int AS total,
+      COUNT(*) FILTER (WHERE s.active=TRUE)::int AS active,
+      COUNT(*) FILTER (WHERE s.active=FALSE)::int AS inactive
+      FROM services s WHERE ${where}`, [query, pattern, status]),
+    pool.query(`SELECT s.id,s.name,s.category,s.country,s.currency,s.price_paise,s.availability,s.stock,s.active,s.catalog_position,s.created_at,s.updated_at,
+        COALESCE(
+          json_agg(
+            json_build_object(
+              'providerId',p.id,
+              'providerName',p.name,
+              'adapterKey',p.adapter_key,
+              'providerActive',p.active,
+              'providerPriority',p.priority,
+              'priority',r.priority,
+              'active',r.active
+            )
+            ORDER BY r.active DESC,r.priority,p.priority,p.id
+          ) FILTER (WHERE p.id IS NOT NULL),
+          '[]'::json
+        ) AS routes
+      FROM services s
+      LEFT JOIN service_provider_routes r ON r.service_id=s.id
+      LEFT JOIN providers p ON p.id=r.provider_id
+      WHERE ${where}
+      GROUP BY s.id
+      ORDER BY s.active DESC, s.catalog_position NULLS LAST, s.name, s.id
+      LIMIT $4 OFFSET $5`, [query, pattern, status, safeLimit, safeOffset]),
+  ]);
+  return {
+    services: result.rows.map(row => ({
+      ...mapService(row),
+      catalogPosition: row.catalog_position == null ? null : Number(row.catalog_position),
+      routes: Array.isArray(row.routes) ? row.routes : [],
+    })),
+    summary: {
+      total: Number(summary.rows[0].total || 0),
+      active: Number(summary.rows[0].active || 0),
+      inactive: Number(summary.rows[0].inactive || 0),
+    },
+    pagination: { limit: safeLimit, offset: safeOffset, hasMore: safeOffset + result.rows.length < Number(summary.rows[0].total || 0) },
+  };
+}
+
+async function readServiceRoutes(client, serviceId) {
+  const result = await client.query(
+    `SELECT r.service_id,r.provider_id,r.priority,r.active,
+            p.name AS provider_name,p.adapter_key,p.active AS provider_active,p.priority AS provider_priority
+     FROM service_provider_routes r
+     JOIN providers p ON p.id=r.provider_id
+     WHERE r.service_id=$1
+     ORDER BY r.active DESC,r.priority,p.priority,p.id`,
+    [serviceId],
   );
-  return result.rows.map(mapService);
+  return result.rows.map(row => ({
+    serviceId: row.service_id,
+    providerId: row.provider_id,
+    providerName: row.provider_name,
+    adapterKey: row.adapter_key,
+    providerActive: Boolean(row.provider_active),
+    providerPriority: Number(row.provider_priority || 0),
+    priority: Number(row.priority),
+    active: Boolean(row.active),
+  }));
+}
+
+async function validateAndNormalizeRoutes(client, routes) {
+  if (!Array.isArray(routes)) throw new Error('Routes must be an array');
+  if (routes.length > 25) throw new Error('A service can have at most 25 provider routes');
+  const seen = new Set();
+  const normalized = routes.map((route, index) => {
+    const providerId = String(route?.providerId || '').trim();
+    if (!providerId) throw new Error(`Route ${index + 1}: provider id is required`);
+    if (seen.has(providerId)) throw new Error(`Route ${index + 1}: provider is duplicated`);
+    seen.add(providerId);
+    const priority = route?.priority === undefined ? 100 + index : Number(route.priority);
+    if (!Number.isInteger(priority) || priority < 1 || priority > 10000) {
+      throw new Error(`Route ${index + 1}: priority must be an integer between 1 and 10000`);
+    }
+    return { providerId, priority, active: Boolean(route?.active) };
+  });
+  if (!normalized.length) return normalized;
+  const ids = normalized.map(route => route.providerId);
+  const providerResult = await client.query(
+    `SELECT id,name,adapter_key,active,priority FROM providers WHERE id = ANY($1::text[])`,
+    [ids],
+  );
+  const providers = new Map(providerResult.rows.map(row => [row.id, row]));
+  const installed = new Set(listProviderAdapters());
+  for (const route of normalized) {
+    const provider = providers.get(route.providerId);
+    if (!provider) throw new Error(`Provider not found: ${route.providerId}`);
+    if (!installed.has(provider.adapter_key)) throw new Error(`Provider adapter is not installed: ${provider.adapter_key}`);
+    if (route.active && !provider.active) throw new Error(`Provider is inactive: ${provider.name}`);
+  }
+  return normalized;
 }
 
 export async function updateService(adminUserId, serviceId, patch = {}) {
@@ -194,26 +291,65 @@ export async function updateService(adminUserId, serviceId, patch = {}) {
     const current = await client.query('SELECT * FROM services WHERE id=$1 FOR UPDATE', [serviceId]);
     if (!current.rowCount) throw new Error('Service not found');
     const row = current.rows[0];
+    const beforeRoutes = await readServiceRoutes(client, serviceId);
     const pricePaise = patch.pricePaise === undefined ? row.price_paise : Number(patch.pricePaise);
     const stock = patch.stock === undefined ? row.stock : Number(patch.stock);
-    const active = patch.active === undefined ? row.active : Boolean(patch.active);
-    const availability = patch.availability === undefined ? row.availability : String(patch.availability);
+    const active = patch.active === undefined ? Boolean(row.active) : Boolean(patch.active);
+    const availability = patch.availability === undefined ? String(row.availability) : String(patch.availability);
     if (!Number.isInteger(pricePaise) || pricePaise < 0 || pricePaise > 100000000) throw new Error('Price must be an integer between ₹0 and ₹1,000,000');
     if (!Number.isInteger(stock) || stock < 0 || stock > 1000000) throw new Error('Stock must be an integer between 0 and 1,000,000');
     if (!allowedAvailability.has(availability)) throw new Error('Availability must be high, medium or low');
+
+    let afterRoutes = beforeRoutes;
+    if (Object.prototype.hasOwnProperty.call(patch, 'routes')) {
+      const desiredRoutes = await validateAndNormalizeRoutes(client, patch.routes);
+      await client.query('UPDATE service_provider_routes SET active=FALSE WHERE service_id=$1', [serviceId]);
+      for (const route of desiredRoutes) {
+        await client.query(
+          `INSERT INTO service_provider_routes (service_id,provider_id,priority,active)
+           VALUES ($1,$2,$3,$4)
+           ON CONFLICT (service_id,provider_id)
+           DO UPDATE SET priority=EXCLUDED.priority,active=EXCLUDED.active`,
+          [serviceId, route.providerId, route.priority, route.active],
+        );
+      }
+      afterRoutes = await readServiceRoutes(client, serviceId);
+    }
+
+    const usableRoutes = afterRoutes.filter(route => route.active && route.providerActive);
+    if (active && usableRoutes.length === 0) {
+      throw new Error('An active service must have at least one active route to an active provider');
+    }
+
     const updated = await client.query(
       `UPDATE services SET price_paise=$2, stock=$3, active=$4, availability=$5, updated_at=NOW()
-       WHERE id=$1 RETURNING *`, [serviceId, pricePaise, stock, active, availability]
+       WHERE id=$1 RETURNING *`,
+      [serviceId, pricePaise, stock, active, availability],
     );
-    await audit(client, adminUserId, 'service.updated', 'service', serviceId, {
-      before: { pricePaise: Number(row.price_paise), stock: Number(row.stock), active: row.active, availability: row.availability },
-      after: { pricePaise, stock, active, availability },
+    const auditAction = Object.prototype.hasOwnProperty.call(patch, 'routes') ? 'service.routing_updated' : 'service.updated';
+    await audit(client, adminUserId, auditAction, 'service', serviceId, {
+      before: {
+        pricePaise: Number(row.price_paise),
+        stock: Number(row.stock),
+        active: Boolean(row.active),
+        availability: row.availability,
+        routes: beforeRoutes,
+      },
+      after: {
+        pricePaise,
+        stock,
+        active,
+        availability,
+        routes: afterRoutes,
+      },
     });
-    const result = updated.rows[0];
-    return mapService(result);
+    return {
+      ...mapService(updated.rows[0]),
+      catalogPosition: updated.rows[0].catalog_position == null ? null : Number(updated.rows[0].catalog_position),
+      routes: afterRoutes,
+    };
   });
 }
-
 export async function listAdminActivations(limit = 100) {
   const pool = await getPool();
   const safeLimit = Math.min(Math.max(Number(limit) || 100, 1), 250);
