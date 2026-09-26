@@ -69,9 +69,9 @@ INBOX9_ENABLE_RECHARGE=false
 INBOX9_UPI_ID=
 ```
 
-The current catalog/activation provider is intentionally synthetic QA infrastructure. It generates deterministic, non-routable test identities and six-digit OTPs; it is not a live telecom/SMS provider.
+Production fulfillment is intentionally synthetic-only until an external provider has an approved commercial/API partnership and passes the INBOX9 qualification, mapping, lifecycle, and route-activation gates. The synthetic engine generates deterministic, non-routable test identities and six-digit OTPs; it is not live telecom/SMS fulfillment.
 
-Production customer traffic should use `INBOX9_RUNTIME_MODE=postgres`. PostgreSQL is authoritative for accounts, sessions, wallets, recharges, activations, and order history. The synthetic provider remains the fulfillment engine and generates non-routable test numbers/OTPs.
+Production customer traffic should use `INBOX9_RUNTIME_MODE=postgres` with `INBOX9_FULFILLMENT_MODE=synthetic`. PostgreSQL is authoritative for accounts, sessions, wallets, recharges, activations, and order history. The synthetic provider is the active fulfillment engine and generates non-routable test numbers/OTPs.
 
 Explicit `INBOX9_RUNTIME_MODE=synthetic` is reserved for controlled QA. In that mode, customer accounts start at ₹0.00, real UPI recharge is disabled, and browser storage is never the source of truth.
 
@@ -110,7 +110,7 @@ For persistent staging:
 2. Run `npm run db:verify` and require `ok: true`.
 3. Run `npm run staging:smoke`.
 4. Run `npm run issue9:e2e` and `npm run synthetic:smoke`.
-5. Confirm a synthetic activation reaches Completed and returns a six-digit OTP after 20 seconds.
+5. Confirm a synthetic activation returns a six-digit OTP after 20 seconds and expires at exactly 20 minutes.
 6. Confirm the wallet debit/refund and activation state in PostgreSQL.
 7. Confirm `POST /api/internal-provider-reconcile` succeeds with the configured secret.
 
@@ -125,4 +125,5 @@ Before real customer traffic:
 5. Run `npm run render:smoke` against the deployed host.
 6. Run the E2E and synthetic smoke suite against staging.
 7. Verify the scheduled reconciliation workflow completes successfully.
-8. Confirm the current provider mode is understood as synthetic, not live telecom fulfillment.
+8. Confirm `INBOX9_FULFILLMENT_MODE=synthetic` and `INBOX9_ENABLE_EXTERNAL_ROUTING=false`; external provider fulfillment must not be reachable in this mode.
+9. Confirm the current provider mode is understood as synthetic, not live telecom fulfillment.
