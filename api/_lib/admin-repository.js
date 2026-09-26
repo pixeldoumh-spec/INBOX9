@@ -408,28 +408,33 @@ export async function getAdminActivation(activationId) {
     operations:operations.rows.map(op=>({id:op.id,type:op.operation_type,status:op.status,providerId:op.provider_id,providerActivationId:op.provider_activation_id,attempts:Number(op.attempts||0),error:op.last_error||null,createdAt:new Date(op.created_at).getTime(),updatedAt:new Date(op.updated_at).getTime(),completedAt:op.completed_at?new Date(op.completed_at).getTime():null})),
   };
 }
-export async function listAdminLedger(limit = 100) {
+export async function listAdminLedger(filters = {}) {
+  const input = typeof filters === 'number' ? { limit: filters } : (filters || {});
+  const safeLimit = Math.min(Math.max(Number(input.limit) || 40, 1), 100);
+  const safeOffset = Math.min(Math.max(Number(input.offset) || 0, 0), 100000);
+  const query = String(input.query || '').trim().slice(0, 120);
+  const type = ['all','credit','debit'].includes(String(input.type)) ? String(input.type) : 'all';
+  const escapedQuery = query.replace(/[%_]/g, '\\$&');
+  const pattern = '%' + escapedQuery + '%';
+  const where = "($1='' OR l.id ILIKE $2 ESCAPE '\\\\' OR l.user_id ILIKE $2 ESCAPE '\\\\' OR u.email ILIKE $2 ESCAPE '\\\\' OR l.reference_id ILIKE $2 ESCAPE '\\\\' OR l.description ILIKE $2 ESCAPE '\\\\') AND ($3='all' OR l.entry_type=$3)";
   const pool = await getPool();
-  const safeLimit = Math.min(Math.max(Number(limit) || 100, 1), 250);
-  const result = await pool.query(
-    `SELECT l.*, u.email
-     FROM wallet_ledger l
-     JOIN users u ON u.id=l.user_id
-     ORDER BY l.created_at DESC LIMIT $1`, [safeLimit]
-  );
-  return result.rows.map(row => ({
-    id: row.id,
-    email: row.email,
-    userId: row.user_id,
-    type: row.entry_type,
-    amountPaise: Number(row.amount_paise),
-    referenceType: row.reference_type,
-    referenceId: row.reference_id,
-    description: row.description,
-    createdAt: new Date(row.created_at).getTime(),
-  }));
+  const [summary,result] = await Promise.all([
+    pool.query('SELECT COUNT(*)::int AS total, COUNT(*) FILTER (WHERE l.entry_type=\'credit\')::int AS credits, COUNT(*) FILTER (WHERE l.entry_type=\'debit\')::int AS debits, COALESCE(SUM(l.amount_paise) FILTER (WHERE l.entry_type=\'credit\'),0)::bigint AS credit_paise, COALESCE(SUM(l.amount_paise) FILTER (WHERE l.entry_type=\'debit\'),0)::bigint AS debit_paise FROM wallet_ledger l JOIN users u ON u.id=l.user_id WHERE ' + where,[query,pattern,type]),
+    pool.query('SELECT l.*,u.email FROM wallet_ledger l JOIN users u ON u.id=l.user_id WHERE ' + where + ' ORDER BY l.created_at DESC,l.id DESC LIMIT $4 OFFSET $5',[query,pattern,type,safeLimit,safeOffset])
+  ]);
+  const total=Number(summary.rows[0].total||0);
+  return {
+    ledger:result.rows.map(row=>({
+      id:row.id,email:row.email,userId:row.user_id,type:row.entry_type,amountPaise:Number(row.amount_paise),
+      referenceType:row.reference_type,referenceId:row.reference_id,description:row.description,createdAt:new Date(row.created_at).getTime()
+    })),
+    summary:{
+      total,credits:Number(summary.rows[0].credits||0),debits:Number(summary.rows[0].debits||0),
+      creditPaise:Number(summary.rows[0].credit_paise||0),debitPaise:Number(summary.rows[0].debit_paise||0)
+    },
+    pagination:{limit:safeLimit,offset:safeOffset,hasMore:safeOffset+result.rows.length<total}
+  };
 }
-
 export async function listAuditLogs(limit = 100) {
   const pool = await getPool();
   const safeLimit = Math.min(Math.max(Number(limit) || 100, 1), 250);
