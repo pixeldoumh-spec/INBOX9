@@ -41,6 +41,14 @@ services:
         value: "false"
       - key: INBOX9_ALLOW_NONCANCELLABLE_PROVIDER_RESERVE
         value: "false"
+      - key: INBOX9_RUN_BILLABLE_PROVIDER_CANARY
+        value: "false"
+      - key: INBOX9_PROVIDER_CANARY_MAX_COST_USD
+        value: "1"
+      - key: INBOX9_PROVIDER_CANARY_MAX_WAIT_MS
+        value: "30000"
+      - key: INBOX9_PROVIDER_CANARY_POLL_INTERVAL_MS
+        value: "3000"
       - key: INBOX9_ASMS_BASE_URL
         value: "https://asms.ai"
       - key: INBOX9_ASMS_API_KEY
