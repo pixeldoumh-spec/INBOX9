@@ -29,10 +29,10 @@ test('phase 4 preserves admin implementations outside customer chunks',()=>{
   assert.doesNotMatch(account,/admin-payments|AdminPaymentsPage|AdminRecharge|reviewAdminRecharge|getAdminRecharges/);
 });
 
-test('phase 4 logo rendering deduplicates work and uses cached blob URLs',()=>{
+test('phase 4 logo rendering uses direct prepared sprite tiles with no runtime crop work',()=>{
   assert.match(shared,/backgroundPosition/);
-  assert.match(shared,/serviceLogoCropPromiseCache\.set\(index,job\)/);
-  assert.doesNotMatch(shared,/URL\.createObjectURL\(blob\)/);
+  assert.match(shared,/backgroundImage: 'url\('\+path\+'\)'/);
+  assert.match(shared,/backgroundSize: \(columns\*100\)\+'% '\+\(rows\*100\)\+'%'/);
   assert.doesNotMatch(shared,/output\.toDataURL\('image\/png'\)/);
   assert.doesNotMatch(shared,/getImageData|toBlob|createObjectURL|cropServiceLogo|detectSafeCrop/);
 });
