@@ -54,9 +54,11 @@ test('service logo manifest uses stable unique service IDs and sprite tiles',()=
   assert.doesNotMatch(spriteModule,/service-icons-sprite\.webp/);
 });
 
-test('ServiceLogo uses the stable manifest and no legacy positional mask',()=>{
+test('ServiceLogo uses the stable manifest and direct pre-prepared sprite tiles',()=>{
   assert.doesNotMatch(shared,/const logoMask/);
   assert.doesNotMatch(shared,/<ServiceLogo[^>]*position=/);
   assert.match(shared,/SERVICE_LOGO_MANIFEST/);
-  assert.match(shared,/data-logo-source=/);
+  assert.match(shared,/data-logo-source=\{has\?'sprite-tile':'fallback'\}/);
+  assert.match(shared,/backgroundImage: 'url('\+path\+')'/);
+  assert.doesNotMatch(shared,/cropServiceLogo|detectSafeCrop|getImageData|toBlob|createObjectURL/);
 });
