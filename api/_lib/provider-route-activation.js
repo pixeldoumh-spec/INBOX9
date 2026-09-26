@@ -13,7 +13,12 @@ function configured(provider) {
   return Boolean(env && String(process.env[env] || '').trim());
 }
 
-function certificationMaxAgeMs() {
+function lifecycleCertificationMaxAgeMs() {
+  const value = Number(process.env.INBOX9_PROVIDER_CERT_MAX_AGE_MS);
+  return Number.isFinite(value) && value > 0 ? Math.min(Math.max(Math.trunc(value), 60000), 7 * 24 * 60 * 60 * 1000) : 24 * 60 * 60 * 1000;
+}
+
+export function lifecycleCertificationMaxAgeMs() {
   const value = Number(process.env.INBOX9_PROVIDER_CERT_MAX_AGE_MS);
   return Number.isFinite(value) && value > 0 ? Math.min(Math.max(Math.trunc(value), 60000), 7 * 24 * 60 * 60 * 1000) : 24 * 60 * 60 * 1000;
 }
@@ -33,16 +38,24 @@ export async function preflightExternalRouteActivation({ providerId, serviceId }
   if (serviceQualification?.status !== 'mapped_verified') blockers.push({ code: 'PROVIDER_SERVICE_MAPPING_REQUIRED', message: 'The selected service is not mapped to a verified live provider service code' });
   const adapter = provider.adapterKey === 'synthetic' ? null : getProviderAdapter(provider.adapterKey);
   const capabilities = adapter ? providerCapabilities(adapter) : {};
+  if (adapter && configured(provider)) {
+    try {
+      const health = await adapter.health();
+      if (health?.healthy !== true) blockers.push({ code: 'PROVIDER_HEALTH_FAILED', message: 'Current provider health check did not pass' });
+    } catch (error) {
+      blockers.push({ code: String(error?.code || 'PROVIDER_HEALTH_FAILED'), message: String(error?.message || 'Current provider health check failed').slice(0, 300) });
+    }
+  }
   if (provider.adapterKey !== 'synthetic' && capabilities.cancelActivation !== true && !nonCancellableReserveAllowed()) blockers.push({ code: 'PROVIDER_CANCELLATION_REQUIRED', message: 'Deterministic provider cancellation is required for live route activation' });
   const certification = provider.adapterKey === 'synthetic' ? null : await latestSuccessfulLifecycleCertification(provider.id);
   if (!certification) blockers.push({ code: 'LIFECYCLE_CERTIFICATION_REQUIRED', message: 'A successful lifecycle certification is required for this provider' });
   else {
-    if (Date.now() - certification.createdAt > certificationMaxAgeMs()) blockers.push({ code: 'LIFECYCLE_CERTIFICATION_STALE', message: 'The latest successful lifecycle certification is stale' });
+    if (Date.now() - certification.createdAt > lifecycleCertificationMaxAgeMs()) blockers.push({ code: 'LIFECYCLE_CERTIFICATION_STALE', message: 'The latest successful lifecycle certification is stale' });
     if (String(certification.serviceId) !== String(service.id)) blockers.push({ code: 'LIFECYCLE_CERTIFICATION_SERVICE_MISMATCH', message: 'Lifecycle certification belongs to a different service' });
     if (String(certification.providerServiceCode || '') !== String(serviceQualification?.mapping || '')) blockers.push({ code: 'LIFECYCLE_CERTIFICATION_MAPPING_MISMATCH', message: 'Lifecycle certification was run against a different provider service mapping' });
     if (!certification.cleanupOk || !certification.reconciliationOk) blockers.push({ code: 'LIFECYCLE_CLEANUP_NOT_CLEAR', message: 'Lifecycle certification did not finish with clean reconciliation and cleanup' });
   }
-  return { providerId: provider.id, adapterKey: provider.adapterKey, providerName: provider.name, serviceId: service.id, serviceName: service.name, providerServiceCode: serviceQualification?.mapping || null, cancellationOk: capabilities.cancelActivation === true, nonCancellableReserveAllowed: nonCancellableReserveAllowed(), certificationId: certification?.certificationId || null, certificationCreatedAt: certification?.createdAt || null, certificationMaxAgeMs: certificationMaxAgeMs(), status: blockers.length ? 'blocked' : 'ready', blockers };
+  return { providerId: provider.id, adapterKey: provider.adapterKey, providerName: provider.name, serviceId: service.id, serviceName: service.name, providerServiceCode: serviceQualification?.mapping || null, cancellationOk: capabilities.cancelActivation === true, nonCancellableReserveAllowed: nonCancellableReserveAllowed(), certificationId: certification?.certificationId || null, certificationCreatedAt: certification?.createdAt || null, certificationMaxAgeMs: lifecycleCertificationMaxAgeMs(), status: blockers.length ? 'blocked' : 'ready', blockers };
 }
 
 export async function setExternalRouteActive(adminUserId, { providerId, serviceId, active = true, priority = 100 }) {
