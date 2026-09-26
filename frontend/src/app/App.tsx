@@ -16,6 +16,7 @@ import { ApiRequestError } from '../api/client';
 import type { AdminRecharge, Notification } from '../api/types';
 import { useSessionStore } from '../state/session';
 import '../styles/globals.css';
+import '../styles/customer-modern.css';
 import { AdminAccessGate } from '../features/admin/AdminShell';
 import { AdminDashboardPage } from '../features/admin/AdminDashboard';
 import { AdminUsersPage } from '../features/admin/AdminUsers';
