@@ -31,17 +31,17 @@ test('PWA icons have declared dimensions',()=>{
   assert.deepEqual(pngDimensions(path.join(root,'frontend/public/icons/icon-512.png')),{width:512,height:512});
 });
 
-test('mobile metadata and offline service worker are wired',()=>{
+test('mobile metadata is wired and stale service-worker caching is retired',()=>{
   const index=fs.readFileSync(indexPath,'utf8');
   const main=fs.readFileSync(mainPath,'utf8');
   const sw=fs.readFileSync(swPath,'utf8');
   assert.match(index,/apple-mobile-web-app-capable/);
   assert.match(index,/apple-touch-icon/);
   assert.match(index,/manifest\.webmanifest/);
-  assert.match(main,/serviceWorker\.register\('\/sw\.js'\)/);
+  assert.match(main,/serviceWorker\.getRegistrations\(\)/);
+  assert.match(main,/registration\.unregister\(\)/);
+  assert.match(main,/key\.startsWith\('inbox9-shell-'\)/);
+  assert.doesNotMatch(main,/serviceWorker\.register\('\/sw\.js'\)/);
   assert.match(sw,/CACHE_NAME='inbox9-shell-v2'/);
   assert.match(sw,/url\.pathname\.startsWith\('\/api\/'\)/);
-  assert.match(sw,/fetch\(request, \{cache:'no-store'\}\)/);
-  assert.match(sw,/client\.navigate\(client\.url\)/);
-  assert.match(sw,/caches\.match\('\/index\.html'\)/);
 });
