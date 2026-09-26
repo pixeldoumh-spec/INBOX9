@@ -37,7 +37,7 @@ function ActivePage(){
   <div className="catalog-heading"><div><h1>Active</h1><p>{tab==='ongoing'?'Track numbers waiting for an OTP.':'Your completed, expired and cancelled activations.'}</p></div><span className="catalog-chip">{tab==='ongoing'?ongoing.length:history.length}</span></div>
   <div className="active-tabs" role="tablist" aria-label="Activation views">
    <button type="button" role="tab" aria-selected={tab==='ongoing'} className={tab==='ongoing'?'active-tab is-selected':'active-tab'} onClick={()=>setTab('ongoing')}><span>Ongoing</span><b>{ongoing.length}</b></button>
-   <button type="button" role="tab" aria-selected={tab==='history'} className={tab==='history'?'active-tab is-selected':'active-tab'} onClick={()=>setTab('history')}><span>History</span><b>{history.length}</b></button>
+   <button type="button" role="tab" aria-selected={tab==='history'} className={tab==='history'?'active-tab is-selected':'active-tab'} onClick={()=>setTab('history')}><span>Order history</span><b>{history.length}</b></button>
   </div>
   {q.isError?<div className="error-card">Could not load activations.</div>:null}
   {q.isPending?<div className="list-skeleton">{Array.from({length:4},(_,i)=><div className="row-skeleton" key={i}/>)}</div>:
@@ -52,7 +52,7 @@ function ActivePage(){
       <div className="activation-meta"><span>{a.number||'Number pending'}</span><span>₹{(a.pricePaise/100).toFixed(2)}</span></div>
       {a.otp?<div className="mini-otp">OTP <b>{a.otp}</b></div>:null}
       {tab==='ongoing'&&countdown?<div className="activation-validity"><Icon name="clock" size={13}/><span>{countdown} remaining</span></div>:null}
-      {tab==='history'?<div className="activation-history-meta">{a.createdAt?new Date(a.createdAt).toLocaleString():'Activation record'}</div>:null}
+      {tab==='history'?<div className="activation-history-meta"><span>Order {a.id}</span><span>{a.createdAt?new Date(a.createdAt).toLocaleString():'Activation record'}</span>{a.status==='Refunded'?<span>Refund ₹{((a.refundPaise??a.pricePaise)/100).toFixed(2)}</span>:null}</div>:null}
      </div>
      <Icon name="arrow" size={18}/>
     </Link>
@@ -81,6 +81,7 @@ function ActivationPage(){
    await Promise.all([
     client.invalidateQueries({queryKey:['activations']}),
     client.invalidateQueries({queryKey:['wallet']}),
+    client.invalidateQueries({queryKey:['notifications']}),
     q.refetch()
    ]);
   },
