@@ -1101,3 +1101,55 @@ body{
 .app-shell .notification-row .notification-link-label {
   color: var(--i9-accent) !important;
 }
+
+
+/* Phase 10.1 — customer purchase sheets use the same dark surface as the app shell. */
+.app-shell .sheet-backdrop {
+  background: rgb(0 0 0 / 58%) !important;
+  backdrop-filter: blur(7px);
+}
+.app-shell .purchase-sheet,
+.app-shell .cancel-sheet {
+  background: var(--i9-surface) !important;
+  border: 1px solid var(--i9-border) !important;
+  color: var(--i9-text) !important;
+  box-shadow: var(--i9-shadow-float) !important;
+}
+.app-shell .sheet-handle {
+  background: var(--i9-border-strong) !important;
+}
+.app-shell .sheet-close {
+  background: var(--i9-surface-subtle) !important;
+  color: var(--i9-text-muted) !important;
+  border: 1px solid var(--i9-border) !important;
+}
+.app-shell .purchase-sheet :where(h2, strong),
+.app-shell .cancel-sheet :where(h2, strong) {
+  color: var(--i9-text) !important;
+}
+.app-shell .purchase-sheet .sheet-copy,
+.app-shell .cancel-sheet .sheet-copy {
+  color: var(--i9-text-muted) !important;
+}
+.app-shell .purchase-sheet .sheet-summary,
+.app-shell .cancel-sheet .sheet-summary {
+  background: #0d110d !important;
+  border-color: var(--i9-border-strong) !important;
+}
+.app-shell .purchase-sheet .sheet-summary span,
+.app-shell .cancel-sheet .sheet-summary span {
+  color: var(--i9-text-muted) !important;
+}
+.app-shell .purchase-sheet .sheet-summary strong,
+.app-shell .cancel-sheet .sheet-summary strong {
+  color: var(--i9-text) !important;
+}
+.app-shell .cancel-warning {
+  background: #201c0f !important;
+  border-color: #4a4321 !important;
+  color: var(--i9-warning) !important;
+}
+.app-shell .purchase-sheet .text-button,
+.app-shell .cancel-sheet .text-button {
+  color: var(--i9-accent) !important;
+}
