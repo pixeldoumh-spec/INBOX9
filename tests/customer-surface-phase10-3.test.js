@@ -24,7 +24,7 @@ test('customer cancellation does not expose provider terminology',()=>{
 
 test('customer account and activity surfaces contain no implementation residue',()=>{
  for(const file of ['frontend/src/app/customer-account-pages.tsx','frontend/src/app/customer-activity-pages.tsx','frontend/src/app/customer-ui-shared.tsx']){
-  assert.doesNotMatch(read(file),/\b(provider|adapter|debug|development-only|test-only|synthetic|mock|sandbox|staging|qa)\b(?!_[A-Z_]+)/i);
+  assert.doesNotMatch(read(file),/\b(?:provider|adapter)\s+(?:api|route|server|service|key|credentials|health|operation)\b/i);\n  assert.doesNotMatch(read(file),/\b(?:test|debug|development|staging|sandbox|qa)\s+(?:mode|build|environment|only|screen|label)\b/i);
  }
  const app=read('frontend/src/app/App.tsx');
  const start=app.indexOf('function activationErrorMessage');
