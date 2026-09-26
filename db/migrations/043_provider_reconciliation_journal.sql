@@ -36,3 +36,7 @@ CREATE INDEX IF NOT EXISTS idx_provider_reconciliation_events_activation
 CREATE UNIQUE INDEX IF NOT EXISTS uq_provider_reconciliation_running
   ON provider_reconciliation_runs(status)
   WHERE status='Running';
+
+INSERT INTO schema_migrations(version)
+VALUES ('043_provider_reconciliation_journal')
+ON CONFLICT (version) DO NOTHING;
