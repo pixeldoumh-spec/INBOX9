@@ -304,7 +304,7 @@ export async function changePassword(req, currentPassword, newPassword) {
 }
 
 export async function cleanupExpiredSessions({ limit = 500 } = {}) {
-  if (!dbEnabled()) return { deleted: 0, mode: 'mock' };
+  if (!dbEnabled()) return { deleted: 0 };
   const pool = await getPool();
   const safeLimit = Math.min(Math.max(Number(limit) || 500, 1), 5000);
   const result = await pool.query(
