@@ -15,7 +15,7 @@ export default async function handler(req, res) {
     if (!dbEnabled()) {
       const user = loginMockUser(email, password);
       setMockSession(res, user.email);
-      return res.status(200).json({ user, mode: 'mock' });
+      return res.status(200).json({ user });
     }
     const session = await login(email, password);
     setSessionCookie(res, session.token);
