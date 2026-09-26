@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   getAdminProviders,
-  getAdminProviderQualification,
+  getProviderQualification,
   getAdminServices,
   updateAdminService,
   type AdminService,
@@ -65,7 +65,7 @@ export function AdminServicesPage() {
 
   const qualification = useQuery({
     queryKey: ['admin-provider-qualification'],
-    queryFn: getAdminProviderQualification,
+    queryFn: getProviderQualification,
     staleTime: 15_000,
     refetchInterval: 60_000,
     refetchOnReconnect: true,
