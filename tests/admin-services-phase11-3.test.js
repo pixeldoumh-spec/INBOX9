@@ -25,6 +25,8 @@ test('phase 11.3 service catalog is admin-only and searchable', async () => {
   assert.match(repository, /service\.routing_updated/);
   assert.match(repository, /validateAndNormalizeRoutes/);
   assert.match(repository, /An active service must have at least one active route to an active provider/);
+  assert.match(repository, /provider_service_mappings/);
+  assert.match(repository, /Provider service mapping is required before activating/);
   assert.match(repository, /UPDATE service_provider_routes SET active=FALSE/);
   assert.match(repository, /ON CONFLICT \(service_id,provider_id\)/);
   assert.match(server, /GET \/api\/admin\/services/);
