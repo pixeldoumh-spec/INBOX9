@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import { getPool, withTransaction } from './db.js';
 import { createNotificationTx } from './notification-repository.js';
 import { invokeProvider } from './provider-gateway.js';
+import { reserveNumberWithFailover } from './provider-routing.js';
 import { beginCancellation, completeCancellation } from './provider-operations.js';
 import { debitForActivation, getBalanceForClient } from './wallet-repository.js';
 import { completeActivationKey, markActivationKeyStuckSafe } from './idempotency.js';
@@ -93,37 +94,6 @@ export async function createActivation(service, userId, idempotency = null, opti
   let provider = null;
   let reserved = null;
 
-  const providerRoute = await pool.query(
-    `SELECT p.id,p.name,p.adapter_key,p.priority
-       FROM service_provider_routes r JOIN providers p ON p.id=r.provider_id
-      WHERE r.service_id=$1 AND r.active=TRUE AND p.active=TRUE
-      ORDER BY r.priority ASC,p.priority ASC,p.id ASC LIMIT 1`,
-    [service.id]
-  );
-  if (!providerRoute.rowCount) {
-    const error = new Error('No active provider is configured for this service');
-    error.code = 'NO_PROVIDER';
-    throw error;
-  }
-  provider = providerRoute.rows[0];
-
-  let mappedProviderServiceCode = null;
-  if (provider.adapter_key !== 'synthetic') {
-    const mapping = await pool.query(
-      `SELECT provider_service_code
-         FROM provider_service_mappings
-        WHERE provider_id=$1 AND service_id=$2 AND active=TRUE
-        LIMIT 1`,
-      [provider.id, service.id]
-    );
-    if (!mapping.rowCount) {
-      const error = new Error('This service is not mapped for the selected provider');
-      error.code = 'PROVIDER_SERVICE_MAPPING_REQUIRED';
-      throw error;
-    }
-    mappedProviderServiceCode = mapping.rows[0].provider_service_code;
-  }
-
   for (let attempt = 1; attempt <= SYNTHETIC_SLOT_RESERVATION_ATTEMPTS; attempt += 1) {
     try {
       const latestService = await pool.query(
@@ -137,18 +107,21 @@ export async function createActivation(service, userId, idempotency = null, opti
         throw error;
       }
 
-      reserved = await invokeProvider({
-        provider,
-        operation: 'reserveNumber',
-        input: buildProviderReserveInput({
-          catalogService: service,
-          persistedService: latestService.rows[0],
-          provider,
-          serverId: options.serverId || null,
-          idempotencyKey: idempotency?.idempotencyKey || null,
-          providerServiceCode: mappedProviderServiceCode,
-        }),
+      const allocation = await reserveNumberWithFailover({
+        service: {
+          ...service,
+          ...latestService.rows[0],
+          pricePaise: Number(latestService.rows[0].price_paise),
+          currency: latestService.rows[0].currency,
+          country: latestService.rows[0].country,
+          active: Boolean(latestService.rows[0].active),
+        },
+        serviceId: service.id,
+        serverId: options.serverId || null,
+        idempotencyKey: idempotency?.idempotencyKey || null,
       });
+      provider = allocation.provider;
+      reserved = allocation.reserved;
 
       return await withTransaction(async (client) => {
         const serviceRow = await client.query(
