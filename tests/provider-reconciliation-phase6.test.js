@@ -6,10 +6,14 @@ const journal = await fs.readFile(new URL('../api/_lib/provider-reconciliation-j
 const internal = await fs.readFile(new URL('../api/_internal-provider-reconcile.js', import.meta.url), 'utf8');
 const route = await fs.readFile(new URL('../api/admin/_provider-operations.js', import.meta.url), 'utf8');
 const migration = await fs.readFile(new URL('../db/migrations/043_provider_reconciliation_journal.sql', import.meta.url), 'utf8');
+const supabaseMigration = await fs.readFile(new URL('../supabase/migrations/20260926162000_provider_reconciliation_journal.sql', import.meta.url), 'utf8');
 
 test('Phase 6 creates durable reconciliation run and event journals', () => {
   assert.match(migration, /provider_reconciliation_runs/);
   assert.match(migration, /provider_reconciliation_events/);
+  assert.match(migration, /schema_migrations/);
+  assert.match(supabaseMigration, /provider_reconciliation_runs/);
+  assert.match(supabaseMigration, /schema_migrations/);
   assert.match(journal, /beginProviderReconciliationRun/);
   assert.match(journal, /recordProviderReconciliationEvent/);
   assert.match(journal, /finishProviderReconciliationRun/);
