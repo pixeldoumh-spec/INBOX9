@@ -24,6 +24,16 @@ Apps launcher
 7. Apps Home and Service Detail are separate routes.
 8. Visual design does not dictate backend architecture.
 
+## Actual modernization phases
+
+Phase 0 — Baseline: screenshots, state matrix, accessibility checks, performance baseline, freeze contracts.
+Phase 1 — Foundation: tokens, type, spacing, primitives.
+Phase 2 — Core flow: shell, Apps, Buy, OTP.
+Phase 3 — Account surfaces: Wallet, Active, Notifications, Account, Support.
+Phase 4 — Polish: code splitting, logo optimization, motion, CSS cleanup.
+
+The phases above are the canonical customer-UI modernization sequence. Admin panel/admin routes are outside this modernization scope.
+
 ## Phase 2 launcher contract
 
 - fixed/sticky INBOX9 header
@@ -91,9 +101,8 @@ The backend exposes the 90-service India/INR catalog from the Diwa Play cutoff. 
 
 ## Build sequence
 
-Phase 0 — Architecture freeze: completed.
-Phase 1 — Frontend foundation: completed.
-Phase 2 — Apps launcher: completed and Radium Night contrast/polish certified (2026-09-26).
-Phase 3 — Service and activation: completed.
-Phase 4 — Wallet, notifications, support, account: completed.
-Phase 5 — Production certification: next.
+Phase 0 — Baseline: established.
+Phase 1 — Foundation: completed.
+Phase 2 — Core flow: shell, Apps, Buy, OTP — core launcher work completed and Radium Night launcher re-certified (2026-09-26).
+Phase 3 — Account surfaces: implementation exists; modernization/certification continues after the current contrast repairs.
+Phase 4 — Polish: pending.
