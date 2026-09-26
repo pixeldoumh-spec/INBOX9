@@ -39,6 +39,7 @@ import adminLedger from './api/admin/_ledger.js';
 import adminProviders from './api/admin/_providers.js';
 import adminProvidersHealth from './api/admin/_providers-health.js';
 import adminProviderQualification from './api/admin/_provider-qualification.js';
+import adminProviderReadiness from './api/admin/_provider-readiness.js';
 import adminAudit from './api/admin/_audit.js';
 import adminSupport from './api/admin/support/_index.js';
 import adminNotifications from './api/admin/_notifications.js';
@@ -215,6 +216,8 @@ function routeFor(method, pathname) {
     ['GET /api/admin/providers-health', adminProvidersHealth],
     ['GET /api/admin/provider-qualification', adminProviderQualification],
     ['POST /api/admin/provider-qualification', adminProviderQualification],
+    ['GET /api/admin/provider-readiness', adminProviderReadiness],
+    ['POST /api/admin/provider-readiness', adminProviderReadiness],
     ['GET /api/admin/audit', adminAudit],
     ['GET /api/admin/support', adminSupport],
     ['GET /api/admin/notifications', adminNotifications],
