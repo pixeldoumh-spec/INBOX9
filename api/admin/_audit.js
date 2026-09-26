@@ -11,6 +11,6 @@ export default async function handler(req, res) {
   if (!dbEnabled()) return res.status(503).json({ error: 'Audit logs require PostgreSQL' });
   const user = await getSessionUser(req);
   try { requireAdmin(user); } catch (e) { return res.status(e.statusCode || 401).json({ error: e.message }); }
-  try { return res.status(200).json({ logs: await listAuditLogs(req.query?.limit) }); }
+  try { return res.status(200).json(await listAuditLogs({ query:req.query?.q, action:req.query?.action, targetType:req.query?.targetType, limit:req.query?.limit, offset:req.query?.offset })); }
   catch (error) { console.error('admin.audit_failed', error); return res.status(503).json({ error: 'Audit log unavailable' }); }
 }
