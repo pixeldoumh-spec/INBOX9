@@ -40,7 +40,6 @@ export function buildProviderReserveInput({
   provider,
   serverId = null,
   idempotencyKey = null,
-  nodeEnv = process.env.NODE_ENV,
 }) {
   const dbService = persistedService || {};
   const input = {
