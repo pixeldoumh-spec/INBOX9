@@ -216,6 +216,8 @@ function routeFor(method, pathname) {
     ['GET /api/admin/notifications', adminNotifications],
     ['POST /api/admin/notifications', adminNotifications],
     ['GET /api/admin/wallet-reconciliation', adminWalletReconciliation],
+    ['POST /api/admin/wallet-reconciliation', adminWalletReconciliation],
+    ['PATCH /api/admin/wallet-reconciliation', adminWalletReconciliation],
     ['GET /api/admin/payment-reconciliation', adminPaymentReconciliation],
     ['GET /api/admin/payment-settings', adminPaymentSettings],
     ['PATCH /api/admin/payment-settings', adminPaymentSettings],
