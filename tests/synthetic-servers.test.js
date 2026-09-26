@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { SYNTHETIC_CAPACITY, SYNTHETIC_SERVER_COUNT, getServerForSlot, getSyntheticServer, listSyntheticServers } from '../api/_lib/synthetic-servers.js';
+import { SYNTHETIC_CAPACITY, SYNTHETIC_SERVER_COUNT, getServerForSlot, getSyntheticServer, issueSyntheticServer, listSyntheticServers } from '../api/_lib/synthetic-servers.js';
 
 test('100 synthetic slots per service are partitioned into contiguous server chunks', () => {
   const servers = listSyntheticServers();
@@ -35,4 +35,22 @@ test('unknown server ids are rejected', () => {
   assert.equal(getSyntheticServer('server-0'), null);
   assert.equal(getSyntheticServer('server-12'), null);
   assert.equal(getSyntheticServer('not-a-server'), null);
+});
+
+test('synthetic server issuance always returns a valid internal server', () => {
+  const servers = listSyntheticServers();
+  for (let i = 0; i < 50; i += 1) {
+    const issued = issueSyntheticServer();
+    assert.ok(issued);
+    assert.ok(servers.some((server) => server.id === issued.id));
+    assert.ok(issued.capacity > 0);
+  }
+});
+
+test('synthetic QA may pin a known server and rejects unknown servers', () => {
+  assert.equal(issueSyntheticServer({ requestedServerId: 'SERVER-3' }).id, 'server-3');
+  assert.throws(
+    () => issueSyntheticServer({ requestedServerId: 'server-12' }),
+    error => error?.code === 'UNKNOWN_SYNTHETIC_SERVER'
+  );
 });

@@ -18,6 +18,14 @@ enforces uniqueness for each (service, slot) while the activation is Reserved.
 Terminal activation states release the reservation; a collision is retried with
 a fresh synthetic slot.
 
+### Server issuance
+
+Every synthetic reservation is assigned an internal synthetic server before its
+slot is generated. Normal synthetic flow asks the server pool to issue a server
+automatically; an explicit server can still be pinned for non-production QA.
+The assigned server and slot are persisted in provider metadata so the durable
+synthetic-slot reservation can validate that the slot belongs to the issued server.
+
 ## Verification
 
 Run:
