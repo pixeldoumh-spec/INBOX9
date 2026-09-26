@@ -89,9 +89,11 @@ test('synthetic route remains immutable under external route controls', async ()
   process.env.DATABASE_URL = process.env.INBOX9_TEST_DATABASE_URL;
   process.env.DATABASE_SSL = 'false';
 
+  const pool = await (await import('../api/_lib/db.js')).getPool();
+  const serviceResult = await pool.query('SELECT id FROM services WHERE active=TRUE ORDER BY id LIMIT 1');
   const { setExternalRouteActive } = await import('../api/_lib/provider-route-activation.js');
   await assert.rejects(
-    () => setExternalRouteActive(null, { providerId: 'provider-mock', serviceId: 'svc-whatsapp', active: false }),
+    () => setExternalRouteActive(null, { providerId: 'provider-mock', serviceId: serviceResult.rows[0].id, active: false }),
     error => error.code === 'SYNTHETIC_ROUTE_IMMUTABLE',
   );
 });
