@@ -6,6 +6,7 @@ import test from 'node:test';
 const root=process.cwd();
 const css=fs.readFileSync(path.join(root,'frontend/src/styles/globals.css'),'utf8');
 const app=fs.readFileSync(path.join(root,'frontend/src/app/App.tsx'),'utf8');
+const shared=fs.readFileSync(path.join(root,'frontend/src/app/customer-ui-shared.tsx'),'utf8');
 
 test('phase 1 establishes a constrained mobile app shell',()=>{
   assert.match(css,/\.app-shell\s*\{[\s\S]*?max-width:\s*720px/);
@@ -18,7 +19,7 @@ test('phase 1 establishes a constrained mobile app shell',()=>{
 test('phase 1 uses a four-column launcher and avoids redundant single-category controls',()=>{
   assert.match(css,/\.service-grid\s*\{[\s\S]*?grid-template-columns:\s*repeat\(4,minmax\(0,1fr\)/);
   assert.match(app,/\{categories\.length>1\?<div className="category-scroll"/);
-  assert.match(app,/const d=72/);
+  assert.match(shared,/const d=72/);
 });
 
 test('phase 2 keeps launcher tiles inside narrow mobile columns',()=>{
@@ -27,8 +28,8 @@ test('phase 2 keeps launcher tiles inside narrow mobile columns',()=>{
   assert.match(css,/\.service-logo\s*\{[\s\S]*?width:72px !important/);
 });
 test('phase 2.1 normalizes the shared logo frame and bottom-nav icon sizing',()=>{
-  assert.match(app,/className="service-logo-art"/);
-  assert.match(app,/cropServiceLogo/);
+  assert.match(shared,/className="service-logo-art"/);
+  assert.match(shared,/cropServiceLogo/);
   assert.match(app,/data-logo-source=\{src\?'cropped-sprite'/);
   assert.match(css,/\.service-logo\s*\{[\s\S]*?position:relative/);
   assert.match(css,/\.service-logo-art\s*\{[\s\S]*?inset:1px/);
@@ -36,7 +37,7 @@ test('phase 2.1 normalizes the shared logo frame and bottom-nav icon sizing',()=
 });
 
 test('phase 2.2 uses one canonical service-logo size across customer surfaces',()=>{
-  assert.match(app,/function ServiceLogo\(\{serviceId,name\}/);
+  assert.match(shared,/function ServiceLogo\(\{serviceId,name\}/);
   assert.doesNotMatch(app,/size="sm"/);
   assert.doesNotMatch(app,/size="lg"/);
   assert.match(css,/\.service-logo\s*\{[\s\S]*?width:72px !important;[\s\S]*?height:72px !important/);
@@ -45,7 +46,7 @@ test('phase 2.2 uses one canonical service-logo size across customer surfaces',(
 
 test('phase 2.4 crops logo artwork to visible bounds then contains the full image',()=>{
   assert.match(app,/cropServiceLogo/);
-  assert.match(app,/output\.toDataURL\('image\/png'\)/);
+  assert.match(shared,/URL\.createObjectURL\(blob\)/);
   assert.match(app,/data-logo-source=\{src\?'cropped-sprite'/);
   assert.match(css,/\.service-logo-art img\s*\{[\s\S]*?object-fit:contain/);
 });
