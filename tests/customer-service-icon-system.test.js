@@ -15,7 +15,8 @@ test('shared customer service icon uses one enhanced Android-style frame everywh
   assert.match(shared,/SERVICE_LOGO_MANIFEST/);
   assert.match(shared,/SERVICE_LOGO_MANIFEST\[serviceId\]/);
   assert.match(shared,/className="service-logo-sprite-canvas"/);
-  assert.match(shared,/backgroundSize: \(columns\*100\)\+'% '\+\(rows\*100\)\+'%'/);
+  assert.match(shared,/width: \(columns\*100\)\+'%'/);
+  assert.match(shared,/height: \(rows\*100\)\+'%'/);
   assert.doesNotMatch(shared,/getImageData|toBlob|createObjectURL|cropServiceLogo|detectSafeCrop/);
 });
 
