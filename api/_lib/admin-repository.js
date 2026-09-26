@@ -443,28 +443,7 @@ export async function listAuditLogs(filters = {}) {
   const query = String(input.query || '').trim().slice(0, 120);
   const action = String(input.action || 'all').trim().slice(0, 160) || 'all';
   const targetType = String(input.targetType || 'all').trim().slice(0, 80) || 'all';
-  const escaped = query.replace(/[%_]/g, '\\export async function listAuditLogs(limit = 100) {
-  const pool = await getPool();
-  const safeLimit = Math.min(Math.max(Number(limit) || 100, 1), 250);
-  const result = await pool.query(
-    `SELECT a.*, u.email AS actor_email
-     FROM audit_logs a
-     LEFT JOIN users u ON u.id=a.actor_user_id
-     ORDER BY a.created_at DESC LIMIT $1`, [safeLimit]
-  );
-  return result.rows.map(row => ({
-    id: row.id,
-    actorUserId: row.actor_user_id,
-    actorEmail: row.actor_email,
-    action: row.action,
-    targetType: row.target_type,
-    targetId: row.target_id,
-    metadata: row.metadata || {},
-    createdAt: new Date(row.created_at).getTime(),
-  }));
-}
-
-export async function recordAuditTx');
+  const escaped = query.replace(/[%_]/g, '\\$&');
   const pattern = '%' + escaped + '%';
   const where = `($1='' OR a.id ILIKE $2 ESCAPE '\\\\' OR COALESCE(u.email,'') ILIKE $2 ESCAPE '\\\\' OR a.action ILIKE $2 ESCAPE '\\\\' OR a.target_type ILIKE $2 ESCAPE '\\\\' OR COALESCE(a.target_id,'') ILIKE $2 ESCAPE '\\\\')
     AND ($3='all' OR a.action=$3)
