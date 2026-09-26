@@ -48,6 +48,11 @@ export async function beginCancellation(activationId, userId) {
         alreadyPending: true,
       };
     }
+    await createNotificationTx(client, {
+      userId, kind:'activation', sourceType:'activation', sourceId:activationId, eventKey:'status:CancellationPending',
+      title:'Cancellation in progress', body:'Your cancellation request is being confirmed. The wallet is refunded only after provider confirmation.',
+      page:'buy', tone:'info'
+    });
     const operation = await client.query(
       `INSERT INTO provider_operations
        (id,activation_id,operation_type,status,provider_id,provider_activation_id)
@@ -226,6 +231,10 @@ async function finalizeExpirationOperation(operationId, outcome) {
          RETURNING *`, [row.activation_id, outcome.otp ?? row.otp ?? null]
       );
       if (updated.rowCount) {
+        await createNotificationTx(client, {
+          userId:row.user_id, kind:'activation', sourceType:'activation', sourceId:row.activation_id, eventKey:'status:Completed',
+          title:'OTP received successfully', body:'The verification code is ready in the Buy workspace.', page:'buy', tone:'success'
+        });
         const released = await releaseSyntheticSlot(client, row.activation_id);
         if (!released && shouldRequireSyntheticReservation(row.provider_metadata)) {
           throw new Error('Synthetic inventory reservation is missing for completed activation');
@@ -247,6 +256,10 @@ async function finalizeExpirationOperation(operationId, outcome) {
        RETURNING *`, [row.activation_id, outcome.otp ?? row.otp ?? null]
     );
     if (updated.rowCount) {
+      await createNotificationTx(client, {
+        userId:row.user_id, kind:'activation', sourceType:'activation', sourceId:row.activation_id, eventKey:'status:Expired',
+        title:'Number expired', body:'This activation reached its validity limit.', page:'buy', tone:'info'
+      });
       const released = await releaseSyntheticSlot(client, row.activation_id);
       if (!released && shouldRequireSyntheticReservation(row.provider_metadata)) {
         throw new Error('Synthetic inventory reservation is missing for expired activation');
