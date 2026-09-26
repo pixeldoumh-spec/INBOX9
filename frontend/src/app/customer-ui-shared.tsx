@@ -39,8 +39,7 @@ export function ServiceLogo({serviceId,name}:{serviceId:string;name:string}){
  const backgroundPosition=has&&columns>1&&rows>1
    ? String((column/(columns-1))*100)+'% '+String((row/(rows-1))*100)+'%'
    : '0% 0%';
- const initials=name.trim().split(/\\s+/).slice(0,2).map(x=>x[0]).join('').toUpperCase()||'I9';
- return <div className={['service-logo',has?'':'service-logo-fallback'].filter(Boolean).join(' ')} data-service-id={serviceId} data-logo-source={has?'sprite-tile':'fallback'} style={{width:72,height:72}}>
+ return <div className={['service-logo',has?'':'service-logo-blank'].filter(Boolean).join(' ')} data-service-id={serviceId} data-logo-source={has?'zip-sprite':'blank'} style={{width:72,height:72}}>
    <span className="service-logo-aura" aria-hidden="true"/>
    <span className="service-logo-frame">
     {has
@@ -53,9 +52,7 @@ export function ServiceLogo({serviceId,name}:{serviceId:string;name:string}){
             backgroundPosition
           }}
         />
-      : <span className="service-logo-art">
-          <span className="service-logo-fallback-content"><span>{initials}</span><Icon name="apps" size={21}/></span>
-        </span>
+      : <span className="service-logo-art service-logo-blank-art" aria-hidden="true" />
     }
    </span>
    <span className="service-logo-sheen" aria-hidden="true"/>
