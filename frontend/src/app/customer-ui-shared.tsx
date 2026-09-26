@@ -36,25 +36,21 @@ export function ServiceLogo({serviceId,name}:{serviceId:string;name:string}){
  const has=Boolean(logo&&index>=0&&index<columns*rows);
  const column=has?index%columns:0;
  const row=has?Math.floor(index/columns):0;
+ const backgroundPosition=has
+  ? `${column/(Math.max(columns-1,1))*100}% ${row/(Math.max(rows-1,1))*100}%`
+  : '0% 0%';
  return <div className={['service-logo',has?'':'service-logo-blank'].filter(Boolean).join(' ')} data-service-id={serviceId} data-logo-source={has?'zip-sprite':'blank'} style={{width:72,height:72}}>
    <span className="service-logo-aura" aria-hidden="true"/>
    <span className="service-logo-frame">
-    {has
-      ? <span className="service-logo-art" aria-hidden="true">
-          <span
-            className="service-logo-sprite-canvas"
-            aria-hidden="true"
-            style={{
-              width: (columns*100)+'%',
-              height: (rows*100)+'%',
-              left: (-(column*100))+'%',
-              top: (-(row*100))+'%',
-              backgroundImage: 'url('+path+')'
-            }}
-          />
-        </span>
-      : <span className="service-logo-art service-logo-blank-art" aria-hidden="true" />
-    }
+    <span
+      className={['service-logo-art',has?'':'service-logo-blank-art'].filter(Boolean).join(' ')}
+      aria-hidden="true"
+      style={has ? {
+        backgroundImage: 'url('+path+')',
+        backgroundSize: (columns*100)+'% '+(rows*100)+'%',
+        backgroundPosition,
+      } : undefined}
+    />
    </span>
    <span className="service-logo-sheen" aria-hidden="true"/>
  </div>;
