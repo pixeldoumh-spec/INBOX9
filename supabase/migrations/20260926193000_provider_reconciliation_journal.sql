@@ -1,4 +1,6 @@
-CREATE TABLE IF NOT EXISTS provider_reconciliation_runs (
+BEGIN;
+
+CREATE TABLE IF NOT EXISTS public.provider_reconciliation_runs (
   id UUID PRIMARY KEY,
   trigger TEXT NOT NULL CHECK (trigger IN ('cron','manual')),
   status TEXT NOT NULL CHECK (status IN ('Running','Succeeded','Failed')),
@@ -11,9 +13,9 @@ CREATE TABLE IF NOT EXISTS provider_reconciliation_runs (
   error_message TEXT
 );
 
-CREATE TABLE IF NOT EXISTS provider_reconciliation_events (
+CREATE TABLE IF NOT EXISTS public.provider_reconciliation_events (
   id UUID PRIMARY KEY,
-  run_id UUID NOT NULL REFERENCES provider_reconciliation_runs(id) ON DELETE CASCADE,
+  run_id UUID NOT NULL REFERENCES public.provider_reconciliation_runs(id) ON DELETE CASCADE,
   operation_id TEXT,
   activation_id TEXT,
   provider_id TEXT,
@@ -27,16 +29,17 @@ CREATE TABLE IF NOT EXISTS provider_reconciliation_events (
 );
 
 CREATE INDEX IF NOT EXISTS idx_provider_reconciliation_runs_started
-  ON provider_reconciliation_runs(started_at DESC);
+  ON public.provider_reconciliation_runs(started_at DESC);
 CREATE INDEX IF NOT EXISTS idx_provider_reconciliation_events_run
-  ON provider_reconciliation_events(run_id, created_at DESC);
+  ON public.provider_reconciliation_events(run_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_provider_reconciliation_events_activation
-  ON provider_reconciliation_events(activation_id, created_at DESC);
+  ON public.provider_reconciliation_events(activation_id, created_at DESC);
 
 CREATE UNIQUE INDEX IF NOT EXISTS uq_provider_reconciliation_running
-  ON provider_reconciliation_runs(status)
+  ON public.provider_reconciliation_runs(status)
   WHERE status='Running';
 
-INSERT INTO schema_migrations(version)
-VALUES ('043_provider_reconciliation_journal')
-ON CONFLICT (version) DO NOTHING;
+REVOKE ALL ON TABLE public.provider_reconciliation_runs FROM anon, authenticated;
+REVOKE ALL ON TABLE public.provider_reconciliation_events FROM anon, authenticated;
+
+COMMIT;
