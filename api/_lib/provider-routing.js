@@ -5,6 +5,8 @@ import { invokeProvider } from './provider-gateway.js';
 export const ROUTING_CIRCUIT_FAILURE_THRESHOLD = 3;
 export const ROUTING_CIRCUIT_COOLDOWN_MS = 2 * 60 * 1000;
 
+const EXTERNAL_ROUTING_ENABLED = String(process.env.INBOX9_ENABLE_EXTERNAL_ROUTING || '').trim().toLowerCase() === 'true';
+
 const SAFE_FAILOVER_CODES = new Set([
   'PROVIDER_NOT_CONFIGURED',
   'PROVIDER_SERVICE_MAPPING_REQUIRED',
@@ -87,8 +89,12 @@ async function eligibleRoutes(pool, serviceId) {
       ORDER BY r.priority ASC,p.priority ASC,p.id ASC`,
     [serviceId],
   );
-  return result.rows;
+  return EXTERNAL_ROUTING_ENABLED
+    ? result.rows
+    : result.rows.filter((row) => row.adapter_key === 'synthetic');
 }
+
+export function externalRoutingEnabled() { return EXTERNAL_ROUTING_ENABLED; }
 
 export async function reserveNumberWithFailover({ service, serviceId, serverId = null, idempotencyKey = null, maxProviders = 5 } = {}) {
   const pool = await getPool();
