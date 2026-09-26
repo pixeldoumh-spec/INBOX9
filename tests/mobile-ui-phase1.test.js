@@ -24,3 +24,23 @@ test('phase 4 logo implementation is covered by the dedicated logo regression su
   assert.doesNotMatch(app,/const logoMask/);
   assert.match(app,/from '\.\/customer-ui-shared'/);
 });
+
+
+test('customer wallet and recharge surfaces cannot fall back to the legacy light theme',()=>{
+  assert.match(css,/Phase 10.1 — authoritative customer wallet/recharge theme/);
+  for (const selector of [
+    '.app-shell \.wallet-overview',
+    '.app-shell \.wallet-recharge-shell \.recharge-card',
+    '.app-shell \.wallet-help-card',
+    '.app-shell \.wallet-amount-panel',
+    '.app-shell \.wallet-qr-panel',
+    '.app-shell \.wallet-payment-destination',
+    '.app-shell \.payment-paid-button',
+    '.app-shell \.wallet-recharge-form \.field input',
+    '.app-shell \.wallet-recharge-row',
+    '.app-shell \.wallet-detail-card',
+    '.app-shell \.wallet-detail-grid > div',
+    '.app-shell \.wallet-activity-row'
+  ]) assert.match(css,new RegExp(selector+'\\s*\\{[\\s\\S]*?background:\\s*(?:var\\(--i9-surface|var\\(--i9-surface-subtle|#0d110d|rgb\\()'));
+  assert.match(css,/.app-shell .wallet-payment-qrs*{[sS]*?background:s*#fffs*!important/);
+});
