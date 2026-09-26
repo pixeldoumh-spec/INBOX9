@@ -1,6 +1,6 @@
 # INBOX9 Frontend Architecture — v1
 
-Status: Phase 3 account surfaces completed and customer-scoped Radium contrast certified; Phase 4 polish is pending.
+Status: Phase 4 customer polish completed and certified (2026-09-26).
 
 ## Source basis
 
@@ -105,4 +105,4 @@ Phase 0 — Baseline: established.
 Phase 1 — Foundation: completed.
 Phase 2 — Core flow: shell, Apps, Buy, OTP — core launcher work completed and Radium Night launcher re-certified (2026-09-26).
 Phase 3 — Account surfaces: Wallet, Active, Notifications, Account, Support — completed and customer-scoped Radium contrast certified (2026-09-26).
-Phase 4 — Polish: pending.
+Phase 4 — Polish: code splitting, logo optimization, motion, CSS cleanup — completed and customer-scoped certified (2026-09-26).
