@@ -11,7 +11,7 @@ export default async function handler(req, res) {
   try { requireUser(user); } catch (e) { return res.status(e.statusCode || 401).json({ error: e.message }); }
   try {
     const result = await logoutAllSessions(req, res);
-    return res.status(200).json({ ok: true, invalidated: result.count, mode: result.mode });
+    return res.status(200).json({ ok: true, invalidated: result.count });
   } catch (error) {
     console.error('auth.logout_all_failed', error);
     return res.status(503).json({ error: 'Unable to sign out all sessions' });
