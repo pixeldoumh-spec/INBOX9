@@ -99,7 +99,13 @@ export async function qualifyProviders() {
       ? catalogServices.filter(service => (byName.get(normalized(service.name)) || []).length === 1).length
       : 0;
     const verifiedMappings = mappingRows.filter(row => liveCodes.has(String(row.provider_service_code))).length;
-    return { id: provider.id, name: provider.name, adapterKey: provider.adapter_key, active: Boolean(provider.active), priority: Number(provider.priority), status: catalog.status, configured: catalog.configured, catalogCount: rows.length, verifiedMappings, candidateMappings, staleMappings: mappingRows.filter(row => catalog.status === 'catalog_verified' && !liveCodes.has(String(row.provider_service_code))).length, error: catalog.error };
+    const ambiguousMappings = catalog.status === 'catalog_verified'
+      ? catalogServices.filter(service => (byName.get(normalized(service.name)) || []).length > 1).length
+      : 0;
+    const unmappedMappings = catalog.status === 'catalog_verified'
+      ? catalogServices.filter(service => (byName.get(normalized(service.name)) || []).length === 0).length
+      : catalogServices.length;
+    return { id: provider.id, name: provider.name, adapterKey: provider.adapter_key, active: Boolean(provider.active), priority: Number(provider.priority), status: catalog.status, configured: catalog.configured, catalogCount: rows.length, verifiedMappings, candidateMappings, ambiguousMappings, unmappedMappings, staleMappings: mappingRows.filter(row => catalog.status === 'catalog_verified' && !liveCodes.has(String(row.provider_service_code))).length, error: catalog.error };
   });
 
   const serviceRows = catalogServices.map(service => {
@@ -217,11 +223,16 @@ export async function verifyAndSaveExactProviderMappings(adminUserId, { provider
   const pool = await getPool();
   const activeServiceResult = await pool.query('SELECT id FROM services WHERE active=TRUE ORDER BY id');
   const activeServiceIds = new Set(activeServiceResult.rows.map((row) => String(row.id)));
+  const mappedServiceIds = new Set(mappings.map((row) => row.serviceId));
   const missingFromDatabase = mappings.filter((row) => !activeServiceIds.has(row.serviceId));
-  if (missingFromDatabase.length) {
-    const error = Object.assign(new Error('Provider mapping set does not match the active INBOX9 service catalog'), { statusCode: 409 });
+  const extraInDatabase = activeServiceResult.rows.filter((row) => !mappedServiceIds.has(String(row.id)));
+  if (missingFromDatabase.length || extraInDatabase.length || activeServiceIds.size !== mappings.length) {
+    const error = Object.assign(new Error('Provider mapping set does not exactly match the active INBOX9 service catalog'), { statusCode: 409 });
     error.code = 'ACTIVE_SERVICE_CATALOG_MISMATCH';
+    error.expectedServiceCount = mappings.length;
+    error.actualActiveServiceCount = activeServiceIds.size;
     error.missingServiceIds = missingFromDatabase.map((row) => row.serviceId);
+    error.unmappedActiveServiceIds = extraInDatabase.map((row) => String(row.id));
     throw error;
   }
 
