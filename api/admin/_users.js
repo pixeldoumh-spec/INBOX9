@@ -12,7 +12,7 @@ export default async function handler(req,res){
   try{requireAdmin(user);}catch(e){return res.status(e.statusCode||401).json({error:e.message});}
   try{
     return res.status(200).json(await listAdminUsers({
-      query:req.query?.q,role:req.query?.role,status:req.query?.status,limit:req.query?.limit
+      query:req.query?.q,role:req.query?.role,status:req.query?.status,limit:req.query?.limit,offset:req.query?.offset
     }));
   }catch(error){
     console.error('admin.users_failed',error);
