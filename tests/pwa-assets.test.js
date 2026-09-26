@@ -39,7 +39,7 @@ test('mobile metadata and offline service worker are wired',()=>{
   assert.match(index,/apple-touch-icon/);
   assert.match(index,/manifest\.webmanifest/);
   assert.match(main,/serviceWorker\.register\('\/sw\.js'\)/);
-  assert.match(sw,/CACHE_NAME='inbox9-shell-v1'/);
+  assert.match(sw,/CACHE_NAME='inbox9-shell-v2'/);
   assert.match(sw,/url\.pathname\.startsWith\('\/api\/'\)/);
-  assert.match(sw,/caches\.match\('\/index\.html'\)/);
+  assert.match(sw,/fetch\(request, \{cache:'no-store'\}\)/);\n  assert.match(sw,/client\.navigate\(client\.url\)/);\n  assert.match(sw,/caches\.match\('\/index\.html'\)/);
 });
