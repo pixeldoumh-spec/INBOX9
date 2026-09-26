@@ -30,7 +30,7 @@ test('phase 4 preserves admin implementations outside customer chunks',()=>{
 });
 
 test('phase 4 logo rendering uses direct prepared sprite tiles with no runtime crop work',()=>{
-  assert.match(shared,/backgroundPosition/);
+  assert.match(shared,/service-logo-sprite-canvas/);
   assert.match(shared,/backgroundImage: 'url\('\+path\+'\)'/);
   assert.match(shared,/backgroundSize: \(columns\*100\)\+'% '\+\(rows\*100\)\+'%'/);
   assert.doesNotMatch(shared,/output\.toDataURL\('image\/png'\)/);
