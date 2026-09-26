@@ -19,7 +19,7 @@ test('service purchase code cannot call find directly on an unchecked catalog pa
   const source = await fs.readFile(new URL('../frontend/src/app/App.tsx', import.meta.url), 'utf8');
 
   assert.doesNotMatch(source, /services\.data\?\.services\.find\(/);
-  assert.match(source, /const all=q\.data\?\.services\?\?\[\]/);
+  assert.match(source, /const all=Array\.isArray\(q\.data\?\.services\)\?q\.data\.services:\[\];/);
 });
 
 test('admin service console guards service selection against malformed catalog payloads', async () => {
