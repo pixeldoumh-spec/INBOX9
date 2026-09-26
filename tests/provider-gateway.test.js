@@ -103,7 +103,7 @@ test('synthetic flow issues an internal server before creating an activation', a
     name: 'Example',
   });
   const serverId = allocation.metadata?.serverId;
-  assert.match(serverId, /^server-d+$/);
+  assert.match(serverId, /^server-\d+$/);
   assert.equal(allocation.metadata?.serverSelection, 'issued');
   const slot = Number(allocation.metadata?.slot);
   assert.ok(Number.isInteger(slot));
