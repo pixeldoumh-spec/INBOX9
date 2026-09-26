@@ -26,6 +26,7 @@ import { AdminNotificationsPage } from '../features/admin/AdminNotifications';
 import { AdminReconciliationPage } from '../features/admin/AdminReconciliation';
 import { AdminSystemHealthPage } from '../features/admin/AdminSystemHealth';
 import { Icon, ServiceLogo, activationStateIsOngoing, activationStateIsTerminal } from './customer-ui-shared';
+import { SERVICE_LOGO_MANIFEST } from './serviceLogoManifest';
 const ActivePage = lazy(()=>import('./customer-activity-pages').then(m=>({default:m.ActivePage})));
 const ActivationPage = lazy(()=>import('./customer-activity-pages').then(m=>({default:m.ActivationPage})));
 const WalletPage = lazy(()=>import('./customer-account-pages').then(m=>({default:m.WalletPage})));
@@ -136,11 +137,12 @@ function Catalog(){
  },[all]);
  const list=useMemo(()=>{
   const needle=search.trim().toLowerCase();
-  return all.filter(item=>{
+  const filtered=all.filter(item=>{
    const matchesSearch=!needle||`${item.name} ${item.category}`.toLowerCase().includes(needle);
    const matchesCategory=category==='all'||(item.category||'Other')===category;
    return matchesSearch&&matchesCategory;
   });
+  return filtered.sort((a,b)=>Number(Boolean(SERVICE_LOGO_MANIFEST[b.id]))-Number(Boolean(SERVICE_LOGO_MANIFEST[a.id])));
  },[all,search,category]);
  const recentServices=useMemo(()=>recentIds.map(id=>all.find(item=>item.id===id)).filter(Boolean),[all,recentIds]);
  function remember(id:string){
