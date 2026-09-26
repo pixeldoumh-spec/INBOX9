@@ -10,8 +10,9 @@ test('phase 11.1 keeps admin routing outside the customer shell', async()=>{
   assert.match(source,/path:'payments',Component:AdminPaymentsPage/);
   assert.doesNotMatch(source,/path:'admin\/payments',Component:AdminPaymentsPage/);
   assert.match(source,/function resolvePostLoginPath\(next:string\|null,role\?:string\)/);
-  assert.match(source,/const fallback=role==='admin'\?'\/admin':'\/apps'/);
-  assert.match(source,/candidate==='\/admin'\|\|candidate\.startsWith\('\/admin\/'\)/);
+  assert.match(source,/if\(role==='admin'\)/);
+  assert.match(source,/candidate==='\/admin'\|\|candidate\.startsWith\('\/admin\/'\)\?candidate:'\/admin'/);
+  assert.match(source,/if\(candidate==='\/admin'\|\|candidate\.startsWith\('\/admin\/'\)\)return '\/apps'/);
 });
 
 test('phase 11.1 admin guard is role-bound and customer UI is not mounted in admin shell', async()=>{
