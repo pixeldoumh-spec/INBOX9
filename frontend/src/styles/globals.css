@@ -692,3 +692,64 @@ body{
     transition:none;
   }
 }
+
+/* Customer UI 4.1 — launcher hierarchy styling */
+.catalog-eyebrow{
+  display:block;
+  margin-bottom:5px;
+  color:#9a93a1;
+  font-size:8px;
+  line-height:1;
+  font-weight:900;
+  letter-spacing:.12em;
+}
+.catalog-section-title{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:10px;
+  margin:18px 1px 10px;
+}
+.catalog-section-title h2{
+  margin:0;
+  color:var(--text);
+  font-size:15px;
+  line-height:1.1;
+  letter-spacing:-.035em;
+}
+.catalog-section-title span{
+  display:block;
+  margin-top:3px;
+  color:#9b95a2;
+  font-size:9px;
+}
+.catalog-section-title .text-button{
+  min-height:34px;
+  padding:0 9px;
+  border:1px solid #dfd8e7;
+  border-radius:10px;
+  background:#fff;
+}
+.catalog-apps .catalog-heading{
+  display:flex;
+  align-items:flex-end;
+  margin:15px 2px 12px;
+}
+.catalog-apps .catalog-heading h1{
+  font-size:24px;
+}
+.catalog-apps .catalog-heading .catalog-chip{
+  padding:7px 9px;
+}
+@media (max-width:380px){
+  .catalog-apps .catalog-heading{
+    margin-left:0;
+    margin-right:0;
+  }
+  .catalog-apps .catalog-heading h1{
+    font-size:22px;
+  }
+  .catalog-eyebrow{
+    font-size:7px;
+  }
+}
