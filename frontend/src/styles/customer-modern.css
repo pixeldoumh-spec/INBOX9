@@ -1587,7 +1587,7 @@
   background: rgb(17 21 17 / 96%);
 }
 
-.app-shell .route-loading {
+.route-loading {
   min-height: 40vh;
   display: grid;
   place-items: center;
@@ -1597,8 +1597,8 @@
   background: var(--i9-bg);
 }
 
-.app-shell .page-loading,
-.app-shell .route-loading {
+.route-loading,
+.app-shell .page-loading {
   text-align: center;
 }
 
