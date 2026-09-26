@@ -10,7 +10,7 @@ const catalog=fs.readFileSync(path.join(root,'api/_lib/catalog.js'),'utf8');
 const services=JSON.parse(fs.readFileSync(path.join(root,'data/services.json'),'utf8'));
 
 test('phase 2 launcher fetches the authoritative service catalog and keeps live name/category search',()=>{
-  assert.match(app,/useQuery({queryKey:['services'],queryFn:getServices/);
+  assert.match(app,/useQuery\(\{queryKey:\['services'\],queryFn:getServices/);
   assert.match(app,/const matchesSearch=!needle||`\$\{item.name\} \$\{item.category\}`.toLowerCase().includes(needle)/);
   assert.match(app,/className="search-field"/);
   assert.match(app,/placeholder="Search services..."/);
