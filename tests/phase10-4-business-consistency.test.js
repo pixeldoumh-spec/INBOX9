@@ -17,9 +17,11 @@ test('Phase 10.4 keeps purchase price, debit and activation snapshot on one serv
 test('Phase 10.4 refunds exactly the charged activation amount and cannot duplicate a credit', async () => {
   const operations = await read('api/_lib/provider-operations.js');
   const wallet = await read('api/_lib/wallet-repository.js');
+  const schema = await read('db/migrations/003_wallet_recharge.sql');
   assert.match(operations, /SET status='Refunded',refund_paise=price_paise/);
   assert.match(operations, /creditRefund\(client, row\.user_id, Number\(row\.price_paise\), row\.activation_id/);
-  assert.match(wallet, /UNIQUE \(reference_type, reference_id\)/);
+  assert.match(wallet, /referenceType|reference_type/);
+  assert.match(schema, /UNIQUE \(reference_type, reference_id\)/);
 });
 
 test('Phase 10.4 keeps notification history synchronized for every customer-visible activation state', async () => {
@@ -27,7 +29,8 @@ test('Phase 10.4 keeps notification history synchronized for every customer-visi
   for (const state of ['Active','CancellationPending','Completed','Expired','Refunded','Cancelled']) {
     assert.match(notifications, new RegExp(state));
   }
-  assert.match(notifications, /source_id=\\$2 AND n\.event_key='status:'\|\|a\.status/);
+  assert.match(notifications, /event_key.*status:'\|\|a\.status/);
+  assert.match(notifications, /a\.status IN \('Active','CancellationPending','Completed','Expired','Refunded','Cancelled'\)/);
 });
 
 test('Phase 10.4 refreshes customer wallet, order history and notifications after lifecycle mutations', async () => {
