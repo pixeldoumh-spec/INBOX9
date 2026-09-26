@@ -11,6 +11,6 @@ export default async function handler(req, res) {
   if (!dbEnabled()) return res.status(503).json({ error: 'Admin ledger requires PostgreSQL' });
   const user = await getSessionUser(req);
   try { requireAdmin(user); } catch (e) { return res.status(e.statusCode || 401).json({ error: e.message }); }
-  try { return res.status(200).json({ ledger: await listAdminLedger({query:req.query?.q,type:req.query?.type,limit:req.query?.limit,offset:req.query?.offset}) }); }
+  try { return res.status(200).json(await listAdminLedger({query:req.query?.q,type:req.query?.type,limit:req.query?.limit,offset:req.query?.offset})); }
   catch (error) { console.error('admin.ledger_failed', error); return res.status(503).json({ error: 'Ledger unavailable' }); }
 }
