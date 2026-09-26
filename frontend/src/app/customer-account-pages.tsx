@@ -129,8 +129,8 @@ function AccountPage(){
 }
 function SupportPage(){
  const [params]=useSearchParams();const q=useQuery({queryKey:['support'],queryFn:getSupportTickets,refetchInterval:30000});
- const [view,setView]=useState<'open'|'history'>('open');const [category,setCategory]=useState(params.get('category')||'activation');
- const [subject,setSubject]=useState('');const [message,setMessage]=useState('');const [activationId,setActivationId]=useState(params.get('activationId')||'');const [rechargeId,setRechargeId]=useState(params.get('rechargeId')||'');const [error,setError]=useState<string|null>(null);const [sent,setSent]=useState(false);
+ const [view,setView]=useState<'open'|'history'>('open'); const paramCategory=params.get('category')||'activation';const paramActivationId=params.get('activationId')||'';const paramRechargeId=params.get('rechargeId')||'';const [category,setCategory]=useState(params.get('category')||'activation');
+ const [subject,setSubject]=useState('');const [message,setMessage]=useState('');const [activationId,setActivationId]=useState(params.get('activationId')||'');const [rechargeId,setRechargeId]=useState(params.get('rechargeId')||'');const [error,setError]=useState<string|null>(null);const [sent,setSent]=useState(false); useEffect(()=>{setCategory(paramCategory);setActivationId(paramActivationId);setRechargeId(paramRechargeId)},[paramCategory,paramActivationId,paramRechargeId]);
  const create=useMutation({mutationFn:()=>createSupportTicket({category,subject,message,activationId:activationId||undefined,rechargeId:rechargeId||undefined}),onSuccess:async()=>{setSent(true);setError(null);setSubject('');setMessage('');await q.refetch()},onError:e=>setError(e instanceof Error?e.message:'Could not submit support request')});
  const tickets=q.data?.tickets??[];const openTickets=tickets.filter(t=>t.status==='Open'||t.status==='In Progress');const historyTickets=tickets.filter(t=>!openTickets.includes(t));const visible=view==='open'?openTickets:historyTickets;
  const categories=[['activation','Activation'],['recharge','Recharge'],['wallet','Wallet'],['account','Account'],['other','Other']] as const;
