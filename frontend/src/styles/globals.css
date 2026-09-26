@@ -1153,3 +1153,199 @@ body{
 .app-shell .cancel-sheet .text-button {
   color: var(--i9-accent) !important;
 }
+
+
+/* Phase 10.1 — authoritative customer wallet/recharge theme
+ * Wallet is customer-facing and must not inherit any legacy light surfaces.
+ * QR artwork itself remains white for scanner readability.
+ */
+.app-shell .wallet-overview {
+  background: var(--i9-surface) !important;
+  border-color: var(--i9-border) !important;
+  color: var(--i9-text) !important;
+  box-shadow: var(--i9-shadow-card) !important;
+}
+.app-shell .wallet-overview-main :where(span, small),
+.app-shell .wallet-stat-grid :where(span, small),
+.app-shell .wallet-section-heading > div > span:not(.catalog-eyebrow),
+.app-shell .wallet-help-step span,
+.app-shell .wallet-payment-destination-main :where(span, small),
+.app-shell .wallet-payment-note,
+.app-shell .payment-paid-button small,
+.app-shell .payment-paid-button svg {
+  color: var(--i9-text-muted) !important;
+}
+.app-shell .wallet-overview-main strong,
+.app-shell .wallet-stat-grid strong,
+.app-shell .wallet-help-card h3,
+.app-shell .wallet-help-step b,
+.app-shell .wallet-payment-destination-main strong,
+.app-shell .payment-paid-button strong,
+.app-shell .payment-utr-head strong {
+  color: var(--i9-text) !important;
+}
+.app-shell .wallet-stat-grid > div {
+  background: transparent !important;
+  border-color: var(--i9-border) !important;
+}
+.app-shell .wallet-recharge-shell .recharge-card,
+.app-shell .wallet-help-card,
+.app-shell .wallet-amount-panel,
+.app-shell .wallet-qr-panel,
+.app-shell .wallet-payment-destination,
+.app-shell .wallet-detail-card {
+  background: var(--i9-surface) !important;
+  border-color: var(--i9-border) !important;
+  color: var(--i9-text) !important;
+  box-shadow: var(--i9-shadow-card) !important;
+}
+.app-shell .wallet-payment-destination {
+  background: var(--i9-surface-subtle) !important;
+}
+.app-shell .wallet-amount-panel,
+.app-shell .wallet-qr-panel {
+  box-shadow: none !important;
+}
+.app-shell .quick-amounts .amount-chip,
+.app-shell .wallet-filter-tabs {
+  background: var(--i9-surface) !important;
+  border-color: var(--i9-border) !important;
+}
+.app-shell .quick-amounts .amount-chip {
+  color: var(--i9-text-muted) !important;
+}
+.app-shell .quick-amounts .amount-chip.is-selected,
+.app-shell .wallet-filter-tab.is-selected {
+  background: var(--i9-accent-soft) !important;
+  color: var(--i9-accent) !important;
+  border-color: rgb(182 255 59 / 30%) !important;
+  box-shadow: none !important;
+}
+.app-shell .wallet-filter-tab {
+  color: var(--i9-text-muted) !important;
+}
+.app-shell .wallet-filter-tab:hover {
+  background: var(--i9-surface-subtle) !important;
+}
+.app-shell .wallet-payment-destination .copy-button,
+.app-shell .wallet-upi-open-button {
+  background: var(--i9-surface-subtle) !important;
+  border-color: var(--i9-border-strong) !important;
+  color: var(--i9-text) !important;
+}
+.app-shell .wallet-payment-qr {
+  background: #fff !important;
+  border-color: var(--i9-border-strong) !important;
+}
+.app-shell .wallet-payment-qr-placeholder {
+  background: #0d110d !important;
+  border-color: var(--i9-border-strong) !important;
+  color: var(--i9-text-muted) !important;
+}
+.app-shell .payment-paid-button {
+  background: var(--i9-surface-subtle) !important;
+  border-color: var(--i9-border-strong) !important;
+  color: var(--i9-text) !important;
+  box-shadow: none !important;
+}
+.app-shell .wallet-recharge-form {
+  border-color: var(--i9-border) !important;
+}
+.app-shell .wallet-recharge-form .field span,
+.app-shell .wallet-recharge-form .field > small {
+  color: var(--i9-text-muted) !important;
+}
+.app-shell .wallet-recharge-form .field input,
+.app-shell .wallet-recharge-card .money-input,
+.app-shell .wallet-recharge-card .money-input input {
+  background: #0d110d !important;
+  border-color: var(--i9-border-strong) !important;
+  color: var(--i9-text) !important;
+}
+.app-shell .wallet-recharge-card .money-input > span {
+  color: var(--i9-text-muted) !important;
+}
+.app-shell .wallet-recharge-card .money-input input::placeholder {
+  color: #687168 !important;
+}
+.app-shell .wallet-pending-pill {
+  background: var(--i9-accent-soft) !important;
+  color: var(--i9-accent) !important;
+}
+.app-shell .wallet-recharge-row {
+  background: var(--i9-surface) !important;
+  border-color: var(--i9-border) !important;
+  color: var(--i9-text) !important;
+}
+.app-shell .wallet-recharge-row.is-open {
+  background: #141a10 !important;
+  border-color: rgb(182 255 59 / 28%) !important;
+}
+.app-shell .wallet-recharge-row > div > span {
+  color: var(--i9-text-muted) !important;
+}
+.app-shell .wallet-status-success {
+  background: #10261b !important;
+  color: var(--i9-success) !important;
+}
+.app-shell .wallet-status-pending {
+  background: #1d2a12 !important;
+  color: var(--i9-accent) !important;
+}
+.app-shell .wallet-status-review {
+  background: #201c0f !important;
+  color: var(--i9-warning) !important;
+}
+.app-shell .wallet-status-danger {
+  background: #241315 !important;
+  color: var(--i9-danger) !important;
+}
+.app-shell .wallet-detail-card {
+  background: var(--i9-surface-subtle) !important;
+}
+.app-shell .wallet-detail-head h3,
+.app-shell .wallet-detail-grid strong {
+  color: var(--i9-text) !important;
+}
+.app-shell .wallet-detail-grid > div {
+  background: #0d110d !important;
+  border-color: var(--i9-border) !important;
+  color: var(--i9-text) !important;
+}
+.app-shell .wallet-detail-grid span {
+  color: var(--i9-text-muted) !important;
+}
+.app-shell .wallet-detail-close {
+  background: var(--i9-surface) !important;
+  color: var(--i9-text-muted) !important;
+}
+.app-shell .wallet-activity-row {
+  background: var(--i9-surface) !important;
+}
+.app-shell .wallet-activity-row strong {
+  color: var(--i9-text) !important;
+}
+.app-shell .wallet-activity-row span {
+  color: var(--i9-text-muted) !important;
+}
+.app-shell .wallet-activity-row .ledger-credit {
+  color: var(--i9-success) !important;
+}
+.app-shell .wallet-activity-row .ledger-debit {
+  color: var(--i9-danger) !important;
+}
+.app-shell .wallet-recharge-card .info-card {
+  background: #152012 !important;
+  border-color: #304522 !important;
+  color: #c9eb9e !important;
+}
+.app-shell .wallet-recharge-card .success-card {
+  background: #10261b !important;
+  border-color: #24563c !important;
+  color: var(--i9-success) !important;
+}
+.app-shell .wallet-recharge-card .form-error {
+  background: #241315 !important;
+  border-color: #53252a !important;
+  color: var(--i9-danger) !important;
+}
