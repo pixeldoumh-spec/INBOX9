@@ -162,14 +162,13 @@ export async function createActivation(service, userId, idempotency = null, opti
       reserved = await invokeProvider({
         provider,
         operation: 'reserveNumber',
-        input: {
-          ...buildProviderReserveInput({
-            catalogService: service,
-            persistedService: latestService.rows[0],
-            provider,
-            serverId: options.serverId || null,
-            idempotencyKey: idempotency?.idempotencyKey || null,
-          }),
+        input: buildProviderReserveInput({
+          catalogService: service,
+          persistedService: latestService.rows[0],
+          provider,
+          serverId: options.serverId || null,
+          idempotencyKey: idempotency?.idempotencyKey || null,
+        }),
       });
 
       return await withTransaction(async (client) => {
