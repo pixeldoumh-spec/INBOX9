@@ -1,7 +1,8 @@
 import crypto from 'node:crypto';
 import { services as catalogServices } from './catalog.js';
-import { getPool } from './db.js';
+import { getPool, withTransaction } from './db.js';
 import { getProviderAdapter } from './provider-registry.js';
+import { recordAuditTx } from './admin-repository.js';
 
 const CREDENTIAL_ENV = Object.freeze({
   asms: 'INBOX9_ASMS_API_KEY',
