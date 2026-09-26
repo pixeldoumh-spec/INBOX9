@@ -23,6 +23,7 @@ const iconPaths:Record<IconName,ReactNode>={
  arrow:<><path d="M5 12h13"/><path d="m13 6 6 6-6 6"/></>,
  support:<><path d="M5 12a7 7 0 0 1 14 0v5a2 2 0 0 1-2 2h-3"/><path d="M5 12h3v6H6a1 1 0 0 1-1-1v-5ZM19 12h-3v6h2a1 1 0 0 0 1-1v-5ZM12 19v2"/></>,
  check:<path d="m5 12 4 4L19 6"/>,
+ refresh:<><path d="M20 11a8 8 0 0 0-14.9-3.6L4 9"/><path d="M4 4v5h5"/><path d="M4 13a8 8 0 0 0 14.9 3.6L20 15"/><path d="M20 20v-5h-5"/></>,
 };
 export function Icon({name,size=20}:{name:IconName;size?:number}){return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{iconPaths[name]}</svg>}
 
