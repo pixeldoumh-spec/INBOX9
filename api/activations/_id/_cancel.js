@@ -15,7 +15,7 @@ export default async function handler(req, res) {
   try {
     item = dbEnabled() ? await cancelPersistedActivation(req.query.id, user.id) : cancelMock(req.query.id, user);
   } catch (error) {
-    if (error.code === 'PROVIDER_CANCEL_FAILED') return res.status(503).json({ error: error.message, code: error.code });
+    if (error.code === 'PROVIDER_CANCEL_FAILED') return res.status(503).json({ error: 'Cancellation is temporarily unavailable. Please try again shortly.', code: 'CANCELLATION_UNAVAILABLE' });
     console.error('activation.cancel_failed', error);
     return res.status(503).json({ error: 'Unable to cancel activation safely' });
   }
