@@ -1852,3 +1852,36 @@
     max-height: 70px;
   }
 }
+
+
+/* Phase 10.1 — final customer responsive audit
+ * Customer/common-auth only. Stabilizes headers, floating navigation, and touch targets
+ * at compact phone widths without changing the isolated admin visual system.
+ */
+.app-shell .catalog-heading { align-items: flex-start; }
+.app-shell .catalog-heading > div:first-child { min-width: 0; }
+.app-shell .catalog-heading > div:first-child h1,
+.app-shell .catalog-heading > div:first-child p { overflow-wrap: anywhere; }
+.app-shell .catalog-heading .catalog-chip { max-width: 46%; overflow: hidden; text-overflow: ellipsis; }
+.app-shell .page-content { padding-bottom: calc(92px + env(safe-area-inset-bottom)); }
+.app-shell :where(.primary-button, .outline-button, .secondary-danger, .text-button, .copy-button, .notification-mark-all, .wallet-filter-tab, .notification-filter-tab, .support-view-tab, .support-category-chip, .amount-chip) { touch-action: manipulation; }
+.app-shell .account-refresh { min-width: 44px; min-height: 44px; }
+.app-shell .session-policy { gap: 10px; align-items: center; }
+.app-shell .session-policy .inline-retry { flex: 0 0 auto; }
+
+@media (min-width: 900px) {
+  .app-shell .page-content { padding-bottom: 116px; }
+}
+
+@media (max-width: 520px) {
+  .app-shell .catalog-heading { gap: 10px; }
+  .app-shell .catalog-heading .catalog-chip { max-width: 42%; }
+  .app-shell .catalog-heading h1 { font-size: 27px; }
+}
+
+@media (max-width: 380px) {
+  .app-shell .catalog-heading { gap: 8px; }
+  .app-shell .catalog-heading .catalog-chip { max-width: 39%; padding-inline: 9px; }
+  .app-shell .catalog-heading h1 { font-size: 25px; }
+  .app-shell .catalog-heading p { font-size: 12px; }
+}
