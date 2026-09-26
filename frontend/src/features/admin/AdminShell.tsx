@@ -21,7 +21,7 @@ function AdminShell(){
     setSigningOut(true);
     try{await logout()}finally{setUser(null);setBootstrap('signed-out');setSigningOut(false);navigate('/login',{replace:true});}
   }
-  const items=[['/admin','Dashboard'],['/admin/users','Users'],['/admin/services','Services & routing'],['/admin/payments','Payment operations']] as const;
+  const items=[['/admin','Dashboard'],['/admin/users','Users'],['/admin/services','Services & routing'],['/admin/activations','Activation operations'],['/admin/payments','Payment operations']] as const;
   return <div className="admin-shell">
     <header className="admin-topbar">
       <Link className="admin-brand" to="/admin"><span className="admin-brand-mark">I9</span><span><strong>INBOX9</strong><small>ADMIN CONSOLE</small></span></Link>
