@@ -1499,3 +1499,124 @@
     min-height: 120px;
   }
 }
+
+
+/* Phase 4 — customer polish: restrained motion, containment and final cascade.
+ * Customer/common-auth only. Admin styling remains on its original cascade.
+ */
+.app-shell,
+.auth-page {
+  --i9-motion-fast: 120ms;
+  --i9-motion-normal: 180ms;
+  --i9-motion-slow: 240ms;
+  --i9-motion-ease: cubic-bezier(.2,.8,.2,1);
+}
+
+.app-shell .service-grid {
+  contain: layout paint;
+  content-visibility: auto;
+  contain-intrinsic-size: 900px;
+}
+
+.app-shell .service-tile,
+.app-shell .recent-tile,
+.app-shell .category-chip,
+.app-shell .amount-chip,
+.app-shell .wallet-pill,
+.app-shell .notification-button,
+.app-shell .profile-button,
+.app-shell .account-refresh,
+.app-shell .menu-row,
+.app-shell .ticket-row,
+.app-shell .support-quick-card,
+.app-shell .notification-row,
+.app-shell .bottom-nav-item {
+  transition:
+    transform var(--i9-motion-fast) var(--i9-motion-ease),
+    background-color var(--i9-motion-fast) ease,
+    border-color var(--i9-motion-fast) ease,
+    box-shadow var(--i9-motion-fast) ease,
+    color var(--i9-motion-fast) ease;
+}
+
+.app-shell .service-tile:hover,
+.app-shell .recent-tile:hover,
+.app-shell .category-chip:hover,
+.app-shell .amount-chip:hover {
+  transform: translateY(-1px);
+}
+
+.app-shell .service-tile:active,
+.app-shell .recent-tile:active,
+.app-shell .category-chip:active,
+.app-shell .amount-chip:active,
+.app-shell .wallet-pill:active,
+.app-shell .notification-button:active,
+.app-shell .profile-button:active,
+.app-shell .account-refresh:active,
+.app-shell .menu-row:active,
+.app-shell .ticket-row:active,
+.app-shell .support-quick-card:active,
+.app-shell .notification-row:active,
+.app-shell .bottom-nav-item:active {
+  transform: scale(.985);
+}
+
+.app-shell .service-logo {
+  contain: layout paint;
+}
+
+.app-shell .service-logo-art,
+.app-shell .service-logo-art img {
+  backface-visibility: hidden;
+}
+
+.app-shell .empty-state {
+  background: var(--i9-surface);
+  color: var(--i9-text);
+}
+
+.app-shell .top-header,
+.app-shell .bottom-nav {
+  background: rgb(17 21 17 / 96%);
+}
+
+.route-loading {
+  min-height: 40vh;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 10px;
+  text-align: center;
+  color: var(--i9-text-muted);
+  background: var(--i9-bg);
+}
+
+.auth-page {
+  color-scheme: dark;
+}
+
+.auth-page .form-error {
+  background: #241315;
+  border-color: #53252a;
+  color: #ff8585;
+}
+
+@media (hover: none) {
+  .app-shell .service-tile:hover,
+  .app-shell .recent-tile:hover,
+  .app-shell .category-chip:hover,
+  .app-shell .amount-chip:hover {
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-shell *,
+  .auth-page * {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
