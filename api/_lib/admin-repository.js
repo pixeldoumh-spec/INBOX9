@@ -88,19 +88,8 @@ export async function listAdminUsers(filters = {}) {
   const query = String(input.query || '').trim().slice(0, 120);
   const role = ['all','user','admin'].includes(String(input.role)) ? String(input.role) : 'all';
   const status = ['all','active','disabled'].includes(String(input.status)) ? String(input.status) : 'all';
-  const pattern = `%${query.replace(/[%_]/g, '\\export async function listAdminUsers(limit = 100) {
-  const pool = await getPool();
-  const safeLimit = Math.min(Math.max(Number(limit) || 100, 1), 250);
-  const result = await pool.query(
-    `SELECT u.*, COALESCE(w.balance_paise,0) AS balance_paise,
-            (SELECT COUNT(*) FROM recharge_requests r WHERE r.user_id=u.id)::int AS recharge_count,
-            (SELECT COUNT(*) FROM activations a WHERE a.user_id=u.id)::int AS activation_count
-     FROM users u
-     LEFT JOIN wallets w ON w.user_id=u.id
-     ORDER BY u.created_at DESC LIMIT $1`, [safeLimit]
-  );
-  return result.rows.map(mapUser);
-}')}%`;
+  const escapedQuery = query.replace(/[%_]/g, '\\$&');
+  const pattern = '%' + escapedQuery + '%';
   const where = `($1='' OR u.email ILIKE $2 ESCAPE '\\' OR COALESCE(u.display_name,'') ILIKE $2 ESCAPE '\\' OR u.id ILIKE $2 ESCAPE '\\')
     AND ($3='all' OR u.role=$3)
     AND ($4='all' OR ($4='active' AND u.active=TRUE) OR ($4='disabled' AND u.active=FALSE))`;
