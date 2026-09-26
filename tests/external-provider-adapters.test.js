@@ -19,6 +19,25 @@ test.afterEach(() => {
   resetEnv();
 });
 
+test('PVAPins adapter returns India catalog availability without reserving a number', async () => {
+  process.env.INBOX9_PVAPINS_API_KEY = 'test-key';
+  const calls = [];
+  global.fetch = async (url, options = {}) => {
+    calls.push({ url: String(url), options });
+    if (String(url).endsWith('/api/v1/services')) {
+      return new Response(JSON.stringify({ services: [{ code: 'wa', name: 'WhatsApp' }] }), { status: 200, headers: { 'content-type': 'application/json' } });
+    }
+    assert.match(String(url), /\/api\/v1\/operators\?country=IN$/);
+    return new Response(JSON.stringify({ operators: [{ service: 'wa', price: 0.15, count: 7 }] }), { status: 200, headers: { 'content-type': 'application/json' } });
+  };
+  const { pvapinsProvider } = await import('../api/_lib/pvapins-provider.js');
+  const result = await pvapinsProvider.listServices({ country: 'IN' });
+  assert.equal(result.country, 'IN');
+  assert.deepEqual(result.services, [{ code: 'wa', name: 'WhatsApp', stock: 7, price: 0.15 }]);
+  assert.equal(calls.length, 2);
+  assert.ok(calls.every(call => call.options.method == null));
+});
+
 test('PVAPins adapter uses the documented server-side JSON API and idempotency header', async () => {
   process.env.INBOX9_PVAPINS_API_KEY = 'test-key';
   const calls = [];
@@ -47,6 +66,29 @@ test('PVAPins adapter uses the documented server-side JSON API and idempotency h
   assert.match(calls[0].url, /api\/v1\/orders$/);
   assert.equal(calls[0].options.headers['X-API-Key'], 'test-key');
   assert.equal(calls[0].options.headers['Idempotency-Key'], 'idem-1');
+});
+
+test('SMS Verification Number adapter returns the India service catalog without ordering', async () => {
+  process.env.INBOX9_SVNUMBER_API_KEY = 'test-key';
+  const calls = [];
+  global.fetch = async (url) => {
+    const target = String(url);
+    calls.push(target);
+    if (target.includes('getCountryAndOperators')) {
+      return new Response(JSON.stringify([{ id: 14, name: 'India', operators: { any: 'any' } }]), { status: 200, headers: { 'content-type': 'application/json' } });
+    }
+    if (target.includes('getServicesAndCostWithStatistics')) {
+      return new Response(JSON.stringify([{ id: 'wa', name: 'WhatsApp', price: 0.2, quantity: 5, deliverability: '80' }]), { status: 200, headers: { 'content-type': 'application/json' } });
+    }
+    throw new Error('unexpected request ' + target);
+  };
+  const { smsVerificationNumberProvider } = await import('../api/_lib/sms-verification-number-provider.js');
+  const result = await smsVerificationNumberProvider.listServices({ country: 'IN' });
+  assert.equal(result.country, 'IN');
+  assert.equal(result.countryId, '14');
+  assert.equal(result.services[0].id, 'wa');
+  assert.equal(result.services[0].quantity, 5);
+  assert.ok(calls.every(target => !target.includes('action=getNumber')));
 });
 
 test('SMS Verification Number adapter maps ACCESS_NUMBER and STATUS_OK', async () => {
@@ -78,6 +120,21 @@ test('SMS Verification Number adapter maps ACCESS_NUMBER and STATUS_OK', async (
   });
   assert.equal(state.status, 'Completed');
   assert.equal(state.otp, '654321');
+});
+
+test('ASMS adapter returns the India catalog without reserving a number', async () => {
+  process.env.INBOX9_ASMS_API_KEY = 'test-key';
+  let seenUrl = null;
+  global.fetch = async (url, options = {}) => {
+    seenUrl = String(url);
+    assert.equal(options.method, undefined);
+    return new Response(JSON.stringify({ services: [{ service: 'wa', name: 'WhatsApp', stock: 11, price: 0.5 }] }), { status: 200, headers: { 'content-type': 'application/json' } });
+  };
+  const { asmsProvider } = await import('../api/_lib/asms-provider.js');
+  const result = await asmsProvider.listServices({ country: 'IN' });
+  assert.equal(result.country, 'IN');
+  assert.equal(result.services[0].service, 'wa');
+  assert.match(seenUrl, /\/api\/v1\/otp\/services\?country=in$/);
 });
 
 test('ASMS adapter sends an authenticated order to the documented REST endpoint', async () => {
