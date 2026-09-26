@@ -1620,3 +1620,263 @@
     scroll-behavior: auto !important;
   }
 }
+
+
+/* Customer Service Icon System v2
+ * Shared service-logo treatment for Apps, Buy, Active, Notifications and Support.
+ * Customer-only: admin surfaces are intentionally excluded.
+ */
+.app-shell .catalog-apps {
+  position: relative;
+  isolation: isolate;
+}
+
+.app-shell .catalog-apps::before {
+  content: "";
+  position: absolute;
+  z-index: -2;
+  inset: 92px -18px 20px;
+  pointer-events: none;
+  background:
+    radial-gradient(420px 260px at 8% 6%, rgb(182 255 59 / 8%), transparent 68%),
+    radial-gradient(440px 300px at 94% 30%, rgb(92 163 70 / 7%), transparent 72%),
+    radial-gradient(520px 360px at 52% 92%, rgb(182 255 59 / 4%), transparent 76%);
+  filter: blur(8px);
+}
+
+.app-shell .catalog-apps::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 110px -2px 24px;
+  pointer-events: none;
+  opacity: .18;
+  background-image:
+    radial-gradient(circle, rgb(182 255 59 / 28%) 1px, transparent 1.5px);
+  background-size: 22px 22px;
+  mask-image: linear-gradient(to bottom, transparent, #000 10%, #000 88%, transparent);
+}
+
+.app-shell .catalog-apps .service-grid {
+  position: relative;
+  margin-inline: -4px;
+  padding: 16px 7px 20px;
+  border: 1px solid rgb(182 255 59 / 7%);
+  border-radius: 28px;
+  background:
+    linear-gradient(180deg, rgb(20 27 19 / 78%) 0%, rgb(12 16 12 / 82%) 100%);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 3%),
+    0 18px 42px rgb(0 0 0 / 16%);
+}
+
+.app-shell .catalog-apps .recent-row {
+  padding: 8px 5px 10px;
+  border: 1px solid rgb(182 255 59 / 6%);
+  border-radius: 24px;
+  background: linear-gradient(180deg, rgb(19 25 18 / 58%), rgb(12 16 12 / 52%));
+}
+
+.app-shell .service-logo {
+  position: relative;
+  flex: 0 0 auto;
+  width: 72px !important;
+  height: 72px !important;
+  padding: 4px;
+  overflow: visible;
+  border: 1px solid rgb(66 83 61 / 88%);
+  border-radius: 22px;
+  background:
+    linear-gradient(145deg, #202a1d 0%, #0d120d 52%, #192118 100%);
+  box-shadow:
+    0 10px 24px rgb(0 0 0 / 28%),
+    0 2px 0 rgb(255 255 255 / 3%) inset,
+    0 -1px 0 rgb(0 0 0 / 28%) inset;
+  isolation: isolate;
+}
+
+.app-shell .service-logo-aura {
+  position: absolute;
+  z-index: -1;
+  inset: 7px;
+  border-radius: 18px;
+  background: radial-gradient(circle at 50% 30%, rgb(182 255 59 / 8%), transparent 68%);
+  filter: blur(8px);
+  opacity: .72;
+  pointer-events: none;
+}
+
+.app-shell .service-logo-frame {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border: 1px solid rgb(255 255 255 / 6%);
+  border-radius: 18px;
+  background:
+    linear-gradient(160deg, #101610 0%, #0a0d0a 100%);
+  box-shadow:
+    0 1px 0 rgb(255 255 255 / 4%) inset,
+    0 -4px 12px rgb(0 0 0 / 16%) inset;
+}
+
+.app-shell .service-logo-art {
+  position: absolute;
+  inset: 2px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 16px;
+  background: transparent;
+}
+
+.app-shell .service-logo-art img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+  display: block;
+  filter: saturate(1.04) contrast(1.02);
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+.app-shell .service-logo-fallback-content {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 2px;
+  border-radius: 15px;
+  background: linear-gradient(145deg, #183015, #0e170e);
+  color: var(--i9-accent);
+}
+
+.app-shell .service-logo-fallback-content span {
+  font-size: 18px;
+  font-weight: 900;
+  letter-spacing: -.06em;
+  color: var(--i9-accent);
+}
+
+.app-shell .service-logo-sheen {
+  position: absolute;
+  z-index: 2;
+  inset: 1px 1px auto;
+  height: 34%;
+  border-radius: 20px 20px 50% 50%;
+  background: linear-gradient(180deg, rgb(255 255 255 / 7%), transparent);
+  opacity: .56;
+  pointer-events: none;
+}
+
+.app-shell .service-tile,
+.app-shell .recent-tile {
+  background: transparent;
+  border-color: transparent;
+  border-radius: 20px;
+}
+
+.app-shell .service-tile {
+  min-height: 110px;
+  padding: 4px 1px 7px;
+  gap: 8px;
+}
+
+.app-shell .recent-tile {
+  padding: 3px 2px 6px;
+}
+
+.app-shell .service-tile:hover,
+.app-shell .recent-tile:hover {
+  background: rgb(182 255 59 / 5%);
+  border-color: rgb(182 255 59 / 8%);
+}
+
+.app-shell .service-tile:hover .service-logo,
+.app-shell .recent-tile:hover .service-logo {
+  border-color: rgb(182 255 59 / 30%);
+  box-shadow:
+    0 12px 26px rgb(0 0 0 / 30%),
+    0 0 0 1px rgb(182 255 59 / 5%),
+    0 0 22px rgb(182 255 59 / 7%);
+}
+
+.app-shell .service-tile:active .service-logo,
+.app-shell .recent-tile:active .service-logo {
+  transform: scale(.97);
+}
+
+.app-shell .service-logo,
+.app-shell .service-tile .service-logo,
+.app-shell .recent-tile .service-logo {
+  transition:
+    transform 160ms cubic-bezier(.2,.8,.2,1),
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.app-shell .service-name,
+.app-shell .recent-tile span {
+  color: var(--i9-text-muted);
+  font-weight: 680;
+  text-shadow: 0 1px 8px rgb(0 0 0 / 25%);
+}
+
+@media (max-width: 720px) {
+  .app-shell .catalog-apps .service-grid {
+    margin-inline: -2px;
+    padding-inline: 4px;
+    border-radius: 26px;
+  }
+
+  .app-shell .service-logo {
+    width: 74px !important;
+    height: 74px !important;
+  }
+
+  .app-shell .service-tile {
+    min-height: 112px;
+  }
+}
+
+@media (max-width: 380px) {
+  .app-shell .catalog-apps .service-grid {
+    padding-inline: 2px;
+    border-radius: 24px;
+  }
+
+  .app-shell .service-logo {
+    width: 70px !important;
+    height: 70px !important;
+  }
+}
+
+@media (hover: none) {
+  .app-shell .service-tile:hover,
+  .app-shell .recent-tile:hover {
+    background: transparent;
+    border-color: transparent;
+  }
+
+  .app-shell .service-tile:active .service-logo,
+  .app-shell .recent-tile:active .service-logo {
+    transform: scale(.96);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-shell .service-logo,
+  .app-shell .service-tile,
+  .app-shell .recent-tile {
+    transition: none;
+  }
+
+  .app-shell .service-tile:active .service-logo,
+  .app-shell .recent-tile:active .service-logo {
+    transform: none;
+  }
+}
