@@ -46,7 +46,7 @@ Only `synthetic` is currently routed in production. The external adapters requir
 
 The gateway exposes the common operations `listServices`, `reserveNumber`, `getActivation`, `cancelActivation`, and `health`, plus explicit capability flags.
 
-No external provider credentials, external-provider configuration, or external-provider readiness workflow is required for the current deployment.
+External provider credentials are now represented as server-only Render secrets, but the current deployment remains synthetic-only until Phase 7 readiness and approved provider lifecycle evidence are complete.
 
 ## Production safety
 
