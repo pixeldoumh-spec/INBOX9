@@ -18,7 +18,8 @@ export default async function handler(req, res) {
   try {
     const wallet = await getWallet(user.id);
     const [summary, ledger, recharges, paymentSettings] = await Promise.all([getWalletSummary(user.id), listLedger(user.id), listRecharges(user.id), getPaymentSettings()]);
-    const rechargeEnabled = String(process.env.INBOX9_ENABLE_RECHARGE || '').trim().toLowerCase() === 'true' && Boolean(paymentSettings.upiId);
+    const legacyEnvEnabled = String(process.env.INBOX9_ENABLE_RECHARGE || '').trim().toLowerCase() === 'true';
+    const rechargeEnabled = Boolean(paymentSettings.upiId) && (paymentSettings.enabled == null ? legacyEnvEnabled : paymentSettings.enabled);
     return res.status(200).json({ ...wallet, summary, ledger, recharges, persistent: true, rechargeEnabled, upiId: paymentSettings.upiId, paymentSettings });
   } catch (error) {
     console.error('wallet.read_failed', error);

@@ -51,6 +51,7 @@ export function normalizePaymentSettings(input = {}) {
 function mapSettings(row) {
   return {
     id: row.id,
+    enabled: row.enabled == null ? null : Boolean(row.enabled),
     upiId: row.upi_id || null,
     merchantName: row.merchant_name || DEFAULT_MERCHANT,
     instructions: row.instructions || DEFAULT_INSTRUCTIONS,

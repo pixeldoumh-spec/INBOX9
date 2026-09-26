@@ -46,6 +46,9 @@ test('phase 11.6 payment review preserves verification and audit safeguards', as
   assert.match(reviewRoute, /enforceSameOrigin/);
   assert.match(reconRoute, /getPaymentReconciliationSummary/);
   assert.match(reconRoute, /listFlaggedRecharges/);
+  assert.match(reconRoute, /listPaymentReconciliationEvents/);
+  assert.match(reconRoute, /manualEvents/);
   assert.match(settingsRoute, /requireAdmin/);
   assert.match(settingsRoute, /enforceSameOrigin/);
+  assert.match(walletRepo, /export async function listPaymentReconciliationEvents/);
 });

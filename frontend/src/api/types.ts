@@ -47,15 +47,16 @@ export type SupportTicket = {
 };
 
 export type PaymentSettings = {
-  id?: string; upiId: string | null; merchantName: string; instructions: string; qrImage: string | null; updatedAt?: number | null;
+  id?: string; enabled?: boolean | null; upiId: string | null; merchantName: string; instructions: string; qrImage: string | null; updatedAt?: number | null;
 };
 export type AdminRecharge = Recharge & {
-  userId?: string; email?: string; accountCreatedAt?: number | null; submissionSessionId?: string | null;
+  userId?: string; email?: string; reviewedBy?: string | null; flaggedBy?: string | null; accountCreatedAt?: number | null; submissionSessionId?: string | null;
   submissionSession?: { id: string; createdAt?: number | null; lastUsedAt?: number | null; expiresAt?: number | null; revokedAt?: number | null; active?: boolean } | null;
   sessionContext?: { activeCount?: number; currentId?: string | null; currentCreatedAt?: number | null; currentLastUsedAt?: number | null; currentMatchesSubmission?: boolean };
   recentPayments?: Array<{ id: string; amountPaise: number; utr: string; status: string; submittedAt?: number | null; reviewedAt?: number | null }>;
 };
 export type AdminPaymentReconciliation = {
+  manualEvents: Array<{ id: string; eventType: string; rechargeId: string; customerEmail: string; actorEmail?: string | null; amountPaise: number; utr?: string | null; externalReference?: string | null; rechargeStatus: string; notes?: string | null; createdAt: number }>;
   summary: { byStatus: Array<{ status: string; count: number; amountPaise: number; flaggedCount: number }>; totals: { count: number; amountPaise: number; flaggedCount: number } };
   flagged: AdminRecharge[];
   webhookEvents: Array<{ provider: string; eventId: string; eventType: string; rechargeId: string; amountPaise: number; currency: string; observedUtr?: string | null; externalReference?: string | null; status: string; outcome?: string | null; errorCode?: string | null; errorMessage?: string | null; receivedAt: number; processedAt?: number | null }>;

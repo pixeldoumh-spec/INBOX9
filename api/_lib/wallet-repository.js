@@ -33,6 +33,8 @@ function mapRecharge(row) {
     verifiedAmountPaise: row.verified_amount_paise == null ? null : Number(row.verified_amount_paise),
     verifiedUtr: row.verified_utr || null,
     externalReference: row.external_reference || null,
+    reviewedBy: row.reviewed_by || null,
+    flaggedBy: row.flagged_by || null,
   };
 }
 
@@ -378,6 +380,34 @@ export async function getPaymentReconciliationSummary({ from = null, to = null }
        FROM recharge_requests ${where}`, params
   );
   return { byStatus: result.rows.map(r => ({ status: r.status, count: Number(r.count), amountPaise: Number(r.amount_paise), flaggedCount: Number(r.flagged_count) })), totals: { count: Number(totals.rows[0].count), amountPaise: Number(totals.rows[0].amount_paise), flaggedCount: Number(totals.rows[0].flagged_count) } };
+}
+
+export async function listPaymentReconciliationEvents(limit = 100) {
+  const pool = await getPool();
+  const safeLimit = Math.min(Math.max(Number(limit) || 100, 1), 200);
+  const result = await pool.query(
+    `SELECT e.*, r.amount_paise AS recharge_amount_paise, r.utr, r.status AS recharge_status,
+            customer.email AS customer_email, actor.email AS actor_email
+       FROM payment_reconciliation_events e
+       JOIN recharge_requests r ON r.id=e.recharge_id
+       JOIN users customer ON customer.id=r.user_id
+       LEFT JOIN users actor ON actor.id=e.actor_user_id
+      ORDER BY e.created_at DESC LIMIT $1`,
+    [safeLimit]
+  );
+  return result.rows.map(row => ({
+    id: row.id,
+    eventType: row.event_type,
+    rechargeId: row.recharge_id,
+    customerEmail: row.customer_email,
+    actorEmail: row.actor_email || null,
+    amountPaise: Number(row.observed_amount_paise ?? row.recharge_amount_paise ?? 0),
+    utr: row.observed_utr || row.utr || null,
+    externalReference: row.external_reference || null,
+    rechargeStatus: row.recharge_status,
+    notes: row.notes || null,
+    createdAt: new Date(row.created_at).getTime()
+  }));
 }
 
 export async function listFlaggedRecharges(limit = 100) {
