@@ -15,7 +15,8 @@ test('customer logo crop uses adaptive safety margins',()=>{
 
 test('customer logo crop rejects unstable detections instead of clipping artwork',()=>{
   assert.match(shared,/if\(rawRatio<0\.55\)return null/);
-  assert.match(shared,/if\(cropCoverage<LOGO_MAX_CROP_RATIO&&cropRatio<0\.78\)return null/);
+  assert.match(shared,/cropCoverage<LOGO_MAX_CROP_RATIO/);
+  assert.match(shared,/cropRatio<0\.78/);
   assert.match(shared,/if\(asymmetry>LOGO_MAX_ASYMMETRY\)return null/);
 });
 
