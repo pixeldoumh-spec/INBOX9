@@ -126,6 +126,9 @@ test('phase 11.10 backend route contract covers every shipped admin surface', as
     'GET /api/admin/providers',
     'GET /api/admin/providers-health',
     'GET /api/admin/provider-qualification',
+    'POST /api/admin/provider-qualification',
+    'GET /api/admin/provider-readiness',
+    'POST /api/admin/provider-readiness',
     'GET /api/admin/audit',
     'GET /api/admin/support',
     'GET /api/admin/notifications',
@@ -151,6 +154,7 @@ test('phase 11.10 backend route contract covers every shipped admin surface', as
     'api/admin/_activations.js',
     'api/admin/_ledger.js',
     'api/admin/_providers.js',
+    'api/admin/_provider-readiness.js',
     'api/admin/_providers-health.js',
     'api/admin/_audit.js',
     'api/admin/support/_index.js',
@@ -167,6 +171,25 @@ test('phase 11.10 backend route contract covers every shipped admin surface', as
   }
 });
 
+test('phase 7 provider readiness gate is isolated behind admin controls', async () => {
+  const [server, handler, readiness] = await Promise.all([
+    read('server.js'),
+    read('api/admin/_provider-readiness.js'),
+    read('api/_lib/provider-production-readiness.js')
+  ]);
+  for (const route of [
+    'GET /api/admin/provider-readiness',
+    'POST /api/admin/provider-readiness'
+  ]) assert.match(server, new RegExp(route.replace(/[.*+?^{}()|[\\]\\]/g, '\\test('phase 11.10 accounting and operational safeguards remain non-mutating where required', async () => {')));
+  assert.match(handler, /requireAdmin/);
+  assert.match(handler, /enforceSameOrigin/);
+  assert.match(handler, /rateLimitAsync/);
+  assert.match(readiness, /PROVIDER_NOT_PRODUCTION_READY/);
+  assert.match(readiness, /runSyntheticLifecycleCanary/);
+  assert.match(readiness, /LIFECYCLE_CANARY_REQUIRED/);
+  assert.match(readiness, /provider_production_readiness/);
+});
+ 
 test('phase 11.10 accounting and operational safeguards remain non-mutating where required', async () => {
   const [wallet, recon, health] = await Promise.all([
     read('api/_lib/wallet-repository.js'),
