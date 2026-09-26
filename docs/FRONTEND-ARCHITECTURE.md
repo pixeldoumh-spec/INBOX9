@@ -1,6 +1,6 @@
 # INBOX9 Frontend Architecture — v1
 
-Status: Phase 4 wallet, notifications, support, account + resilience completed; Phase 2 Apps launcher re-certified.
+Status: Phase 3 account surfaces completed and customer-scoped Radium contrast certified; Phase 4 polish is pending.
 
 ## Source basis
 
@@ -65,9 +65,9 @@ The service and activation path is now implemented end-to-end at the customer-ap
 12. Terminal states are rendered separately: Completed, Expired, Refunded, Cancelled.
 13. Provider and internal IDs remain behind the API boundary.
 
-## Phase 4 customer-account contract
+## Phase 3 customer-account contract
 
-The account layer is now connected to the existing backend contracts:
+The Phase 3 account-surface layer is connected to the existing backend contracts:
 
 - Wallet balance remains PostgreSQL-authoritative.
 - UPI recharge submission accepts INR 100–5,000 plus a customer UTR and keeps the request pending until server-side payment verification.
