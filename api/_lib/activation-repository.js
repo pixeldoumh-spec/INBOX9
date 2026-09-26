@@ -198,7 +198,7 @@ export async function createActivation(service, userId, idempotency = null, opti
         return { activation, balancePaise };
       });
     } catch (error) {
-      if (error.code === 'SYNTHETIC_SLOT_CONFLICT' && provider.adapter_key === 'synthetic' && attempt < SYNTHETIC_SLOT_RESERVATION_ATTEMPTS) {
+      if (error.code === 'SYNTHETIC_SLOT_CONFLICT' && provider?.adapter_key === 'synthetic' && attempt < SYNTHETIC_SLOT_RESERVATION_ATTEMPTS) {
         continue;
       }
 
