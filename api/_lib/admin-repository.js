@@ -82,7 +82,13 @@ export async function getAdminOverview() {
   };
 }
 
-export async function listAdminUsers(limit = 100) {
+export async function listAdminUsers(filters = {}) {
+  const input = typeof filters === 'number' ? { limit: filters } : (filters || {});
+  const safeLimit = Math.min(Math.max(Number(input.limit) || 100, 1), 250);
+  const query = String(input.query || '').trim().slice(0, 120);
+  const role = ['all','user','admin'].includes(String(input.role)) ? String(input.role) : 'all';
+  const status = ['all','active','disabled'].includes(String(input.status)) ? String(input.status) : 'all';
+  const pattern = `%${query.replace(/[%_]/g, '\\export async function listAdminUsers(limit = 100) {
   const pool = await getPool();
   const safeLimit = Math.min(Math.max(Number(limit) || 100, 1), 250);
   const result = await pool.query(
@@ -94,6 +100,89 @@ export async function listAdminUsers(limit = 100) {
      ORDER BY u.created_at DESC LIMIT $1`, [safeLimit]
   );
   return result.rows.map(mapUser);
+}')}%`;
+  const where = `($1='' OR u.email ILIKE $2 ESCAPE '\\' OR COALESCE(u.display_name,'') ILIKE $2 ESCAPE '\\' OR u.id ILIKE $2 ESCAPE '\\')
+    AND ($3='all' OR u.role=$3)
+    AND ($4='all' OR ($4='active' AND u.active=TRUE) OR ($4='disabled' AND u.active=FALSE))`;
+  const pool = await getPool();
+  const [summary,result] = await Promise.all([
+    pool.query(`SELECT COUNT(*)::int AS total,
+      COUNT(*) FILTER (WHERE u.active=TRUE)::int AS active,
+      COUNT(*) FILTER (WHERE u.active=FALSE)::int AS disabled,
+      COUNT(*) FILTER (WHERE u.role='admin')::int AS admins
+      FROM users u WHERE ${where}`, [query,pattern,role,status]),
+    pool.query(`SELECT u.id,u.email,u.role,u.active,u.created_at,u.updated_at,u.display_name,
+              COALESCE(w.balance_paise,0) AS balance_paise,
+              (SELECT COUNT(*) FROM recharge_requests r WHERE r.user_id=u.id)::int AS recharge_count,
+              (SELECT COUNT(*) FROM activations a WHERE a.user_id=u.id)::int AS activation_count
+       FROM users u LEFT JOIN wallets w ON w.user_id=u.id
+       WHERE ${where} ORDER BY u.created_at DESC LIMIT $5`, [query,pattern,role,status,safeLimit])
+  ]);
+  return {users:result.rows.map(mapUser),summary:{
+    total:Number(summary.rows[0].total||0),active:Number(summary.rows[0].active||0),
+    disabled:Number(summary.rows[0].disabled||0),admins:Number(summary.rows[0].admins||0)
+  }};
+}
+
+function adminUserNotFound(){return Object.assign(new Error('User not found'),{statusCode:404});}
+
+export async function getAdminUser(userId) {
+  const pool=await getPool();
+  const target=String(userId||'').trim();
+  const userResult=await pool.query(`SELECT u.id,u.email,u.role,u.active,u.created_at,u.updated_at,u.display_name,
+    COALESCE(w.balance_paise,0) AS balance_paise,
+    (SELECT COUNT(*) FROM recharge_requests r WHERE r.user_id=u.id)::int AS recharge_count,
+    (SELECT COUNT(*) FROM activations a WHERE a.user_id=u.id)::int AS activation_count,
+    (SELECT COUNT(*) FROM support_requests s WHERE s.user_id=u.id)::int AS support_count
+    FROM users u LEFT JOIN wallets w ON w.user_id=u.id WHERE u.id=$1`,[target]);
+  if(!userResult.rowCount)throw adminUserNotFound();
+  const [sessions,recharges,activations,support]=await Promise.all([
+    pool.query(`SELECT session_id,created_at,last_used_at,expires_at,revoked_at FROM sessions WHERE user_id=$1 ORDER BY created_at DESC LIMIT 20`,[target]),
+    pool.query(`SELECT id,amount_paise,utr,payment_method,status,submitted_at,reviewed_at,rejection_reason,external_reference FROM recharge_requests WHERE user_id=$1 ORDER BY submitted_at DESC LIMIT 8`,[target]),
+    pool.query(`SELECT a.id,a.service_id,s.name AS service_name,a.status,a.price_paise,a.phone_number,a.otp,a.created_at,a.expires_at,a.updated_at
+      FROM activations a LEFT JOIN services s ON s.id=a.service_id WHERE a.user_id=$1 ORDER BY a.created_at DESC LIMIT 8`,[target]),
+    pool.query(`SELECT id,category,subject,status,created_at,updated_at FROM support_requests WHERE user_id=$1 ORDER BY updated_at DESC LIMIT 6`,[target])
+  ]);
+  const row=userResult.rows[0];
+  return {
+    user:mapUser(row),
+    summary:{supportCount:Number(row.support_count||0),activeSessions:sessions.rows.filter(s=>!s.revoked_at&&new Date(s.expires_at).getTime()>Date.now()).length},
+    sessions:sessions.rows.map(s=>({id:s.session_id,createdAt:new Date(s.created_at).getTime(),lastUsedAt:s.last_used_at?new Date(s.last_used_at).getTime():null,expiresAt:new Date(s.expires_at).getTime(),revokedAt:s.revoked_at?new Date(s.revoked_at).getTime():null,active:!s.revoked_at&&new Date(s.expires_at).getTime()>Date.now()})),
+    recharges:recharges.rows.map(r=>({id:r.id,amountPaise:Number(r.amount_paise),utr:r.utr,paymentMethod:r.payment_method,status:r.status,submittedAt:new Date(r.submitted_at).getTime(),reviewedAt:r.reviewed_at?new Date(r.reviewed_at).getTime():null,rejectionReason:r.rejection_reason,externalReference:r.external_reference})),
+    activations:activations.rows.map(a=>({id:a.id,serviceId:a.service_id,service:a.service_name,status:a.status,pricePaise:Number(a.price_paise),number:a.phone_number,otp:a.otp,createdAt:new Date(a.created_at).getTime(),expiresAt:new Date(a.expires_at).getTime(),updatedAt:new Date(a.updated_at).getTime()})),
+    support:support.rows.map(s=>({id:s.id,category:s.category,subject:s.subject,status:s.status,createdAt:new Date(s.created_at).getTime(),updatedAt:new Date(s.updated_at).getTime()}))
+  };
+}
+
+export async function setAdminUserActive(adminUserId,targetUserId,active){
+  return withTransaction(async client=>{
+    const targetId=String(targetUserId||'').trim();
+    const current=await client.query('SELECT id,email,role,active,session_version FROM users WHERE id=$1 FOR UPDATE',[targetId]);
+    if(!current.rowCount)throw adminUserNotFound();
+    const row=current.rows[0];
+    if(row.id===adminUserId)throw Object.assign(new Error('You cannot change your own admin account status'),{statusCode:400});
+    const next=Boolean(active);
+    if(row.active===next)return {id:row.id,email:row.email,role:row.role,active:row.active,changed:false,revokedSessions:0};
+    const updated=await client.query('UPDATE users SET active=$2,session_version=$3,updated_at=NOW() WHERE id=$1 RETURNING id,email,role,active',[row.id,next,Number(row.session_version||1)+1]);
+    let revokedSessions=0;
+    if(!next){const deleted=await client.query('DELETE FROM sessions WHERE user_id=$1',[row.id]);revokedSessions=deleted.rowCount;}
+    await audit(client,adminUserId,next?'user.enabled':'user.disabled','user',row.id,{email:row.email,beforeActive:row.active,afterActive:next,revokedSessions});
+    return {...updated.rows[0],changed:true,revokedSessions};
+  });
+}
+
+export async function revokeAdminUserSessions(adminUserId,targetUserId){
+  return withTransaction(async client=>{
+    const targetId=String(targetUserId||'').trim();
+    const current=await client.query('SELECT id,email,session_version FROM users WHERE id=$1 FOR UPDATE',[targetId]);
+    if(!current.rowCount)throw adminUserNotFound();
+    const row=current.rows[0];
+    if(row.id===adminUserId)throw Object.assign(new Error('Use your own sign out controls to revoke your admin session'),{statusCode:400});
+    await client.query('UPDATE users SET session_version=$2,updated_at=NOW() WHERE id=$1',[row.id,Number(row.session_version||1)+1]);
+    const deleted=await client.query('DELETE FROM sessions WHERE user_id=$1',[row.id]);
+    await audit(client,adminUserId,'user.sessions_revoked','user',row.id,{email:row.email,revokedSessions:deleted.rowCount});
+    return {revokedSessions:deleted.rowCount};
+  });
 }
 
 export async function listAdminServices(limit = 250) {

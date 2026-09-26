@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
 import { getAdminOverview } from '../../api/admin';
 
 function money(paise:number){return '₹'+(Number(paise||0)/100).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});}
@@ -20,7 +21,7 @@ export function AdminDashboardPage(){
     </div>
     <div className="admin-dashboard-grid">
       <section className="admin-panel"><div className="admin-panel-heading"><div><span className="admin-eyebrow">BOUNDARY</span><h2>Separated application</h2></div><span className="admin-status-badge">Isolated</span></div><p>The admin console has its own route tree and shell. Customer Apps, Buy, Active, Wallet, Notifications and Support are not rendered inside this panel.</p><div className="admin-boundary-grid"><span>Customer navigation</span><strong>Not mounted</strong><span>Admin authorization</span><strong>Server enforced</strong><span>Admin session</span><strong>Authenticated</strong></div></section>
-      <section className="admin-panel"><div className="admin-panel-heading"><div><span className="admin-eyebrow">NEXT</span><h2>Operations modules</h2></div></div><div className="admin-module-list"><div><strong>Users</strong><span>User/account operations</span></div><div><strong>Services</strong><span>Catalog and routing controls</span></div><div><strong>Activations</strong><span>Lifecycle monitoring</span></div><div><strong>Providers</strong><span>Health and operations</span></div><div><strong>Reconciliation</strong><span>Wallet/payment integrity</span></div><div><strong>Audit</strong><span>Administrative history</span></div></div><small className="admin-module-note">These operational screens remain behind this isolated shell and are implemented in the subsequent Phase 11 stages.</small></section>
+      <section className="admin-panel"><div className="admin-panel-heading"><div><span className="admin-eyebrow">NEXT</span><h2>Operations modules</h2></div></div><div className="admin-module-list"><Link className="admin-module-link" to="/admin/users"><strong>Users</strong><span>User/account operations</span></Link><div><strong>Services</strong><span>Catalog and routing controls</span></div><div><strong>Activations</strong><span>Lifecycle monitoring</span></div><div><strong>Providers</strong><span>Health and operations</span></div><div><strong>Reconciliation</strong><span>Wallet/payment integrity</span></div><div><strong>Audit</strong><span>Administrative history</span></div></div><small className="admin-module-note">These operational screens remain behind this isolated shell and are implemented in the subsequent Phase 11 stages.</small></section>
     </div>
     <div className="admin-refresh-row">Auto refresh every 15 seconds <button type="button" className="inline-retry" onClick={()=>void q.refetch()} disabled={q.isFetching}>{q.isFetching?'Refreshing…':'Refresh now'}</button></div>
   </section>;
