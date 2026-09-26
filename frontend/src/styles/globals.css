@@ -1050,3 +1050,54 @@ body{
 .admin-ledger-row b.is-credit{color:#14733a}
 .admin-ledger-row b.is-debit{color:#b42318}
 @media(max-width:700px){.admin-wallet-ledger-summary{grid-template-columns:1fr}.admin-wallet-ledger-toolbar{flex-direction:column}.admin-ledger-row{flex-direction:column}.admin-ledger-row b{align-self:flex-start}}
+
+
+/* Phase 10.1 — authoritative customer dark surfaces
+ * globals.css is loaded by main.tsx after App.tsx's customer stylesheet.
+ * Keep these selectors scoped to .app-shell so admin screens retain their own theme.
+ */
+.app-shell .detail-card,
+.app-shell .number-card,
+.app-shell .otp-card,
+.app-shell .countdown-card,
+.app-shell .notification-row,
+.app-shell .account-panel,
+.app-shell .ticket-row,
+.app-shell .menu-row {
+  background: var(--i9-surface) !important;
+  border-color: var(--i9-border) !important;
+  color: var(--i9-text) !important;
+  box-shadow: var(--i9-shadow-card) !important;
+}
+
+.app-shell .detail-card :where(span, small),
+.app-shell .number-card .card-label,
+.app-shell .countdown-card span,
+.app-shell .notification-row :where(p, time),
+.app-shell .account-panel .section-subtle,
+.app-shell .account-panel .panel-copy,
+.app-shell .ticket-row span,
+.app-shell .menu-row > svg {
+  color: var(--i9-text-muted) !important;
+}
+
+.app-shell .detail-card strong,
+.app-shell .number-card .big-number,
+.app-shell .otp-card .otp-value,
+.app-shell .countdown-card strong,
+.app-shell .notification-row .notification-title strong,
+.app-shell .account-panel :where(h2, h3),
+.app-shell .ticket-row strong,
+.app-shell .menu-row b {
+  color: var(--i9-text) !important;
+}
+
+.app-shell .otp-card.otp-ready,
+.app-shell .notification-row.unread {
+  background: #141a10 !important;
+  border-color: rgb(182 255 59 / 28%) !important;
+}
+
+.app-shell .notification-row .notification-link-label {
+  color: var(--i9-accent) !important;
+}
