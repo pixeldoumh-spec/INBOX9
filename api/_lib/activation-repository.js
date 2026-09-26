@@ -8,7 +8,7 @@ import { debitForActivation, getBalanceForClient } from './wallet-repository.js'
 import { completeActivationKey, markActivationKeyStuckSafe } from './idempotency.js';
 import { claimSyntheticSlot, releaseSyntheticSlot, shouldRestoreSyntheticStock, shouldRequireSyntheticReservation } from './synthetic-inventory-repository.js';
 
-const TTL_MS = 25 * 60 * 1000;
+const TTL_MS = 20 * 60 * 1000;
 const SYNTHETIC_SLOT_RESERVATION_ATTEMPTS = 8;
 export const ACTIVATION_QUOTA_LIMIT = 10;
 
