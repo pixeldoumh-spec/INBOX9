@@ -1268,3 +1268,234 @@
     transition: none;
   }
 }
+
+
+/* Customer Phase 3 surface contrast guard
+ * Wallet + Notifications are customer account surfaces. These overrides intentionally
+ * stay inside .app-shell so admin UI keeps its existing visual system.
+ */
+.app-shell .notification-summary > div {
+  background: var(--i9-surface);
+  border-color: var(--i9-border);
+  color: var(--i9-text);
+  box-shadow: none;
+}
+
+.app-shell .notification-summary span {
+  color: var(--i9-text-muted);
+}
+
+.app-shell .notification-summary strong {
+  color: var(--i9-text);
+}
+
+.app-shell .notification-summary small {
+  color: var(--i9-text-subtle);
+}
+
+.app-shell .notification-mark-all {
+  background: var(--i9-surface);
+  border-color: var(--i9-border);
+  color: var(--i9-accent);
+}
+
+.app-shell .notification-filter-tabs {
+  background: #0f140f;
+  border-color: var(--i9-border);
+}
+
+.app-shell .notification-filter-tab {
+  color: var(--i9-text-muted);
+}
+
+.app-shell .notification-filter-tab span {
+  background: #1b211b;
+  color: var(--i9-text-subtle);
+}
+
+.app-shell .notification-filter-tab.is-selected {
+  background: var(--i9-surface-subtle);
+  color: var(--i9-accent);
+  box-shadow: none;
+}
+
+.app-shell .notification-filter-tab.is-selected span {
+  background: var(--i9-accent-soft);
+  color: var(--i9-accent);
+}
+
+.app-shell .wallet-recharge-card {
+  background: var(--i9-surface);
+  color: var(--i9-text);
+}
+
+.app-shell .wallet-payment-destination {
+  background: #0f140f;
+  border-color: var(--i9-border-strong);
+}
+
+.app-shell .wallet-payment-destination-main span {
+  color: var(--i9-text-muted);
+}
+
+.app-shell .wallet-payment-destination-main strong {
+  color: var(--i9-text);
+}
+
+.app-shell .wallet-payment-destination-main small {
+  color: var(--i9-text-muted);
+}
+
+.app-shell .copy-button {
+  background: #141b12;
+  border: 1px solid var(--i9-border);
+  color: var(--i9-text-muted);
+}
+
+.app-shell .copy-button:hover,
+.app-shell .copy-button:focus-visible {
+  border-color: rgb(182 255 59 / 38%);
+  color: var(--i9-accent);
+  background: #182112;
+}
+
+.app-shell .wallet-payment-tools {
+  color: var(--i9-text);
+}
+
+.app-shell .wallet-amount-panel,
+.app-shell .wallet-qr-panel {
+  background: #0f140f;
+  border-color: var(--i9-border);
+}
+
+.app-shell .wallet-amount-panel .card-label,
+.app-shell .wallet-qr-panel .card-label {
+  color: var(--i9-text-subtle);
+}
+
+.app-shell .quick-amounts .amount-chip {
+  background: #101610;
+  border-color: var(--i9-border);
+  color: var(--i9-text);
+}
+
+.app-shell .quick-amounts .amount-chip:hover,
+.app-shell .quick-amounts .amount-chip:focus-visible {
+  border-color: rgb(182 255 59 / 38%);
+  color: var(--i9-accent);
+}
+
+.app-shell .quick-amounts .amount-chip.is-selected {
+  background: var(--i9-accent-soft);
+  border-color: rgb(182 255 59 / 38%);
+  color: var(--i9-accent);
+}
+
+.app-shell .money-input {
+  background: #0b0f0b;
+  border-color: var(--i9-border-strong);
+}
+
+.app-shell .money-input > span {
+  color: var(--i9-text-muted);
+}
+
+.app-shell .money-input input {
+  background: transparent !important;
+  color: var(--i9-text) !important;
+  -webkit-text-fill-color: var(--i9-text);
+}
+
+.app-shell .money-input input::placeholder {
+  color: #687168;
+  -webkit-text-fill-color: #687168;
+}
+
+.app-shell .wallet-payment-qr-placeholder {
+  background: #0b0f0b;
+  border-color: var(--i9-border-strong);
+  color: var(--i9-text-muted);
+}
+
+.app-shell .wallet-upi-open-button {
+  background: var(--i9-surface);
+  border-color: var(--i9-border-strong);
+  color: var(--i9-text);
+}
+
+.app-shell .payment-paid-button {
+  background: #0f140f;
+  border-color: var(--i9-border);
+  color: var(--i9-text);
+}
+
+.app-shell .payment-paid-button strong {
+  color: var(--i9-text);
+}
+
+.app-shell .payment-paid-button small {
+  color: var(--i9-text-muted);
+}
+
+.app-shell .payment-paid-button svg {
+  color: var(--i9-text-subtle);
+}
+
+.app-shell .payment-step-number {
+  background: var(--i9-accent-soft);
+  color: var(--i9-accent);
+}
+
+.app-shell .wallet-recharge-form {
+  border-top-color: var(--i9-border);
+}
+
+.app-shell .payment-utr-head strong {
+  color: var(--i9-text);
+}
+
+.app-shell .payment-utr-head .text-button {
+  color: var(--i9-text-muted);
+}
+
+.app-shell .wallet-payment-note {
+  color: var(--i9-text-muted);
+}
+
+.app-shell .wallet-payment-note svg {
+  color: var(--i9-accent);
+}
+
+.app-shell .wallet-help-card {
+  background: var(--i9-surface);
+  border-color: var(--i9-border);
+  color: var(--i9-text);
+  box-shadow: none;
+}
+
+.app-shell .wallet-help-card h3 {
+  color: var(--i9-text);
+}
+
+.app-shell .wallet-help-step {
+  border-top-color: var(--i9-border);
+}
+
+.app-shell .wallet-help-step span {
+  color: var(--i9-text);
+}
+
+.app-shell .wallet-help-step b {
+  color: var(--i9-accent);
+}
+
+@media (max-width: 720px) {
+  .app-shell .wallet-payment-tools {
+    grid-template-columns: 1fr;
+  }
+
+  .app-shell .wallet-qr-panel {
+    min-height: 120px;
+  }
+}
