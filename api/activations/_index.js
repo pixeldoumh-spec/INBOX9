@@ -1,6 +1,5 @@
 import { applySecurityHeaders, requestId, rateLimitAsync, enforceSameOrigin, validateBodySize } from '../_lib/security.js';
 import { getService } from '../_lib/catalog.js';
-import { getSyntheticServer } from '../_lib/synthetic-servers.js';
 import { getPersistedService } from '../_lib/service-repository.js';
 import { dbEnabled } from '../_lib/db.js';
 import { isSyntheticProduction } from '../_lib/runtime-config.js';
@@ -30,10 +29,6 @@ export default async function handler(req, res) {
   try { validateBodySize(req); } catch (e) { return res.status(413).json({ error: e.message }); }
   const serviceId = req.body?.serviceId;
   if (!serviceId) return res.status(400).json({ error: 'Service id is required' });
-  const serverId = req.body?.serverId ? String(req.body.serverId).trim().toLowerCase() : null;
-  if (serverId && !getSyntheticServer(serverId)) {
-    return res.status(400).json({ error: 'Unknown server', code: 'UNKNOWN_SYNTHETIC_SERVER' });
-  }
   let idempotencyKey = null;
   if (dbEnabled()) {
     try { idempotencyKey = validateIdempotencyKey(req.headers?.['idempotency-key']); }
@@ -43,7 +38,7 @@ export default async function handler(req, res) {
     const service = getService(serviceId);
     if (!service) return res.status(400).json({ error: 'Unknown service' });
     let mockClaim = null;
-    const requestHash = JSON.stringify({ serviceId, serverId });
+    const requestHash = JSON.stringify({ serviceId });
     if (req.headers?.['idempotency-key']) {
       try {
         mockClaim = claimMockActivationIdempotency(user, req.headers['idempotency-key'], requestHash);
@@ -57,7 +52,7 @@ export default async function handler(req, res) {
       }
     }
     try {
-      const activation = reserveMock({ ...service, serverId, userId: user.id, userEmail: user.email });
+      const activation = reserveMock({ ...service, userId: user.id, userEmail: user.email });
       const balancePaise = debitMockWallet(user, Number(service.pricePaise || 0), activation.id, `Activation • ${service.name}`);
       const response = { ...activation, userId: user.id, walletBalancePaise: balancePaise };
       if (req.headers?.['idempotency-key']) completeMockActivationIdempotency(user, req.headers['idempotency-key'], response);
@@ -73,7 +68,7 @@ export default async function handler(req, res) {
   const persistedService = await getPersistedService(serviceId);
   if (!persistedService || persistedService.active === false) return res.status(409).json({ error: 'Service is unavailable' });
   if (dbEnabled()) {
-    const requestHash = hashActivationRequest({ serviceId, serverId });
+    const requestHash = hashActivationRequest({ serviceId });
     try {
       const claim = await claimActivationKey(user.id, idempotencyKey, requestHash);
       if (claim.state === 'completed') {
@@ -85,7 +80,7 @@ export default async function handler(req, res) {
         return res.status(409).json({ error: 'An activation request with this Idempotency-Key is already in progress', code: 'IDEMPOTENCY_IN_PROGRESS' });
       }
       try {
-        const result = await createActivation(persistedService, user.id, { idempotencyKey, requestHash }, { serverId });
+        const result = await createActivation(persistedService, user.id, { idempotencyKey, requestHash });
         return res.status(201).json({ ...result.activation, walletBalancePaise: result.balancePaise });
       } catch (error) {
         if (error.code && ['INSUFFICIENT_BALANCE','OUT_OF_STOCK','SERVICE_UNAVAILABLE','NO_PROVIDER','ACTIVATION_QUOTA_EXCEEDED'].includes(error.code)) {
@@ -98,7 +93,7 @@ export default async function handler(req, res) {
       if (error.code === 'IDEMPOTENCY_KEY_REUSED' || error.code === 'IDEMPOTENCY_KEY_UNUSABLE') return res.status(409).json({ error: error.message, code: error.code });
       if (error.code === 'INSUFFICIENT_BALANCE') return res.status(402).json({ error: error.message, code: error.code });
       if (error.code === 'OUT_OF_STOCK' || error.code === 'SERVICE_UNAVAILABLE') return res.status(409).json({ error: error.message, code: error.code });
-      if (error.code === 'NO_PROVIDER') return res.status(503).json({ error: error.message, code: error.code });
+      if (error.code === 'NO_PROVIDER') return res.status(503).json({ error: 'This service is temporarily unavailable. Please try again shortly.', code: 'SERVICE_UNAVAILABLE' });
       if (error.code === 'ACTIVATION_QUOTA_EXCEEDED') return res.status(429).json({ error: error.message, code: error.code });
       return res.status(503).json({ error: 'Activation service unavailable' });
     }
