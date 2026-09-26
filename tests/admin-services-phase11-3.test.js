@@ -16,6 +16,9 @@ test('phase 11.3 service catalog is admin-only and searchable', async () => {
   assert.match(route, /req\.query\?\.q/);
   assert.match(route, /req\.query\?\.status/);
   assert.match(route, /req\.query\?\.offset/);
+  assert.match(route, /const result = await listAdminServices/);
+  assert.match(route, /res\.status\(200\)\.json\(result\)/);
+  assert.doesNotMatch(route, /json\(\{\s*services:\s*await listAdminServices/);
   assert.match(detailRoute, /requireAdmin/);
   assert.match(detailRoute, /enforceSameOrigin/);
   assert.match(detailRoute, /updateService/);
