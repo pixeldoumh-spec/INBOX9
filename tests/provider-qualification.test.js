@@ -40,6 +40,9 @@ test('provider qualification recognizes an exact live provider service-name cand
     if (targetUrl.endsWith('/api/v1/services')) {
       return new Response(JSON.stringify({ services: [{ code: 'exact-test', name: target.name }] }), { status: 200, headers: { 'content-type': 'application/json' } });
     }
+    if (targetUrl.includes('/api/v1/operators?country=IN')) {
+      return new Response(JSON.stringify({ operators: [{ service: 'exact-test', price: 0.15, count: 4 }] }), { status: 200, headers: { 'content-type': 'application/json' } });
+    }
     throw new Error('unexpected request ' + targetUrl);
   };
   const { qualifyProviders } = await import('../api/_lib/provider-qualification.js');
@@ -47,4 +50,29 @@ test('provider qualification recognizes an exact live provider service-name cand
   const row = snapshot.services.find((service) => service.id === target.id);
   assert.equal(row.providers.pvapins.status, 'exact_name_candidate');
   assert.equal(row.providers.pvapins.candidate, 'exact-test');
+});
+
+test('provider qualification blocks an empty or mismatched India catalog', async () => {
+  if (!process.env.INBOX9_TEST_DATABASE_URL) return;
+  process.env.DATABASE_URL = process.env.INBOX9_TEST_DATABASE_URL;
+  process.env.DATABASE_SSL = 'false';
+  process.env.INBOX9_PVAPINS_API_KEY = 'test-key';
+  delete process.env.INBOX9_ASMS_API_KEY;
+  delete process.env.INBOX9_SVNUMBER_API_KEY;
+  global.fetch = async (url) => {
+    const targetUrl = String(url);
+    if (targetUrl.endsWith('/api/v1/services')) {
+      return new Response(JSON.stringify({ services: [{ code: 'test', name: 'WhatsApp' }] }), { status: 200, headers: { 'content-type': 'application/json' } });
+    }
+    if (targetUrl.includes('/api/v1/operators?country=IN')) {
+      return new Response(JSON.stringify({ operators: [] }), { status: 200, headers: { 'content-type': 'application/json' } });
+    }
+    throw new Error('unexpected request ' + targetUrl);
+  };
+  const { qualifyProviders } = await import('../api/_lib/provider-qualification.js');
+  const snapshot = await qualifyProviders();
+  const pvapins = snapshot.providers.find((provider) => provider.adapterKey === 'pvapins');
+  assert.equal(pvapins.status, 'catalog_unavailable');
+  assert.equal(pvapins.catalogCount, 0);
+  assert.equal(pvapins.error, 'PROVIDER_INDIA_CATALOG_EMPTY');
 });
