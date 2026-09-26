@@ -37,6 +37,8 @@ test('phase 11.9 aggregated system health is admin-only and exposes actionable o
   assert.match(observability, /clientErrors/);
   assert.match(observability, /slowRequests/);
   assert.match(health, /databaseReachable/);
+  assert.match(route, /http5xx/);
+  assert.match(route, /databaseLatencyMs > 3000/);
 });
 
 test('phase 11.9 health endpoint does not expose secret values', async () => {
