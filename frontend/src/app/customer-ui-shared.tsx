@@ -31,6 +31,7 @@ export function Icon({name,size=20}:{name:IconName;size?:number}){return <svg wi
 import { SERVICE_LOGO_MANIFEST, SERVICE_LOGO_SPRITE } from './serviceLogoManifest';
 
 const serviceLogoCropCache=new Map<number,string>();
+const serviceLogoCropPromiseCache=new Map<number,Promise<string>>();
 let serviceLogoSpritePromise:Promise<HTMLImageElement>|null=null;
 
 function getServiceLogoSpriteImage(path:string){
@@ -49,7 +50,9 @@ function getServiceLogoSpriteImage(path:string){
 export function cropServiceLogo(path:string,index:number,tileSize:number,columns:number,outputSize:number){
  const cached=serviceLogoCropCache.get(index);
  if(cached)return Promise.resolve(cached);
- return getServiceLogoSpriteImage(path).then(image=>{
+ const inflight=serviceLogoCropPromiseCache.get(index);
+ if(inflight)return inflight;
+ const job=getServiceLogoSpriteImage(path).then(image=>{
   const source=document.createElement('canvas');
   source.width=tileSize;
   source.height=tileSize;
@@ -109,7 +112,9 @@ export function cropServiceLogo(path:string,index:number,tileSize:number,columns
   const url=URL.createObjectURL(blob);
   serviceLogoCropCache.set(index,url);
   return url;
- });
+ }).finally(()=>{serviceLogoCropPromiseCache.delete(index)});
+ serviceLogoCropPromiseCache.set(index,job);
+ return job;
 }
 
 export function ServiceLogo({serviceId,name}:{serviceId:string;name:string}){
@@ -133,7 +138,7 @@ export function ServiceLogo({serviceId,name}:{serviceId:string;name:string}){
  const initials=name.trim().split(/\\s+/).slice(0,2).map(x=>x[0]).join('').toUpperCase()||'I9';
  return <div className={['service-logo',has?'':'service-logo-fallback'].filter(Boolean).join(' ')} data-service-id={serviceId} data-logo-source={src?'cropped-sprite':has?'sprite':'fallback'} style={{width:d,height:d}}>
    <div className="service-logo-art">
-    {src?<img src={src} alt="" aria-hidden="true"/>:<div className="service-logo-fallback-content"><span>{initials}</span><Icon name="apps" size={21}/></div>}
+    {src?<img src={src} alt="" aria-hidden="true" decoding="async" draggable="false"/>:<div className="service-logo-fallback-content"><span>{initials}</span><Icon name="apps" size={21}/></div>}
    </div>
  </div>;
 }
