@@ -7,8 +7,6 @@ import { createRecharge } from '../api/recharges';
 import { getSessions, revokeSession, updateProfile, changePassword, issueRecoveryCode, logoutAll } from '../api/account';
 import { createSupportTicket, getSupportTickets, replySupportTicket } from '../api/support';
 import type { Notification } from '../api/types';
-import type { AdminRecharge } from '../api/types';
-import { getAdminRecharges, reviewAdminRecharge, getAdminPaymentReconciliation, updatePaymentSettings, getAdminLedger } from '../api/admin-payments';
 import { useSessionStore } from '../state/session';
 import { Icon } from './customer-ui-shared';
 
