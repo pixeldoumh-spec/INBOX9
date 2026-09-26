@@ -9,6 +9,7 @@ import { createSupportTicket, getSupportTickets, replySupportTicket } from '../a
 import type { Notification } from '../api/types';
 import type { IconName } from './customer-ui-shared';
 import { Icon } from './customer-ui-shared';
+import { useSessionStore } from '../state/session';
 
 function WalletPage(){
  const client=useQueryClient();
