@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import { getPool } from './db.js';
 import { invokeProvider, providerCapabilities } from './provider-gateway.js';
 import { getProviderAdapter } from './provider-registry.js';
+import { fulfillmentMode } from './runtime-config.js';
 
 export const ROUTING_CIRCUIT_FAILURE_THRESHOLD = 3;
 export const ROUTING_CIRCUIT_COOLDOWN_MS = 2 * 60 * 1000;
@@ -107,9 +108,10 @@ async function eligibleRoutes(pool, serviceId) {
       ORDER BY r.priority ASC,p.priority ASC,p.id ASC`,
     [serviceId, PROVIDER_CERT_MAX_AGE_MS],
   );
-  const filtered = EXTERNAL_ROUTING_ENABLED
-    ? result.rows
-    : result.rows.filter((row) => row.adapter_key === 'synthetic');
+  const mode = fulfillmentMode();
+  const filtered = mode === 'synthetic'
+    ? result.rows.filter((row) => row.adapter_key === 'synthetic')
+    : (EXTERNAL_ROUTING_ENABLED ? result.rows : result.rows.filter((row) => row.adapter_key === 'synthetic'));
   return filtered.filter((row) => {
     if (row.adapter_key === 'synthetic') return true;
     if (ALLOW_NONCANCELLABLE_RESERVE) return true;

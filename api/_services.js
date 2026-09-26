@@ -2,7 +2,7 @@ import { applySecurityHeaders, requestId, rateLimitAsync } from './_lib/security
 import { services as localServices } from './_lib/catalog.js';
 import { listPersistedServices } from './_lib/service-repository.js';
 import { getPool } from './_lib/db.js';
-import { isProduction, isSyntheticProduction } from './_lib/runtime-config.js';
+import { fulfillmentMode, isProduction, isSyntheticProduction } from './_lib/runtime-config.js';
 
 
 export default async function handler(req, res) {
@@ -21,11 +21,14 @@ export default async function handler(req, res) {
   if (isProduction()) {
     const pool = await getPool();
     if (!pool) return res.status(503).json({ error: 'Service fulfillment database is not configured' });
+    const providerPredicate = fulfillmentMode() === 'synthetic'
+      ? "p.adapter_key='synthetic'"
+      : "p.adapter_key <> 'synthetic'";
     const result = await pool.query(
       `SELECT DISTINCT r.service_id
          FROM service_provider_routes r
          JOIN providers p ON p.id=r.provider_id
-        WHERE r.active=TRUE AND p.active=TRUE AND p.adapter_key <> 'synthetic'`
+        WHERE r.active=TRUE AND p.active=TRUE AND ${providerPredicate}`
     );
     purchasableIds = new Set(result.rows.map((row) => String(row.service_id)));
   }

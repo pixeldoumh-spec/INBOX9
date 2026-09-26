@@ -15,6 +15,14 @@ export function runtimeMode() {
   return isProduction() ? 'unconfigured' : 'local';
 }
 
+// Fulfillment mode is separate from storage/runtime mode: production can use
+// PostgreSQL persistence while serving only the deterministic synthetic engine
+// until an external provider partnership is approved.
+export function fulfillmentMode() {
+  const raw = String(process.env.INBOX9_FULFILLMENT_MODE || '').trim().toLowerCase();
+  return raw === 'external' ? 'external' : 'synthetic';
+}
+
 export function isSyntheticProduction() {
   return isProduction() && runtimeMode() === 'synthetic';
 }
@@ -31,6 +39,7 @@ export function productionConfiguration() {
     cronAuth: Boolean(process.env.CRON_SECRET),
     syntheticRuntime: isSyntheticProduction(),
     persistentRuntime: isPersistentProduction(),
+    fulfillmentMode: fulfillmentMode(),
     rechargeEnabled: String(process.env.INBOX9_ENABLE_RECHARGE || '').trim().toLowerCase() === 'true',
     upiDestination: Boolean(String(process.env.INBOX9_UPI_ID || '').trim()),
     paymentWebhook: Boolean(String(process.env.INBOX9_PAYMENT_WEBHOOK_SECRET || '').trim()),
