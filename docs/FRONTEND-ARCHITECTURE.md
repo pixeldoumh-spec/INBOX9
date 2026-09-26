@@ -1,6 +1,6 @@
 # INBOX9 Frontend Architecture — v1
 
-Status: Phase 4 wallet, notifications, support, account + resilience completed.
+Status: Phase 2 Apps launcher certified; later customer phases remain separately tracked.
 
 ## Source basis
 
@@ -93,7 +93,7 @@ The backend exposes the 90-service India/INR catalog from the Diwa Play cutoff. 
 
 Phase 0 — Architecture freeze: completed.
 Phase 1 — Frontend foundation: completed.
-Phase 2 — Apps launcher: completed.
+Phase 2 — Apps launcher: completed and Radium Night contrast/polish certified (2026-09-26).
 Phase 3 — Service and activation: completed.
 Phase 4 — Wallet, notifications, support, account: completed.
 Phase 5 — Production certification: next.
