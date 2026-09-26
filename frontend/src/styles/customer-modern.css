@@ -1962,3 +1962,11 @@
 .app-shell .detail-card {
   box-shadow: 0 8px 26px rgb(0 0 0 / 18%);
 }
+
+/* Phase 10.2 — wallet/recharge resilience */
+.app-shell .wallet-resilience-banner{display:flex;align-items:flex-start;gap:10px;margin:10px 0 14px;padding:13px 14px;border:1px solid var(--border-strong);border-radius:16px;background:var(--surface-2);color:var(--text)}
+.app-shell .wallet-resilience-banner .resilience-indicator{flex:0 0 auto;margin-top:4px}
+.app-shell .wallet-resilience-banner div{min-width:0}
+.app-shell .wallet-resilience-banner strong,.app-shell .wallet-resilience-banner small{display:block}
+.app-shell .wallet-resilience-banner small{margin-top:3px;color:var(--muted);line-height:1.45}
+@media (max-width:720px){.app-shell .wallet-resilience-banner{padding:12px}.app-shell .wallet-resilience-banner small{font-size:12px}}
