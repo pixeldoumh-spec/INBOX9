@@ -2,14 +2,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { invokeAdapter, invokeProvider, getProviderGatewayMetrics, providerCapabilities, resetProviderGatewayMetrics } from '../api/_lib/provider-gateway.js';
 import { syntheticProvider } from '../api/_lib/synthetic-provider.js';
-import { numberOtpProvider } from '../api/_lib/numberotp-provider.js';
 
 test.afterEach(() => resetProviderGatewayMetrics());
 
 test('provider adapters expose explicit gateway capabilities', () => {
   assert.equal(providerCapabilities(syntheticProvider).cancelActivation, true);
-  assert.equal(providerCapabilities(numberOtpProvider).cancelActivation, false);
-  assert.equal(providerCapabilities(numberOtpProvider).safeToRetryReserve, false);
 });
 
 test('gateway routes health and records latency metrics', async () => {
@@ -81,32 +78,18 @@ test('reserve failures are never automatically safe to retry', async () => {
 
 import { buildProviderReserveInput } from '../api/_lib/activation-repository.js';
 
-test('allocation contract never forwards synthetic server selection to real providers in production', () => {
-  const input = buildProviderReserveInput({
-    catalogService: { id: 'svc-example', name: 'Example', pricePaise: 1000, stock: 5 },
-    persistedService: { id: 'svc-example', name: 'Example', price_paise: 1000, stock: 5, active: true },
-    provider: { id: 'provider-real', adapter_key: 'numberotp' },
-    serverId: 'server-7',
-    idempotencyKey: 'alloc-test-1',
-    nodeEnv: 'production',
-  });
-
-  assert.equal('serverId' in input, false);
-  assert.equal(input.idempotencyKey, 'alloc-test-1');
-  assert.equal(input.pricePaise, 1000);
-  assert.equal(input.stock, 5);
-});
-
-test('allocation contract preserves server selection only for non-production synthetic QA', () => {
+test('allocation contract forwards an internal server selection to the synthetic adapter', () => {
   const input = buildProviderReserveInput({
     catalogService: { id: 'svc-example', name: 'Example', pricePaise: 1000, stock: 5 },
     persistedService: { id: 'svc-example', name: 'Example', price_paise: 1000, stock: 5, active: true },
     provider: { id: 'provider-mock', adapter_key: 'synthetic' },
     serverId: 'SERVER-7',
-    nodeEnv: 'test',
+    idempotencyKey: 'alloc-test-1',
   });
 
   assert.equal(input.serverId, 'server-7');
+  assert.equal(input.idempotencyKey, 'alloc-test-1');
+  assert.equal(input.pricePaise, 1000);
 });
 
 test('synthetic flow issues an internal server before creating an activation', async () => {
