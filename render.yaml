@@ -39,6 +39,8 @@ services:
         value: ""
       - key: INBOX9_ENABLE_EXTERNAL_ROUTING
         value: "false"
+      - key: INBOX9_FULFILLMENT_MODE
+        value: "synthetic"
       - key: INBOX9_ALLOW_NONCANCELLABLE_PROVIDER_RESERVE
         value: "false"
       - key: INBOX9_RUN_BILLABLE_PROVIDER_CANARY
