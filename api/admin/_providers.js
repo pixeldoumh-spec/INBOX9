@@ -5,6 +5,7 @@ import { listProviders, providerHealth } from '../_lib/provider-repository.js';
 import { listProviderAdapters } from '../_lib/provider-registry.js';
 import { providerGatewayTimeouts } from '../_lib/provider-gateway.js';
 import { externalRoutingEnabled, listProviderRouteAttempts, listProviderRouteHealth } from '../_lib/provider-routing.js';
+import { listProviderReconciliationRuns, listProviderReconciliationEvents, getProviderReconciliationBacklog } from '../_lib/provider-reconciliation-journal.js';
 
 export default async function handler(req, res) {
   applySecurityHeaders(res);
@@ -28,6 +29,11 @@ export default async function handler(req, res) {
       },
       routeHealth: await listProviderRouteHealth({ limit: 100 }),
       routeAttempts: await listProviderRouteAttempts({ limit: 100 }),
+      reconciliation: {
+        runs: await listProviderReconciliationRuns({ limit: 20 }),
+        events: await listProviderReconciliationEvents({ limit: 50 }),
+        unresolvedBacklog: await getProviderReconciliationBacklog({ limit: 100 }),
+      },
     });
   } catch (error) {
     console.error('admin.providers_failed', error);
