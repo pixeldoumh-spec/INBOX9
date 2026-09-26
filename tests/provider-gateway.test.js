@@ -78,3 +78,33 @@ test('reserve failures are never automatically safe to retry', async () => {
     }
   );
 });
+
+import { buildProviderReserveInput } from '../api/_lib/activation-repository.js';
+
+test('allocation contract never forwards synthetic server selection to real providers in production', () => {
+  const input = buildProviderReserveInput({
+    catalogService: { id: 'svc-example', name: 'Example', pricePaise: 1000, stock: 5 },
+    persistedService: { id: 'svc-example', name: 'Example', price_paise: 1000, stock: 5, active: true },
+    provider: { id: 'provider-real', adapter_key: 'numberotp' },
+    serverId: 'server-7',
+    idempotencyKey: 'alloc-test-1',
+    nodeEnv: 'production',
+  });
+
+  assert.equal('serverId' in input, false);
+  assert.equal(input.idempotencyKey, 'alloc-test-1');
+  assert.equal(input.pricePaise, 1000);
+  assert.equal(input.stock, 5);
+});
+
+test('allocation contract preserves server selection only for non-production synthetic QA', () => {
+  const input = buildProviderReserveInput({
+    catalogService: { id: 'svc-example', name: 'Example', pricePaise: 1000, stock: 5 },
+    persistedService: { id: 'svc-example', name: 'Example', price_paise: 1000, stock: 5, active: true },
+    provider: { id: 'provider-mock', adapter_key: 'synthetic' },
+    serverId: 'SERVER-7',
+    nodeEnv: 'test',
+  });
+
+  assert.equal(input.serverId, 'server-7');
+});
