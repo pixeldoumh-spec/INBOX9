@@ -79,6 +79,7 @@ jobs:
           test "$phase7_migration" = "1"
           public_role_table_grants=$(psql "$TEST_DATABASE_URL" -Atc "SELECT COUNT(*) FROM information_schema.role_table_grants WHERE table_schema='public' AND grantee IN ('anon','authenticated')")
           test "$public_role_table_grants" = "0"
+          DATABASE_URL="$TEST_DATABASE_URL" node scripts/verify-db.mjs
 
       - run: npm run check
       - run: npm test
