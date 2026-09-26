@@ -13,6 +13,7 @@ test('phase 11.1 keeps admin routing outside the customer shell', async()=>{
   assert.match(source,/if\(role==='admin'\)/);
   assert.match(source,/candidate==='\/admin'\|\|candidate\.startsWith\('\/admin\/'\)\?candidate:'\/admin'/);
   assert.match(source,/if\(candidate==='\/admin'\|\|candidate\.startsWith\('\/admin\/'\)\)return '\/apps'/);
+  assert.match(source,/if\(user\.role==='admin'\)return <Navigate to="\/admin" replace\/>/);
 });
 
 test('phase 11.1 admin guard is role-bound and customer UI is not mounted in admin shell', async()=>{
