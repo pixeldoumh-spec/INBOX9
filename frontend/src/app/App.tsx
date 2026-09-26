@@ -410,9 +410,15 @@ function WalletPage(){
  function openUpi(){if(!upiIntent)return;setPaymentStarted(true);window.location.href=upiIntent}
  return <section className="page-section wallet-page">
   <div className="catalog-heading wallet-heading"><div><span className="catalog-eyebrow">WALLET</span><h1>Wallet</h1><p>Recharge securely, track verification, and keep every wallet movement in one place.</p></div><span className="catalog-chip">INR</span></div>
-  <div className="wallet-overview"><div className="wallet-overview-main"><span>Available balance</span><strong>₹{((q.data?.balancePaise??0)/100).toFixed(2)}</strong><small>{q.isPending?'Refreshing wallet…':q.isError?'Balance unavailable':pendingRecharges?pendingRecharges+' recharge'+(pendingRecharges===1?' is':'s are')+' awaiting verification':'No recharge is awaiting verification'}</small></div><Link className="primary-button wallet-buy-button" to="/buy">Buy services <Icon name="arrow" size={17}/></Link></div>
+  <div className="wallet-overview">
+   <div className="wallet-overview-main"><span>Available balance</span><strong>₹{((q.data?.balancePaise??0)/100).toFixed(2)}</strong><small>{q.isPending?'Refreshing wallet…':q.isError?'Balance unavailable':pendingRecharges?pendingRecharges+' recharge'+(pendingRecharges===1?' is':'s are')+' awaiting verification':'No recharge is awaiting verification'}</small></div>
+   <div className="wallet-stat-grid">
+    <div><span>Pending amount</span><strong>₹{(pendingAmountPaise/100).toFixed(2)}</strong><small>Manual verification queue</small></div>
+    <div><span>Wallet credits</span><strong>{q.data?.summary?.creditCount??ledger.filter(x=>x.type==='credit').length}</strong><small>Posted credit entries</small></div>
+    <div><span>Wallet debits</span><strong>{q.data?.summary?.debitCount??ledger.filter(x=>x.type==='debit').length}</strong><small>Service and account movements</small></div>
+   </div>
+  </div>
   {q.isError?<div className="error-card">Could not load wallet. Reconnect and try again.</div>:null}
-  <div className="wallet-stat-grid"><div><span>Pending amount</span><strong>₹{(pendingAmountPaise/100).toFixed(2)}</strong><small>Manual verification queue</small></div><div><span>Wallet credits</span><strong>{q.data?.summary?.creditCount??ledger.filter(x=>x.type==='credit').length}</strong><small>Posted credit entries</small></div><div><span>Wallet debits</span><strong>{q.data?.summary?.debitCount??ledger.filter(x=>x.type==='debit').length}</strong><small>Service and account movements</small></div></div>
   <div className="wallet-recharge-shell">
    <div className="recharge-card wallet-recharge-card">
     <div className="section-heading"><div><span className="catalog-eyebrow">MANUAL UPI</span><h2>Add funds</h2><span className="section-subtle">Pay the exact amount, then submit the UTR for verification.</span></div>{q.data?.rechargeEnabled?<span className="payment-live-pill"><span/>Enabled</span>:null}</div>
