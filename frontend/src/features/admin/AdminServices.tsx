@@ -194,6 +194,9 @@ export function AdminServicesPage() {
           </div>
           <span className="admin-status-badge">{availableProviders.length}</span>
         </div>
+        <div className="admin-routing-help">
+          <strong>External routing:</strong> {providers.data?.gateway.externalRoutingEnabled ? 'Enabled' : 'Disabled'} · Safe reserve retries remain disabled on uncertain outcomes.
+        </div>
         <div className="admin-provider-list">
           {availableProviders.map((provider) => {
             const health = healthFor(provider, providerHealth);
@@ -214,6 +217,9 @@ export function AdminServicesPage() {
           })}
           {!availableProviders.length && !providers.isPending ? <div className="admin-muted-copy">No providers are registered.</div> : null}
         </div>
+        {providers.data?.routeHealth?.length ? <div className="admin-routing-help" style={{ marginTop: 12 }}>
+          {providers.data.routeHealth.filter((row) => row.openedUntil && row.openedUntil > Date.now()).length} route circuit{providers.data.routeHealth.filter((row) => row.openedUntil && row.openedUntil > Date.now()).length === 1 ? '' : 's'} currently open · {providers.data.routeAttempts.length} recent route attempt{providers.data.routeAttempts.length === 1 ? '' : 's'} recorded.
+        </div> : null}
       </div>
 
       <section className="admin-panel">
