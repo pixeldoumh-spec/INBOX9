@@ -5,6 +5,7 @@ import test from 'node:test';
 
 const root=process.cwd();
 const app=fs.readFileSync(path.join(root,'frontend/src/app/App.tsx'),'utf8');
+const shared=fs.readFileSync(path.join(root,'frontend/src/app/customer-ui-shared.tsx'),'utf8');
 const manifest=fs.readFileSync(path.join(root,'frontend/src/app/serviceLogoManifest.ts'),'utf8');
 const spriteModule=fs.readFileSync(path.join(root,'frontend/src/app/serviceLogoSprite.ts'),'utf8');
 const legacySpritePath=path.join(root,'frontend/public/service-icons-sprite.webp');
@@ -54,8 +55,8 @@ test('service logo manifest uses stable unique service IDs and sprite tiles',()=
 });
 
 test('ServiceLogo uses the stable manifest and no legacy positional mask',()=>{
-  assert.doesNotMatch(app,/const logoMask/);
-  assert.doesNotMatch(app,/<ServiceLogo[^>]*position=/);
-  assert.match(app,/SERVICE_LOGO_MANIFEST/);
-  assert.match(app,/data-logo-source=/);
+  assert.doesNotMatch(shared,/const logoMask/);
+  assert.doesNotMatch(shared,/<ServiceLogo[^>]*position=/);
+  assert.match(shared,/SERVICE_LOGO_MANIFEST/);
+  assert.match(shared,/data-logo-source=/);
 });
