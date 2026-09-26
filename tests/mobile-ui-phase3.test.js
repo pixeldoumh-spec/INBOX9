@@ -11,8 +11,8 @@ test('phase 3 mounts all five customer account surfaces as independent routes',(
   for(const route of ['/wallet','/active','/notifications','/support','/account']){
     assert.match(app,new RegExp("path:'"+route.slice(1)+"'"));
   }
-  assert.match(app,/path:'support:\/[^']*'/);
-  assert.match(app,/path:'active:\/[^']*'/);
+  assert.match(app,/path:'support\/[^']*'/);
+  assert.match(app,/path:'active\/[^']*'/);
 });
 
 test('phase 3 wallet surface is server-backed and preserves manual recharge rules',()=>{
@@ -22,7 +22,7 @@ test('phase 3 wallet surface is server-backed and preserves manual recharge rule
   assert.match(app,/min="100"/);
   assert.match(app,/max="5000"/);
   assert.match(app,/className="payment-paid-button"/);
-  assert.match(app,/verified only after/);
+  assert.match(app,/manual verification protects the wallet/i);
   assert.match(app,/Wallet credit is applied only after verification/);
 });
 
