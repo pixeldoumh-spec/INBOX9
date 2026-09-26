@@ -211,7 +211,11 @@ function BuyServiceWorkspace({serviceId}:{serviceId:string}){
   setPending(true);setError(null);
   try{
    const act=await createActivation(selected.id,idempotencyKey);
-   await Promise.all([client.invalidateQueries({queryKey:['wallet']}),client.invalidateQueries({queryKey:['activations']})]);
+   await Promise.all([
+    client.invalidateQueries({queryKey:['wallet']}),
+    client.invalidateQueries({queryKey:['activations']}),
+    client.invalidateQueries({queryKey:['notifications']})
+   ]);
    setConfirmOpen(false);
    navigate(`/buy?serviceId=${encodeURIComponent(selected.id)}&activationId=${encodeURIComponent(act.id)}`,{replace:true});
   }catch(reason){setError(activationErrorMessage(reason));}
@@ -248,7 +252,7 @@ function BuyActivationWorkspace({activationId,serviceId}:{activationId:string;se
  const q=useQuery({queryKey:['activation',activationId],queryFn:()=>getActivation(activationId),enabled:Boolean(activationId),retry:3,retryDelay:attempt=>Math.min(1000*(attempt+1),4000),refetchOnReconnect:true,refetchOnWindowFocus:true,refetchInterval:query=>['Active','CancellationPending','ExpirationPending'].includes(query.state.data?.status||'')?2_000:false});
  const cancel=useMutation({
   mutationFn:()=>cancelActivation(activationId),
-  onSuccess:async()=>{setCancelError(null);setCancelConfirmOpen(false);await Promise.all([client.invalidateQueries({queryKey:['activations']}),client.invalidateQueries({queryKey:['wallet']}),q.refetch()])},
+  onSuccess:async()=>{setCancelError(null);setCancelConfirmOpen(false);await Promise.all([client.invalidateQueries({queryKey:['activations']}),client.invalidateQueries({queryKey:['wallet']}),client.invalidateQueries({queryKey:['notifications']}),q.refetch()])},
   onError:(reason)=>setCancelError(activationErrorMessage(reason))
  });
  useEffect(()=>{const t=window.setInterval(()=>setNow(Date.now()),1000);return()=>window.clearInterval(t)},[]);
