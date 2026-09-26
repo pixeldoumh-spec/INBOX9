@@ -36,11 +36,12 @@ test('payment endpoints are wired through the runtime', () => {
   const server = fs.readFileSync(new URL('../server.js', import.meta.url), 'utf8');
   const wallet = fs.readFileSync(new URL('../api/wallet/_index.js', import.meta.url), 'utf8');
   const recharge = fs.readFileSync(new URL('../api/recharges/_index.js', import.meta.url), 'utf8');
+  const migration = fs.readFileSync(new URL('../db/migrations/038_manual_payment_operations.sql', import.meta.url), 'utf8');
   assert.match(server, /GET \/api\/admin\/payment-settings/);
   assert.match(server, /PATCH \/api\/admin\/payment-settings/);
   assert.match(wallet, /getPaymentSettings/);
   assert.match(wallet, /paymentSettings\.enabled/);
-  assert.match(server, /038_manual_payment_operations/);
+  assert.match(migration, /038_manual_payment_operations/);
   assert.match(recharge, /paymentSettings\.upiId/);
   assert.match(wallet, /paymentSettings\.enabled/);
 });
