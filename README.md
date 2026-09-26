@@ -48,7 +48,7 @@ Completed / Expired / Refunded / Cancelled
 
 The frontend sends an idempotency key for every purchase request, invalidates wallet/activation queries after state changes, supports copy-to-clipboard, displays lifecycle-specific states, and exposes cancellation/refund results.
 
-Production activation uses the synthetic fulfillment engine. Each allocation is assigned to an internal synthetic server and fulfilled through the MockAPI/synthetic engine.
+Production activation currently uses the synthetic fulfillment engine. Each allocation is assigned to an internal synthetic server and fulfilled through the MockAPI/synthetic engine. Three external API adapters (ASMS.ai, PVAPins, and SMS Verification Number) are installed but remain unrouted until provider credentials and explicit service mappings are verified.
 
 ## Backend surface
 
@@ -140,3 +140,7 @@ Wallet balance and ledger state are PostgreSQL-authoritative. Recharge is manual
 
 Admin APIs require an account with database role `admin`. Reconciliation, provider operations, observability, and disaster-recovery workflows remain part of the repository.
 
+
+## Provider sources
+
+See `docs/PRODUCTION-PROVIDER-SOURCE-MATRIX.md` for the finalized eight-source inventory. Public/shared inbox sites are reference-only; they are not production fulfillment routes.
