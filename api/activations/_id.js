@@ -15,7 +15,6 @@ export default async function handler(req, res) {
     const item = dbEnabled() ? await getPersistedActivation(req.query.id, user.id) : getMock(req.query.id, user);
     return item ? res.status(200).json(item) : res.status(404).json({ error: 'Activation not found' });
   } catch (error) {
-    if (error.code === 'REAL_PROVIDER_REQUIRED') return res.status(503).json({ error: error.message, code: error.code });
     throw error;
   }
 }
