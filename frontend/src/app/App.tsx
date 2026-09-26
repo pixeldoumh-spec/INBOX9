@@ -347,53 +347,6 @@ function activationErrorMessage(reason:unknown){
  }
  return reason instanceof Error?reason.message:'Could not create activation';
 }
-function ServicePage(){
- const {serviceId}=useParams();
- const navigate=useNavigate();
- const client=useQueryClient();
- const [pending,setPending]=useState(false);
- const [confirmOpen,setConfirmOpen]=useState(false);
- const [error,setError]=useState<string|null>(null);
- const services=useQuery({queryKey:['services'],queryFn:getServices,staleTime:60_000});
- const wallet=useQuery({queryKey:['wallet'],queryFn:getWallet,staleTime:10_000});
- const service=services.data?.services.find(s=>s.id===serviceId);
- if(services.isPending)return <section className="page-section"><div className="page-loading">Loading service...</div></section>;
- if(!service)return <section className="page-section"><Link className="back-link" to="/apps"><Icon name="back" size={18}/> Apps</Link><div className="error-card">Service not found.</div></section>;
- const selected=service;
- const price=selected.pricePaise/100;
- const balancePaise=wallet.data?.balancePaise??0;
- const insufficient=wallet.isSuccess && balancePaise<selected.pricePaise;
- async function buy(){
-  if(!selected.purchasable||pending||insufficient)return;
-  setPending(true);setError(null);
-  try{
-   const act=await createActivation(selected.id,`i9-${selected.id}-${crypto.randomUUID()}`);
-   await Promise.all([
-    client.invalidateQueries({queryKey:['wallet']}),
-    client.invalidateQueries({queryKey:['activations']})
-   ]);
-   setConfirmOpen(false);
-   navigate(`/active/${encodeURIComponent(act.id)}`);
-  }catch(reason){setError(activationErrorMessage(reason));}
-  finally{setPending(false);}
- }
- return <section className="page-section service-detail">
-  <Link className="back-link" to="/apps"><Icon name="back" size={18}/> Apps</Link>
-  <div className="service-hero"><ServiceLogo serviceId={selected.id} name={selected.name}/><div><h1>{selected.name}</h1><p>{selected.category}</p></div></div>
-  <div className="detail-grid">
-   <div className="detail-card"><span>Price</span><strong>₹{price.toFixed(2)}</strong><small>Per activation</small></div>
-   <div className="detail-card"><span>Availability</span><strong>{selected.availability||'—'}</strong><small>{selected.stock==null?'Live inventory':`${selected.stock} shown in catalog`}</small></div>
-   <div className="detail-card"><span>Wallet</span><strong>₹{(balancePaise/100).toFixed(2)}</strong><small>{wallet.isPending?'Loading balance':'Current balance'}</small></div>
-  </div>
-  {!selected.purchasable?<div className="info-card"><Icon name="clock" size={20}/><div><strong>Buying is not enabled for this service yet.</strong><p>The catalog is connected; live provider purchasing is enabled separately.</p></div></div>:null}
-  {insufficient?<div className="info-card"><Icon name="wallet" size={20}/><div><strong>Not enough wallet balance.</strong><p>You need ₹{((selected.pricePaise-balancePaise)/100).toFixed(2)} more to buy this number.</p><Link className="text-button compact-button" to="/wallet">Add funds <Icon name="arrow" size={16}/></Link></div></div>:null}
-  {error?<div className="form-error" role="alert">{error}</div>:null}
-  {wallet.isError?<div className="error-card" role="alert">Wallet balance could not be verified. Please retry.</div>:null}
-  <button className="primary-button primary-button-large" onClick={()=>setConfirmOpen(true)} disabled={!selected.purchasable||pending||insufficient||wallet.isPending||wallet.isError}>{pending?'Starting...':`Buy number · ₹${price.toFixed(2)}`}<Icon name="arrow" size={19}/></button>
-  {confirmOpen?<div className="sheet-backdrop" role="presentation" onClick={()=>setConfirmOpen(false)}><section className="purchase-sheet" role="dialog" aria-modal="true" aria-labelledby="purchase-sheet-title" onClick={e=>e.stopPropagation()}><div className="sheet-handle"/><button className="sheet-close" type="button" aria-label="Close" onClick={()=>setConfirmOpen(false)}><Icon name="close" size={19}/></button><span className="card-label">Confirm purchase</span><h2 id="purchase-sheet-title">{selected.name}</h2><p className="sheet-copy">This starts an activation and charges your wallet.</p><div className="sheet-summary"><div><span>Service</span><strong>{selected.name}</strong></div><div><span>Price</span><strong>₹{price.toFixed(2)}</strong></div><div><span>Wallet after purchase</span><strong>₹{((balancePaise-selected.pricePaise)/100).toFixed(2)}</strong></div></div>{error?<div className="form-error" role="alert">{error}</div>:null}<button className="primary-button primary-button-large" type="button" onClick={()=>void buy()} disabled={pending}>{pending?'Starting activation...':'Confirm & buy'}<Icon name="arrow" size={18}/></button><button className="text-button" type="button" onClick={()=>setConfirmOpen(false)} disabled={pending}>Keep browsing</button></section></div>:null}
-  <div className="trust-row"><span><Icon name="check" size={16}/> Secure session</span><span><Icon name="check" size={16}/> India · +91</span><span><Icon name="clock" size={16}/> Live status updates</span></div>
- </section>
-}
 function statusClass(status:string){return `status-pill status-${status.toLowerCase()}`}
 function ActivePage(){
  const q=useQuery({queryKey:['activations'],queryFn:getActivations,refetchInterval:10_000});
