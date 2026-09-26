@@ -27,3 +27,35 @@ export function updateAdminService(id:string,patch:{pricePaise?:number;stock?:nu
   return apiRequest<{service:AdminService}>('/api/admin/services/'+encodeURIComponent(id),{method:'PATCH',body:JSON.stringify(patch)});
 }
 export function getAdminProviders(){return apiRequest<AdminProvidersResponse>('/api/admin/providers');}
+
+export type AdminActivation={
+  id:string; serviceId:string; service?:string; country:string; number?:string|null; pricePaise:number; currency:string; status:string;
+  otp?:string|null; createdAt?:number; expiresAt?:number; refundPaise?:number;
+  userId?:string; email?:string|null; displayName?:string;
+  providerId?:string|null; providerActivationId?:string|null; providerName?:string|null; adapterKey?:string|null;
+  pendingOperations?:number; failedOperations?:number;
+  latestOperation?:{type:string;status:string;error?:string|null;updatedAt?:number|null}|null;
+};
+export type AdminActivationsResponse={
+  activations:AdminActivation[];
+  summary:{total:number;active:number;cancellationPending:number;expirationPending:number;completed:number;expired:number;refunded:number;cancelled:number};
+  pagination:{limit:number;offset:number;hasMore:boolean};
+};
+export type AdminActivationDetailResponse={
+  activation:AdminActivation;
+  operations:Array<{id:string;type:string;status:string;providerId?:string|null;providerActivationId?:string|null;attempts:number;error?:string|null;createdAt:number;updatedAt:number;completedAt?:number|null}>;
+};
+export function getAdminActivations(params:{q?:string;status?:string;limit?:number;offset?:number}={}){
+  const p=new URLSearchParams();
+  if(params.q)p.set('q',params.q);
+  if(params.status&&params.status!=='all')p.set('status',params.status);
+  if(params.limit)p.set('limit',String(params.limit));
+  if(params.offset)p.set('offset',String(params.offset));
+  return apiRequest<AdminActivationsResponse>('/api/admin/activations'+(p.toString()?'?'+p.toString():''));
+}
+export function getAdminActivation(id:string){
+  return apiRequest<AdminActivationDetailResponse>('/api/admin/activations/'+encodeURIComponent(id));
+}
+export function cancelAdminActivation(id:string){
+  return apiRequest<{activation:{id:string;status:string;refundPaise?:number}|null}>('/api/admin/activations/'+encodeURIComponent(id),{method:'POST',body:JSON.stringify({action:'cancel'})});
+}
