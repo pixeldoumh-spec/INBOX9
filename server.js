@@ -45,6 +45,7 @@ import adminSupportById from './api/admin/support/_id.js';
 import adminWalletReconciliation from './api/admin/_wallet-reconciliation.js';
 import adminPaymentReconciliation from './api/admin/_payment-reconciliation.js';
 import adminPaymentSettings from './api/admin/_payment-settings.js';
+import adminSystemHealth from './api/admin/_system-health.js';
 import adminProviderOperations from './api/admin/_provider-operations.js';
 import internalProviderReconcile from './api/_internal-provider-reconcile.js';
 import { assertProductionConfiguration } from './api/_lib/runtime-config.js';
@@ -222,6 +223,7 @@ function routeFor(method, pathname) {
     ['GET /api/admin/payment-settings', adminPaymentSettings],
     ['PATCH /api/admin/payment-settings', adminPaymentSettings],
     ['GET /api/admin/provider-operations', adminProviderOperations],
+    ['GET /api/admin/system-health', adminSystemHealth],
     ['POST /api/internal-provider-reconcile', internalProviderReconcile],
     ['POST /api/client-errors', clientErrors],
     ['POST /api/payments/webhook', paymentWebhook],
