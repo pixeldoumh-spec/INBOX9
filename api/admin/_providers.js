@@ -4,6 +4,7 @@ import { getSessionUser, requireAdmin } from '../_lib/auth.js';
 import { listProviders, providerHealth } from '../_lib/provider-repository.js';
 import { listProviderAdapters } from '../_lib/provider-registry.js';
 import { providerGatewayTimeouts } from '../_lib/provider-gateway.js';
+import { externalRoutingEnabled, listProviderRouteAttempts, listProviderRouteHealth } from '../_lib/provider-routing.js';
 
 export default async function handler(req, res) {
   applySecurityHeaders(res);
@@ -23,7 +24,10 @@ export default async function handler(req, res) {
         timeoutsMs: providerGatewayTimeouts(),
         metrics: 'process-local',
         safeReserveRetry: 'disabled by default to prevent duplicate provider allocations',
+        externalRoutingEnabled: externalRoutingEnabled(),
       },
+      routeHealth: await listProviderRouteHealth({ limit: 100 }),
+      routeAttempts: await listProviderRouteAttempts({ limit: 100 }),
     });
   } catch (error) {
     console.error('admin.providers_failed', error);
