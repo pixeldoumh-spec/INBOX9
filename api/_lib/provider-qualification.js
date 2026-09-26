@@ -129,11 +129,20 @@ export async function qualifyProviders() {
       }
       const candidates = byName.get(normalized(service.name)) || [];
       const candidate = candidates.length === 1 ? candidates[0] : null;
+      const mappedRow = mapping ? rows.find(row => serviceIdentity(row) === String(mapping.provider_service_code)) : null;
+      const liveRow = mappedRow || candidate;
       let status = 'unmapped';
-      if (mapping) status = rows.some(row => serviceIdentity(row) === String(mapping.provider_service_code)) ? 'mapped_verified' : 'mapping_stale';
+      if (mapping) status = mappedRow ? 'mapped_verified' : 'mapping_stale';
       else if (candidate) status = 'exact_name_candidate';
       else if (candidates.length > 1) status = 'ambiguous_name';
-      qualification[provider.adapter_key] = { status, mapping: mapping?.provider_service_code || null, candidate: candidate?.code || null, candidateName: candidate?.name || null };
+      qualification[provider.adapter_key] = {
+        status,
+        mapping: mapping?.provider_service_code || null,
+        candidate: candidate?.code || null,
+        candidateName: candidate?.name || null,
+        providerPrice: liveRow?.price ?? null,
+        providerStock: liveRow?.stock ?? null,
+      };
     }
     return { id: service.id, name: service.name, country: service.country, currency: service.currency, pricePaise: service.pricePaise, providers: qualification };
   });
