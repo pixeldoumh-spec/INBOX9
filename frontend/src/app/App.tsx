@@ -174,9 +174,8 @@ function NotificationStrip(){
   <Icon name="arrow" size={18}/>
  </Link>
 }
-function Catalog({mode='apps'}:{mode?:'apps'|'buy'}){
+function Catalog(){
  const q=useQuery({queryKey:['services'],queryFn:getServices,staleTime:60_000});
- const wallet=useQuery({queryKey:['wallet'],queryFn:getWallet,enabled:mode==='buy',staleTime:10_000});
  const [search,setSearch]=useState('');
  const [category,setCategory]=useState('all');
  const [recentIds,setRecentIds]=useState<string[]>([]);
@@ -209,24 +208,128 @@ function Catalog({mode='apps'}:{mode?:'apps'|'buy'}){
    return next;
   });
  }
- const title=mode==='buy'?'Buy':'Apps';
  const helper=q.isPending?'Loading services...':search||category!=='all'?`${list.length} of ${all.length} services`:`${all.length} services available`;
- return <section className={`page-section catalog-page ${mode==='buy'?'catalog-buy':'catalog-apps'}`}>
-  <div className="catalog-heading"><div><span className="catalog-eyebrow">{mode==='buy'?'MARKETPLACE':'SERVICE LAUNCHER'}</span><h1>{title==='Apps'?'Services':title}</h1><p>{mode==='buy'?'Pick a service and start an activation.':'Choose a service to get started.'}</p></div><span className="catalog-chip">{mode==='buy'?('₹'+((wallet.data?.balancePaise??0)/100).toFixed(2)):helper}</span></div>
-  {mode==='buy'?<div className="buy-wallet-strip"><div><span>Wallet balance</span><strong>₹{((wallet.data?.balancePaise??0)/100).toFixed(2)}</strong></div><Link className="outline-button compact-button" to="/wallet">Add funds</Link></div>:null}
+ return <section className="page-section catalog-page catalog-apps">
+  <div className="catalog-heading"><div><span className="catalog-eyebrow">SERVICE LAUNCHER</span><h1>Services</h1><p>Choose a service to start a number purchase.</p></div><span className="catalog-chip">{helper}</span></div>
   <SearchField value={search} onChange={setSearch}/>
   {categories.length>1?<div className="category-scroll" aria-label="Service categories">
    <button type="button" className={category==='all'?'category-chip is-selected':'category-chip'} onClick={()=>setCategory('all')}>All</button>
    {categories.map(item=><button type="button" className={category===item.value?'category-chip is-selected':'category-chip'} key={item.value} onClick={()=>setCategory(item.value)}>{item.value}<span>{item.count}</span></button>)}
   </div>:null}
-  {mode==='apps'&&!search.trim()&&category==='all'&&recentServices.length?<div className="recent-section"><div className="section-heading-row"><div><h2>Recent</h2><span className="section-subtle">Your latest services</span></div></div><div className="recent-row">{recentServices.map(item=><Link className="recent-tile" key={item!.id} to={`/apps/service/${encodeURIComponent(item!.id)}`} onClick={()=>remember(item!.id)}><ServiceLogo serviceId={item!.id} name={item!.name}/><span>{item!.name}</span></Link>)}</div></div>:null}
+  {!search.trim()&&category==='all'&&recentServices.length?<div className="recent-section"><div className="section-heading-row"><div><h2>Recent</h2><span className="section-subtle">Your latest services</span></div></div><div className="recent-row">{recentServices.map(item=><Link className="recent-tile" key={item!.id} to={`/buy?serviceId=${encodeURIComponent(item!.id)}`} onClick={()=>remember(item!.id)}><ServiceLogo serviceId={item!.id} name={item!.name}/><span>{item!.name}</span></Link>)}</div></div>:null}
   {q.isError?<div className="error-card">Service catalog is temporarily unavailable.</div>:null}
   {!q.isPending&&list.length?<div className="catalog-section-title"><div><h2>{search||category!=='all'?'Search results':'All services'}</h2><span>{search||category!=='all'?list.length+' matching services':all.length+' services in the launcher'}</span></div>{search||category!=='all'?<button type="button" className="text-button compact-button" onClick={()=>{setSearch('');setCategory('all')}}>Clear</button>:null}</div>:null}
-  {q.isPending?<div className="service-grid-placeholder">{Array.from({length:16},(_,i)=><div className="tile-skeleton" key={i}/>)}</div>:list.length?<div className="service-grid">{list.map(item=><Link className="service-tile" key={item.id} to={`/apps/service/${encodeURIComponent(item.id)}${mode==='buy'?'?buy=1':''}`} onClick={()=>remember(item.id)}><ServiceLogo serviceId={item.id} name={item.name}/><span className="service-name">{item.name}</span></Link>)}</div>:<div className="empty-state"><div className="empty-icon">⌕</div><h3>No services found</h3><p>{search||category!=='all'?'Try another search or category.':'No services are available right now.'}</p>{search||category!=='all'?<button type="button" className="outline-button compact-button" onClick={()=>{setSearch('');setCategory('all')}}>Reset filters</button>:null}</div>}
-  {mode==='apps'?<NotificationStrip/>:null}
+  {q.isPending?<div className="service-grid-placeholder">{Array.from({length:16},(_,i)=><div className="tile-skeleton" key={i}/>)}</div>:list.length?<div className="service-grid">{list.map(item=><Link className="service-tile" key={item.id} to={`/buy?serviceId=${encodeURIComponent(item.id)}`} onClick={()=>remember(item.id)}><ServiceLogo serviceId={item.id} name={item.name}/><span className="service-name">{item.name}</span></Link>)}</div>:<div className="empty-state"><div className="empty-icon">⌕</div><h3>No services found</h3><p>{search||category!=='all'?'Try another search or category.':'No services are available right now.'}</p>{search||category!=='all'?<button type="button" className="outline-button compact-button" onClick={()=>{setSearch('');setCategory('all')}}>Reset filters</button>:null}</div>}
+  <NotificationStrip/>
  </section>
 }
-function AppsPage(){return <Catalog/>} function BuyPage(){return <Catalog mode="buy"/>}
+function AppsPage(){return <Catalog/>}
+
+function ServicePage(){
+ const {serviceId}=useParams();
+ return <Navigate to={serviceId?`/buy?serviceId=${encodeURIComponent(serviceId)}`:'/buy'} replace/>;
+}
+
+function BuyServiceWorkspace({serviceId}:{serviceId:string}){
+ const navigate=useNavigate();
+ const client=useQueryClient();
+ const [pending,setPending]=useState(false);
+ const [confirmOpen,setConfirmOpen]=useState(false);
+ const [error,setError]=useState<string|null>(null);
+ const services=useQuery({queryKey:['services'],queryFn:getServices,staleTime:60_000});
+ const wallet=useQuery({queryKey:['wallet'],queryFn:getWallet,staleTime:10_000});
+ const service=services.data?.services.find(s=>s.id===serviceId);
+ if(services.isPending)return <section className="page-section"><div className="page-loading">Preparing Buy workspace...</div></section>;
+ if(!service)return <section className="page-section buy-workspace"><Link className="back-link" to="/apps"><Icon name="back" size={18}/> Apps</Link><div className="error-card">Service not found.</div></section>;
+ const selected=service;
+ const price=selected.pricePaise/100;
+ const balancePaise=wallet.data?.balancePaise??0;
+ const insufficient=wallet.isSuccess && balancePaise<selected.pricePaise;
+ async function buy(){
+  if(!selected.purchasable||pending||insufficient)return;
+  setPending(true);setError(null);
+  try{
+   const act=await createActivation(selected.id,`i9-${selected.id}-${crypto.randomUUID()}`);
+   await Promise.all([client.invalidateQueries({queryKey:['wallet']}),client.invalidateQueries({queryKey:['activations']})]);
+   setConfirmOpen(false);
+   navigate(`/buy?serviceId=${encodeURIComponent(selected.id)}&activationId=${encodeURIComponent(act.id)}`,{replace:true});
+  }catch(reason){setError(activationErrorMessage(reason));}
+  finally{setPending(false);}
+ }
+ return <section className="page-section service-detail buy-workspace">
+  <Link className="back-link" to="/apps"><Icon name="back" size={18}/> Change service</Link>
+  <div className="buy-workspace-title"><span className="catalog-eyebrow">BUY WORKSPACE</span><h1>Buy number</h1><p>Review the selected service, allocate a number, and continue to OTP.</p></div>
+  <div className="service-hero"><ServiceLogo serviceId={selected.id} name={selected.name}/><div><h2>{selected.name}</h2><p>{selected.category}</p></div></div>
+  <div className="detail-grid">
+   <div className="detail-card"><span>Price</span><strong>₹{price.toFixed(2)}</strong><small>Per activation</small></div>
+   <div className="detail-card"><span>Availability</span><strong>{selected.availability||'—'}</strong><small>{selected.stock==null?'Live inventory':`${selected.stock} shown in catalog`}</small></div>
+   <div className="detail-card"><span>Wallet</span><strong>₹{(balancePaise/100).toFixed(2)}</strong><small>{wallet.isPending?'Loading balance':'Current balance'}</small></div>
+  </div>
+  {!selected.purchasable?<div className="info-card"><Icon name="clock" size={20}/><div><strong>Buying is not enabled for this service yet.</strong><p>The catalog is connected; live provider purchasing is enabled separately.</p></div></div>:null}
+  {insufficient?<div className="info-card"><Icon name="wallet" size={20}/><div><strong>Not enough wallet balance.</strong><p>You need ₹{((selected.pricePaise-balancePaise)/100).toFixed(2)} more to buy this number.</p><Link className="text-button compact-button" to="/wallet">Add funds <Icon name="arrow" size={16}/></Link></div></div>:null}
+  {error?<div className="form-error" role="alert">{error}</div>:null}
+  {wallet.isError?<div className="error-card" role="alert">Wallet balance could not be verified. Please retry.</div>:null}
+  <button className="primary-button primary-button-large" onClick={()=>setConfirmOpen(true)} disabled={!selected.purchasable||pending||insufficient||wallet.isPending||wallet.isError}>{pending?'Allocating number...':`Buy number · ₹${price.toFixed(2)}`}<Icon name="arrow" size={19}/></button>
+  {confirmOpen?<div className="sheet-backdrop" role="presentation" onClick={()=>setConfirmOpen(false)}><section className="purchase-sheet" role="dialog" aria-modal="true" aria-labelledby="purchase-sheet-title" onClick={e=>e.stopPropagation()}><div className="sheet-handle"/><button className="sheet-close" type="button" aria-label="Close" onClick={()=>setConfirmOpen(false)}><Icon name="close" size={19}/></button><span className="card-label">Confirm purchase</span><h2 id="purchase-sheet-title">{selected.name}</h2><p className="sheet-copy">This starts the number allocation and charges your wallet.</p><div className="sheet-summary"><div><span>Service</span><strong>{selected.name}</strong></div><div><span>Price</span><strong>₹{price.toFixed(2)}</strong></div><div><span>Wallet after purchase</span><strong>₹{((balancePaise-selected.pricePaise)/100).toFixed(2)}</strong></div></div>{error?<div className="form-error" role="alert">{error}</div>:null}<button className="primary-button primary-button-large" type="button" onClick={()=>void buy()} disabled={pending}>{pending?'Allocating...':'Confirm & buy'}<Icon name="arrow" size={18}/></button><button className="text-button" type="button" onClick={()=>setConfirmOpen(false)} disabled={pending}>Keep this service</button></section></div>:null}
+  <div className="trust-row"><span><Icon name="check" size={16}/> Secure session</span><span><Icon name="check" size={16}/> India · +91</span><span><Icon name="clock" size={16}/> Live OTP updates</span></div>
+ </section>
+}
+
+function BuyActivationWorkspace({activationId,serviceId}:{activationId:string;serviceId:string|null}){
+ const client=useQueryClient();
+ const [copied,setCopied]=useState<'number'|'otp'|null>(null);
+ const [now,setNow]=useState(Date.now());
+ const [cancelError,setCancelError]=useState<string|null>(null);
+ const [cancelConfirmOpen,setCancelConfirmOpen]=useState(false);
+ const q=useQuery({queryKey:['activation',activationId],queryFn:()=>getActivation(activationId),enabled:Boolean(activationId),refetchInterval:query=>['Active','CancellationPending','ExpirationPending'].includes(query.state.data?.status||'')?2_000:false});
+ const cancel=useMutation({
+  mutationFn:()=>cancelActivation(activationId),
+  onSuccess:async()=>{setCancelError(null);setCancelConfirmOpen(false);await Promise.all([client.invalidateQueries({queryKey:['activations']}),client.invalidateQueries({queryKey:['wallet']}),q.refetch()])},
+  onError:(reason)=>setCancelError(activationErrorMessage(reason))
+ });
+ useEffect(()=>{const t=window.setInterval(()=>setNow(Date.now()),1000);return()=>window.clearInterval(t)},[]);
+ if(q.isPending)return <section className="page-section"><div className="page-loading">Loading number allocation...</div></section>;
+ if(q.isError||!q.data)return <section className="page-section buy-workspace"><Link className="back-link" to={serviceId?`/buy?serviceId=${encodeURIComponent(serviceId)}`:'/buy'}><Icon name="back" size={18}/> Buy</Link><div className="error-card">Could not load this activation.</div></section>;
+ const a=q.data;
+ const remaining=a.expiresAt?Math.max(0,a.expiresAt-now):0;
+ const countdown=`${Math.floor(remaining/60000)}:${String(Math.floor((remaining%60000)/1000)).padStart(2,'0')}`;
+ const terminal=activationStateIsTerminal(a.status);
+ const cancellationPending=a.status==='CancellationPending';
+ const expirationPending=a.status==='ExpirationPending';
+ async function doCopy(kind:'number'|'otp',value:string){try{await navigator.clipboard.writeText(value);setCopied(kind);window.setTimeout(()=>setCopied(null),1200)}catch{setCancelError('Copy is not available in this browser.');}}
+ return <section className="page-section activation-page buy-activation-workspace">
+  <Link className="back-link" to={serviceId?`/buy?serviceId=${encodeURIComponent(serviceId)}`:'/buy'}><Icon name="back" size={18}/> Buy workspace</Link>
+  <div className="buy-workspace-title"><span className="catalog-eyebrow">NUMBER + OTP</span><h1>Activation</h1><p>Number allocation and incoming verification code stay here while you wait.</p></div>
+  <div className="activation-hero"><ServiceLogo serviceId={a.serviceId} name={a.service||a.serviceId}/><div><h2>{a.service||a.serviceId}</h2><div className="hero-meta"><span className={statusClass(a.status)}>{a.status}</span><span>₹{(a.pricePaise/100).toFixed(2)}</span></div></div></div>
+  <div className="number-card"><span className="card-label">Phone number</span><div className="big-number">{a.number||'Waiting for number'}</div>{a.number?<button className="copy-button" onClick={()=>void doCopy('number',a.number!)}><Icon name="copy" size={17}/>{copied==='number'?'Copied':'Copy'}</button>:null}</div>
+  <div className={`otp-card ${a.otp?'otp-ready':''}`}><div><span className="card-label">Verification code</span><div className="otp-value">{a.otp||'— — — — — —'}</div></div>{a.otp?<button className="copy-button" onClick={()=>void doCopy('otp',a.otp!)}><Icon name="copy" size={17}/>{copied==='otp'?'Copied':'Copy'}</button>:<div className="otp-wait"><span className="pulse-dot"/>{q.isFetching?'Checking for OTP...':'Waiting for OTP'}</div>}</div>
+  {a.status==='Active'?<div className="countdown-card"><Icon name="clock" size={21}/><div><strong>{remaining?countdown:'Expired'}</strong><span>time remaining</span></div></div>:null}
+  {expirationPending?<div className="info-card" role="status"><Icon name="clock" size={20}/><div><strong>Finalizing expiration</strong><p>The number has reached its expiry time. We’re confirming the provider release now.</p></div></div>:null}
+  {cancellationPending?<div className="info-card" role="status"><Icon name="clock" size={20}/><div><strong>Cancellation in progress</strong><p>The provider is confirming the release. Your wallet is credited only after that confirmation.</p></div></div>:null}
+  {a.status==='Active'&&a.canCancel===false?<div className="info-card" role="status"><Icon name="clock" size={20}/><div><strong>Cancellation is unavailable</strong><p>This provider does not expose a safe cancellation operation, so the activation stays active until it completes or expires.</p></div></div>:null}
+  {cancelError?<div className="form-error" role="alert">{cancelError}</div>:null}
+  {a.status==='Active'&&a.canCancel!==false?<button className="secondary-danger" disabled={cancel.isPending} onClick={()=>{setCancelError(null);setCancelConfirmOpen(true)}}><Icon name="close" size={18}/>{cancel.isPending?'Cancelling...':'Cancel & refund'}</button>:null}
+  {cancelConfirmOpen&&a.status==='Active'?<div className="sheet-backdrop" role="presentation" onClick={()=>{if(!cancel.isPending)setCancelConfirmOpen(false)}}><section className="cancel-sheet" role="dialog" aria-modal="true" aria-labelledby="cancel-sheet-title" onClick={e=>e.stopPropagation()}><div className="sheet-handle"/><button className="sheet-close" type="button" aria-label="Close cancellation confirmation" onClick={()=>setCancelConfirmOpen(false)} disabled={cancel.isPending}><Icon name="close" size={19}/></button><span className="card-label">Confirm cancellation</span><h2 id="cancel-sheet-title">Cancel this activation?</h2><p className="sheet-copy">The active number will stop immediately. The full activation charge will be returned to your wallet when cancellation succeeds.</p><div className="sheet-summary"><div><span>Service</span><strong>{a.service||a.serviceId}</strong></div><div><span>Phone number</span><strong>{a.number||'Waiting for number'}</strong></div><div><span>Refund to wallet</span><strong>₹{((a.refundPaise??a.pricePaise)/100).toFixed(2)}</strong></div></div><div className="cancel-warning"><Icon name="clock" size={17}/><span>Cancellation cannot be undone. Your wallet is only credited after the server confirms the cancellation.</span></div>{cancelError?<div className="form-error" role="alert">{cancelError}</div>:null}<button className="secondary-danger cancel-confirm-button" type="button" onClick={()=>void cancel.mutate()} disabled={cancel.isPending}>{cancel.isPending?'Cancelling and refunding...':'Yes, cancel & refund'}<Icon name="close" size={18}/></button><button className="text-button" type="button" onClick={()=>setCancelConfirmOpen(false)} disabled={cancel.isPending}>Keep activation</button></section></div>:null}
+  {a.status==='Completed'?<div className="success-card"><Icon name="check" size={19}/><span>OTP received. You can use this code now.</span></div>:null}
+  {a.status==='Expired'?<div className="info-card"><Icon name="clock" size={20}/><div><strong>Activation expired</strong><p>The number is no longer active. You can start another activation.</p></div></div>:null}
+  {a.status==='Cancelled'?<div className="info-card"><Icon name="close" size={20}/><div><strong>Activation cancelled</strong><p>The activation was cancelled before completion.</p></div></div>:null}
+  {a.status==='Refunded'?<div className="info-card"><Icon name="check" size={20}/><div><strong>Activation refunded</strong><p>₹{((a.refundPaise??a.pricePaise)/100).toFixed(2)} returned to your wallet.</p></div></div>:null}
+  {terminal?<Link className="outline-button" to="/apps">Choose another service <Icon name="arrow" size={17}/></Link>:null}
+ </section>
+}
+
+function BuyPage(){
+ const [params]=useSearchParams();
+ const serviceId=params.get('serviceId');
+ const activationId=params.get('activationId');
+ if(activationId)return <BuyActivationWorkspace activationId={activationId} serviceId={serviceId}/>;
+ if(serviceId)return <BuyServiceWorkspace serviceId={serviceId}/>;
+ return <section className="page-section buy-workspace">
+  <div className="buy-workspace-title"><span className="catalog-eyebrow">BUY WORKSPACE</span><h1>Buy</h1><p>Choose a service from Apps to allocate a number and receive its OTP here.</p></div>
+  <div className="buy-empty-workspace"><div className="empty-icon"><Icon name="buy" size={25}/></div><h2>Select a service</h2><p>The Buy tab is your number allocation and OTP workspace. Pick a service from Apps to begin.</p><Link className="primary-button" to="/apps">Choose from Apps <Icon name="arrow" size={17}/></Link></div>
+ </section>
+}
+
 function activationErrorMessage(reason:unknown){
  if(reason instanceof ApiRequestError){
   switch(reason.code){

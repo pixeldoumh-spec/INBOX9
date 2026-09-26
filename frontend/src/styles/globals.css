@@ -798,3 +798,21 @@ body{
  .wallet-stat-grid strong{font-size:16px}
  .wallet-summary-cell span,.wallet-summary-cell small{font-size:9px}
 }
+/* Buy workspace: service selection -> allocation -> OTP */
+.buy-workspace-title{margin:5px 0 16px}
+.buy-workspace-title h1{margin:4px 0 5px;font-size:30px;letter-spacing:-.05em}
+.buy-workspace-title p{margin:0;color:var(--muted);font-size:12px;line-height:1.45;max-width:560px}
+.buy-workspace .service-hero{margin-bottom:15px}
+.buy-workspace .service-hero h2{margin:0;font-size:20px;letter-spacing:-.04em}
+.buy-workspace .service-hero p{margin:3px 0 0;color:var(--muted);font-size:11px}
+.buy-empty-workspace{margin-top:10px;padding:25px 18px;border:1px solid var(--line);border-radius:20px;background:#fff;box-shadow:var(--shadow-soft);text-align:center}
+.buy-empty-workspace .empty-icon{margin:0 auto}
+.buy-empty-workspace h2{margin:12px 0 5px;font-size:20px;letter-spacing:-.04em}
+.buy-empty-workspace p{max-width:360px;margin:0 auto 18px;color:var(--muted);font-size:12px;line-height:1.45}
+.buy-activation-workspace .buy-workspace-title{margin-bottom:14px}
+.buy-activation-workspace .number-card,.buy-activation-workspace .otp-card{margin-top:11px}
+.buy-activation-workspace .outline-button{width:100%;justify-content:center;margin-top:10px}
+@media (max-width:380px){
+ .buy-workspace-title h1{font-size:27px}
+ .buy-empty-workspace{padding:22px 14px}
+}
