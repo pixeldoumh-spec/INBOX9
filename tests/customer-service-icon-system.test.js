@@ -14,7 +14,9 @@ test('shared customer service icon uses one enhanced Android-style frame everywh
   assert.match(shared,/data-service-id={serviceId}/);
   assert.match(shared,/SERVICE_LOGO_MANIFEST/);
   assert.match(shared,/SERVICE_LOGO_MANIFEST\[serviceId\]/);
-  assert.match(shared,/decoding="async"/);
+  assert.match(shared,/className="service-logo-art service-logo-sprite-tile"/);
+  assert.match(shared,/backgroundSize: \(columns\*100\)\+'% '\+\(rows\*100\)\+'%'/);
+  assert.doesNotMatch(shared,/getImageData|toBlob|createObjectURL|cropServiceLogo|detectSafeCrop/);
 });
 
 test('customer service icon polish preserves normalized 72px base geometry and scales only on mobile',()=>{

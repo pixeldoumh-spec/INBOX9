@@ -33,7 +33,7 @@ test('standalone server serves the clean root with baseline security headers and
     assert.equal(response.headers['permissions-policy'], 'camera=(), microphone=(), geolocation=()');
     assert.match(response.headers['content-security-policy'], /default-src 'self'/);
     assert.match(response.headers['content-security-policy'], /script-src 'self'/);
-    assert.match(response.headers['content-security-policy'], /img-src 'self' data: blob:/);
+    assert.match(response.headers['content-security-policy'], /img-src 'self' data:/);
     assert.match(response.headers['strict-transport-security'], /max-age=31536000/);
     assert.match(response.headers['cache-control'], /private, no-cache/);
     assert.ok(response.headers.etag, 'HTML root should expose a validator');

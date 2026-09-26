@@ -1732,15 +1732,14 @@
   background: transparent;
 }
 
-.app-shell .service-logo-art img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  object-position: center;
-  display: block;
-  filter: saturate(1.04) contrast(1.02);
-  transform: translateZ(0);
-  backface-visibility: hidden;
+.app-shell .service-logo-art {
+  background-repeat: no-repeat;
+  background-color: #0a0d0a;
+}
+
+.app-shell .service-logo-sprite-tile {
+  background-repeat: no-repeat;
+  background-color: #0a0d0a;
 }
 
 .app-shell .service-logo-fallback-content {
