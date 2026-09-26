@@ -45,3 +45,5 @@ INBOX9 is currently synthetic-only. The checklist below distinguishes completed 
 - The local dev-server mock path is intentionally non-production and should not be exposed as the production runtime.
 - Real payments and real provider traffic remain explicitly out of scope for the synthetic-only release.
 - Physical browser/device validation remains separate from repository CI.
+
+- [x] Phase 8.5 certified external route activation
