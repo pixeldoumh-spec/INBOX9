@@ -42,7 +42,7 @@ export default async function handler(req, res) {
     const checks = {
       database: { status: databaseStatus, reachable: true, latencyMs: databaseLatencyMs, name: database.rows[0].database_name },
       runtime: { status: runtimeStatus, mode: runtimeMode(), uptimeSeconds: runtime.uptimeSeconds },
-      productionConfiguration: { status: config.database && config.appOrigin && config.cronAuth ? 'healthy' : 'critical', database: config.database, appOrigin: config.appOrigin, cronAuth: config.cronAuth, persistentRuntime: config.persistentRuntime, syntheticRuntime: config.syntheticRuntime },
+      productionConfiguration: { status: config.database && config.appOrigin && config.cronAuth ? 'healthy' : 'critical', database: config.database, appOrigin: config.appOrigin, cronAuth: config.cronAuth, persistentRuntime: config.persistentRuntime, syntheticRuntime: config.syntheticRuntime, fulfillmentMode: config.fulfillmentMode },
       providers: { status: providerFailures ? 'critical' : 'healthy', total: providers.length, failures: providerFailures, items: providers },
       providerOperations: { status: providerOperations.summary.failed > 0 ? 'degraded' : (providerOperations.summary.pending > 5 ? 'degraded' : 'healthy'), pending: providerOperations.summary.pending, failed: providerOperations.summary.failed, oldestPendingAt: providerOperations.summary.oldestPendingAt },
       walletReconciliation: { status: walletRecon?.status === 'Passed' && openReconIssues.length === 0 ? 'healthy' : 'critical', latestStatus: walletRecon?.status || 'No run', walletsChecked: walletRecon?.walletsChecked || 0, mismatches: walletRecon?.mismatchesFound || 0, openIssues: openReconIssues.length },
