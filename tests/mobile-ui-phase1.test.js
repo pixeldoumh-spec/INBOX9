@@ -45,7 +45,7 @@ test('phase 2.2 uses one canonical service-logo size across customer surfaces',(
 });
 
 test('phase 2.4 crops logo artwork to visible bounds then contains the full image',()=>{
-  assert.match(app,/cropServiceLogo/);
+  assert.match(shared,/cropServiceLogo/);
   assert.match(shared,/URL\.createObjectURL\(blob\)/);
   assert.match(app,/data-logo-source=\{src\?'cropped-sprite'/);
   assert.match(css,/\.service-logo-art img\s*\{[\s\S]*?object-fit:contain/);
@@ -53,7 +53,7 @@ test('phase 2.4 crops logo artwork to visible bounds then contains the full imag
 
 
 test('phase 2.6 uses one canonical logo frame and matched bottom navigation icon geometry',()=>{
-  assert.match(app,/function ServiceLogo\(\{serviceId,name\}/);
+  assert.match(shared,/function ServiceLogo\(\{serviceId,name\}/);
   assert.doesNotMatch(app,/size="sm"/);
   assert.doesNotMatch(app,/size="lg"/);
   assert.match(css,/\.service-logo\s*\{[\s\S]*?width:72px !important;[\s\S]*?height:72px !important/);
