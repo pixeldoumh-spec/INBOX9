@@ -136,9 +136,13 @@ export function ServiceLogo({serviceId,name}:{serviceId:string;name:string}){
 
  const initials=name.trim().split(/\\s+/).slice(0,2).map(x=>x[0]).join('').toUpperCase()||'I9';
  return <div className={['service-logo',has?'':'service-logo-fallback'].filter(Boolean).join(' ')} data-service-id={serviceId} data-logo-source={src?'cropped-sprite':has?'sprite':'fallback'} style={{width:d,height:d}}>
-   <div className="service-logo-art">
-    {src?<img src={src} alt="" aria-hidden="true" decoding="async" draggable="false"/>:<div className="service-logo-fallback-content"><span>{initials}</span><Icon name="apps" size={21}/></div>}
-   </div>
+   <span className="service-logo-aura" aria-hidden="true"/>
+   <span className="service-logo-frame">
+    <span className="service-logo-art">
+     {src?<img src={src} alt="" aria-hidden="true" decoding="async" draggable="false"/>:<span className="service-logo-fallback-content"><span>{initials}</span><Icon name="apps" size={21}/></span>}
+    </span>
+   </span>
+   <span className="service-logo-sheen" aria-hidden="true"/>
  </div>;
 }
 
