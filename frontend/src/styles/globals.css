@@ -822,3 +822,13 @@ body{
 .workspace-live-row{display:flex;align-items:center;gap:7px;margin:-8px 0 12px;color:#8c8494;font-size:9px}
 .workspace-live-dot{width:7px;height:7px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 4px rgba(109,62,231,.08),0 0 12px rgba(109,62,231,.22)}
 .buy-empty-workspace .primary-button{display:inline-flex;justify-content:center;min-width:190px}
+
+/* Phase 10 — Buy/OTP resilience */
+.offline-banner,.allocation-delay-banner{display:flex;align-items:flex-start;gap:10px;padding:12px 13px;margin:0 0 12px;border:1px solid var(--line);border-radius:14px;background:#fff}
+.offline-banner strong,.allocation-delay-banner strong{display:block;font-size:11px}
+.offline-banner small,.allocation-delay-banner small{display:block;margin-top:2px;color:var(--muted);font-size:10px;line-height:1.35}
+.offline-dot{width:8px;height:8px;flex:0 0 auto;margin-top:3px;border-radius:50%;background:#9b93a2;box-shadow:0 0 0 4px rgba(155,147,162,.1)}
+.allocation-delay-banner{background:rgba(248,246,252,.9)}
+.terminal-action-row{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:10px}
+.terminal-action-row .primary-button,.terminal-action-row .outline-button{width:100%;justify-content:center;margin-top:0}
+@media (max-width:380px){.terminal-action-row{grid-template-columns:1fr}.terminal-action-row .primary-button,.terminal-action-row .outline-button{min-height:46px}}
