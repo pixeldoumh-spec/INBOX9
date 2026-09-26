@@ -46,6 +46,21 @@ export type SupportTicket = {
   createdAt: number; updatedAt: number; resolvedAt?: number | null; adminNote?: string | null; messages: SupportMessage[];
 };
 
+export type PaymentSettings = {
+  id?: string; upiId: string | null; merchantName: string; instructions: string; qrImage: string | null; updatedAt?: number | null;
+};
+export type AdminRecharge = Recharge & {
+  userId?: string; email?: string; accountCreatedAt?: number | null; submissionSessionId?: string | null;
+  submissionSession?: { id: string; createdAt?: number | null; lastUsedAt?: number | null; expiresAt?: number | null; revokedAt?: number | null; active?: boolean } | null;
+  sessionContext?: { activeCount?: number; currentId?: string | null; currentCreatedAt?: number | null; currentLastUsedAt?: number | null; currentMatchesSubmission?: boolean };
+  recentPayments?: Array<{ id: string; amountPaise: number; utr: string; status: string; submittedAt?: number | null; reviewedAt?: number | null }>;
+};
+export type AdminPaymentReconciliation = {
+  summary: { byStatus: Array<{ status: string; count: number; amountPaise: number; flaggedCount: number }>; totals: { count: number; amountPaise: number; flaggedCount: number } };
+  flagged: AdminRecharge[];
+  webhookEvents: Array<{ provider: string; eventId: string; eventType: string; rechargeId: string; amountPaise: number; currency: string; observedUtr?: string | null; externalReference?: string | null; status: string; outcome?: string | null; errorCode?: string | null; errorMessage?: string | null; receivedAt: number; processedAt?: number | null }>;
+  paymentSettings: PaymentSettings; sessionSignals?: AdminRecharge[]; generatedAt: number;
+};
 export type Wallet = {
   balancePaise: number;
   currency?: string;
@@ -63,6 +78,8 @@ export type Wallet = {
     createdAt?: number;
   }>;
   recharges?: Recharge[];
+  paymentSettings?: PaymentSettings;
+  summary?: { creditPaise: number; debitPaise: number; creditCount: number; debitCount: number; pendingPaise: number; pendingCount: number };
 };
 
 export type Notification = {
