@@ -3,12 +3,13 @@ import type { CSSProperties, FormEvent, ReactNode } from 'react';
 import { QueryClient, QueryClientProvider, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createBrowserRouter, isRouteErrorResponse, Link, Navigate, NavLink, Outlet, useLocation, useNavigate, useParams, useRouteError, useSearchParams } from 'react-router-dom';
 import { RouterProvider } from 'react-router-dom';
-import { getMe, login, logout, register } from '../api/auth';
-import { createActivation } from '../api/activations';
+import { getMe, login, logout, register, recoverPassword } from '../api/auth';
+import { createActivation, getActivation, cancelActivation } from '../api/activations';
 import { getNotifications } from '../api/notifications';
 import { getServices } from '../api/services';
 import { getWallet } from '../api/wallet';
 import { getAdminRecharges, reviewAdminRecharge, getAdminPaymentReconciliation, updatePaymentSettings, getAdminLedger } from '../api/admin-payments';
+
 import { ApiRequestError } from '../api/client';
 import type { AdminRecharge } from '../api/types';
 import { useSessionStore } from '../state/session';
