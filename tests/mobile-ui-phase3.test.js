@@ -33,7 +33,7 @@ test('phase 3 Active surface tracks ongoing and historical activations and expos
   assert.match(app,/No ongoing activations/);
   assert.match(app,/function ActivationPage\(\)/);
   assert.match(app,/refetchInterval:query=>.*2_000/);
-  assert.match(app,/className="otp-card/);
+  assert.match(app,/className=\{`otp-card/);
   assert.match(app,/cancelActivation\(activationId!/);
   assert.match(app,/Cancel & refund/);
 });
