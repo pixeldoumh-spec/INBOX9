@@ -442,3 +442,219 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
     height:62px;
   }
 }
+
+/* Customer UI Upgrade 3.0 — mobile-native interaction polish */
+html{
+  -webkit-text-size-adjust:100%;
+  text-size-adjust:100%;
+  overscroll-behavior-y:none;
+}
+body{
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+}
+.app-shell{
+  min-height:100dvh;
+  overflow-x:clip;
+}
+.page-content{
+  -webkit-overflow-scrolling:touch;
+}
+.top-header{
+  box-shadow:0 1px 0 rgba(45,34,61,.025);
+}
+.catalog-apps .search-field,
+.catalog-buy .search-field{
+  border:1px solid rgba(222,218,229,.9);
+  box-shadow:0 8px 22px rgba(38,28,52,.045);
+  transition:border-color .16s ease,box-shadow .16s ease,transform .16s ease;
+}
+.search-field:focus-within{
+  border-color:#cdbcf2;
+  box-shadow:0 0 0 4px rgba(109,62,231,.075),0 10px 25px rgba(38,28,52,.055);
+}
+.service-grid{
+  align-items:start;
+}
+.service-tile{
+  position:relative;
+  border-radius:18px;
+  padding:3px 2px 5px;
+  user-select:none;
+  transition:transform .14s ease,background .14s ease;
+}
+.service-tile:active{
+  transform:scale(.965);
+  background:rgba(109,62,231,.045);
+}
+.service-tile:focus-visible{
+  border-radius:18px;
+}
+.service-tile .service-logo{
+  transition:transform .14s ease,box-shadow .14s ease;
+}
+.service-tile:active .service-logo{
+  transform:scale(.98);
+  box-shadow:0 4px 12px rgba(29,20,44,.05);
+}
+.service-name{
+  min-height:2.5em;
+  display:-webkit-box;
+  -webkit-line-clamp:2;
+  -webkit-box-orient:vertical;
+  overflow:hidden;
+}
+.recent-tile{
+  border-radius:16px;
+  padding:3px 2px 4px;
+  transition:transform .14s ease,background .14s ease;
+}
+.recent-tile:active{
+  transform:scale(.965);
+  background:rgba(109,62,231,.045);
+}
+.category-scroll{
+  padding-left:0;
+  padding-right:0;
+  scroll-snap-type:x proximity;
+}
+.category-chip{
+  scroll-snap-align:start;
+  min-height:37px;
+  padding-left:12px;
+  padding-right:12px;
+}
+.recent-row{
+  scroll-snap-type:x proximity;
+  overscroll-behavior-x:contain;
+  padding-left:0;
+  padding-right:0;
+}
+.notification-strip{
+  margin-bottom:4px;
+  transition:transform .14s ease,box-shadow .14s ease,border-color .14s ease;
+}
+.notification-strip:active{
+  transform:scale(.99);
+  box-shadow:0 0 0 1px rgba(109,62,231,.05),0 6px 18px rgba(109,62,231,.065);
+}
+.bottom-nav{
+  padding-left:8px;
+  padding-right:8px;
+}
+.bottom-nav-item{
+  position:relative;
+  min-height:54px;
+  border-radius:15px;
+  gap:3px;
+  transition:color .14s ease,background .14s ease,transform .14s ease;
+}
+.bottom-nav-item.is-active{
+  background:var(--accent-soft);
+  color:var(--accent);
+}
+.bottom-nav-item.is-active:before{
+  display:none;
+}
+.bottom-nav-item:active{
+  transform:scale(.97);
+}
+.bottom-nav-icon{
+  margin-top:1px;
+}
+.wallet-pill,
+.notification-button,
+.profile-button{
+  transition:transform .14s ease,background .14s ease,border-color .14s ease;
+}
+.wallet-pill:active,
+.notification-button:active,
+.profile-button:active{
+  transform:scale(.965);
+}
+@media (max-width:720px){
+  .service-logo{
+    flex-basis:64px;
+    width:64px !important;
+    height:64px !important;
+    min-width:64px;
+    max-width:64px;
+    min-height:64px;
+    max-height:64px;
+    border-radius:17px;
+  }
+  .service-logo-art{
+    width:62px;
+    height:62px;
+    border-radius:16px;
+  }
+  .service-grid{
+    column-gap:7px;
+    row-gap:17px;
+  }
+  .service-tile{
+    gap:7px;
+  }
+  .service-name{
+    font-size:10.5px;
+    line-height:1.22;
+  }
+  .recent-tile{
+    flex-basis:64px;
+  }
+  .recent-tile span{
+    width:64px;
+  }
+  .bottom-nav{
+    min-height:74px;
+    padding-top:6px;
+  }
+  .bottom-nav-item{
+    min-height:55px;
+    font-size:10px;
+  }
+}
+@media (min-width:381px) and (max-width:639px){
+  .service-grid{
+    grid-template-columns:repeat(4,minmax(0,1fr));
+  }
+}
+@media (max-width:380px){
+  .service-grid{
+    column-gap:5px;
+    row-gap:15px;
+  }
+  .service-name{
+    font-size:10px;
+  }
+  .bottom-nav{
+    padding-left:6px;
+    padding-right:6px;
+  }
+}
+@media (min-width:640px){
+  .service-logo{
+    width:72px !important;
+    height:72px !important;
+  }
+  .service-logo-art{
+    width:70px;
+    height:70px;
+  }
+  .bottom-nav-item{
+    min-height:56px;
+  }
+}
+@media (prefers-reduced-motion:reduce){
+  .search-field,
+  .service-tile,
+  .service-tile .service-logo,
+  .recent-tile,
+  .notification-strip,
+  .bottom-nav-item,
+  .wallet-pill,
+  .notification-button,
+  .profile-button{
+    transition:none;
+  }
+}
