@@ -52,6 +52,40 @@ async function enforceActivationQuotas(client, { userId, serviceId, provider }) 
   }
 }
 
+/**
+ * Build the canonical payload sent to a fulfillment provider for a number reservation.
+ *
+ * Provider adapters own their provider-specific request details. INBOX9 only supplies
+ * canonical service/account data plus an idempotency key. Internal synthetic-server
+ * selection is permitted only in non-production synthetic QA and is never forwarded to
+ * a real provider.
+ */
+export function buildProviderReserveInput({
+  catalogService,
+  persistedService,
+  provider,
+  serverId = null,
+  idempotencyKey = null,
+  nodeEnv = process.env.NODE_ENV,
+}) {
+  const dbService = persistedService || {};
+  const input = {
+    ...catalogService,
+    ...dbService,
+    pricePaise: Number(dbService.price_paise ?? catalogService?.pricePaise ?? 0),
+    stock: Number(dbService.stock ?? catalogService?.stock ?? 0),
+    active: dbService.active == null ? Boolean(catalogService?.active ?? true) : Boolean(dbService.active),
+    idempotencyKey: idempotencyKey || null,
+  };
+
+  const adapterKey = String(provider?.adapter_key || provider?.adapterKey || '').trim().toLowerCase();
+  if (adapterKey === 'synthetic' && nodeEnv !== 'production') {
+    input.serverId = serverId ? String(serverId).trim().toLowerCase() : null;
+  }
+
+  return input;
+}
+
 function providerCanCancel(adapterKey) {
   if (!adapterKey) return false;
   try {
@@ -129,14 +163,13 @@ export async function createActivation(service, userId, idempotency = null, opti
         provider,
         operation: 'reserveNumber',
         input: {
-          ...service,
-          ...latestService.rows[0],
-          pricePaise: Number(latestService.rows[0].price_paise),
-          stock: Number(latestService.rows[0].stock),
-          active: Boolean(latestService.rows[0].active),
-          serverId: options.serverId || null,
-          idempotencyKey: idempotency?.idempotencyKey || null,
-        },
+          ...buildProviderReserveInput({
+            catalogService: service,
+            persistedService: latestService.rows[0],
+            provider,
+            serverId: options.serverId || null,
+            idempotencyKey: idempotency?.idempotencyKey || null,
+          }),
       });
 
       return await withTransaction(async (client) => {
