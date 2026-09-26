@@ -27,6 +27,11 @@ export function updateAdminService(id:string,patch:{pricePaise?:number;stock?:nu
   return apiRequest<{service:AdminService}>('/api/admin/services/'+encodeURIComponent(id),{method:'PATCH',body:JSON.stringify(patch)});
 }
 export function getAdminProviders(){return apiRequest<AdminProvidersResponse>('/api/admin/providers');}
+export type ProviderQualificationProvider={id:string;name:string;adapterKey:string;active:boolean;priority:number;status:string;configured:boolean;catalogCount:number;verifiedMappings:number;candidateMappings:number;staleMappings:number;error?:string|null};
+export type ProviderQualificationService={id:string;name:string;country:string;currency:string;pricePaise:number;providers:Record<string,{status:string;mapping:string|null;candidate:string|null;candidateName?:string|null;error?:string}>};
+export type ProviderQualificationResponse={generatedAt:number;activeServiceCount:number;providers:ProviderQualificationProvider[];services:ProviderQualificationService[];rules:{externalMappingsMustMatchLiveProviderCode:boolean;externalRoutesRemainInactiveUntilQualified:boolean;publicSharedSourcesExcluded:boolean}};
+export function getProviderQualification(){return apiRequest<ProviderQualificationResponse>('/api/admin/provider-qualification');}
+export function verifyAdminProviderMapping(input:{providerId:string;serviceId:string;providerServiceCode:string}){return apiRequest<{providerId:string;serviceId:string;providerServiceCode:string;providerServiceName:string;verified:boolean}>('/api/admin/provider-qualification',{method:'POST',body:JSON.stringify({action:'verify-mapping',...input})});}
 
 export type AdminActivation={
   id:string; serviceId:string; service?:string; country:string; number?:string|null; pricePaise:number; currency:string; status:string;

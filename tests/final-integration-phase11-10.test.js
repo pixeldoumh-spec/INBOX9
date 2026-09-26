@@ -125,6 +125,7 @@ test('phase 11.10 backend route contract covers every shipped admin surface', as
     'GET /api/admin/ledger',
     'GET /api/admin/providers',
     'GET /api/admin/providers-health',
+    'GET /api/admin/provider-qualification',
     'GET /api/admin/audit',
     'GET /api/admin/support',
     'GET /api/admin/notifications',
