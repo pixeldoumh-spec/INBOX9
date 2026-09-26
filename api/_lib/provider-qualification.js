@@ -20,7 +20,7 @@ function providerCatalogRows(value) {
 }
 
 function serviceIdentity(row) {
-  return String(row?.code ?? row?.id ?? row?.service ?? row?.name ?? '').trim();
+  return String(row?.code ?? row?.id ?? row?.service ?? '').trim();
 }
 
 function serviceLabel(row) {
@@ -78,7 +78,7 @@ export async function qualifyProviders() {
     `SELECT id,name,adapter_key,active,priority FROM providers ORDER BY priority,id`
   );
   const mappingResult = await pool.query(
-    `SELECT provider_id,service_id,provider_service_code,active FROM provider_service_mappings`
+    `SELECT provider_id,service_id,provider_service_code,active FROM provider_service_mappings WHERE active=TRUE`
   );
   const mappings = new Map(mappingResult.rows.map(row => [row.provider_id + '::' + row.service_id, row]));
   const externalProviders = providerResult.rows.filter(row => row.adapter_key !== 'synthetic');
@@ -168,4 +168,87 @@ export async function verifyAndSaveProviderMapping(adminUserId, { providerId, se
     [crypto.randomUUID(), adminUserId, providerId + '::' + serviceId, JSON.stringify({ providerId, serviceId, providerServiceCode: code, providerServiceName: serviceLabel(match), country: 'IN' })]
   );
   return { providerId, serviceId, providerServiceCode: code, providerServiceName: serviceLabel(match), verified: true };
+}
+
+export async function verifyAndSaveExactProviderMappings(adminUserId, { providerId } = {}) {
+  const targetId = String(providerId || '').trim();
+  if (!targetId) throw Object.assign(new Error('Provider id is required'), { statusCode: 400 });
+
+  const snapshot = await qualifyProviders();
+  const provider = snapshot.providers.find((row) => row.id === targetId);
+  if (!provider) throw Object.assign(new Error('Provider not found'), { statusCode: 404 });
+  if (provider.adapterKey === 'synthetic') {
+    throw Object.assign(new Error('Synthetic provider does not require external mappings'), { statusCode: 400 });
+  }
+  if (provider.status !== 'catalog_verified') {
+    const error = Object.assign(new Error('Live India catalog must be verified before exact mapping'), { statusCode: 409 });
+    error.code = 'PROVIDER_CATALOG_NOT_VERIFIED';
+    error.blockers = [{ code: 'PROVIDER_CATALOG_NOT_VERIFIED', message: provider.error || 'Provider India catalog is not verified' }];
+    throw error;
+  }
+
+  const providerServices = snapshot.services.map((service) => ({
+    serviceId: service.id,
+    serviceName: service.name,
+    mapping: service.providers[provider.adapterKey] || null,
+  }));
+  const unresolved = providerServices.filter((row) => !['exact_name_candidate', 'mapped_verified'].includes(row.mapping?.status));
+  if (unresolved.length) {
+    const error = Object.assign(new Error('Every active INBOX9 service must have one unique exact-name provider candidate before batch verification'), { statusCode: 409 });
+    error.code = 'PROVIDER_EXACT_MAPPING_INCOMPLETE';
+    error.unresolved = unresolved.slice(0, 100).map((row) => ({
+      serviceId: row.serviceId,
+      serviceName: row.serviceName,
+      status: row.mapping?.status || 'missing',
+      candidates: row.mapping?.candidate ? [row.mapping.candidate] : [],
+    }));
+    error.unresolvedCount = unresolved.length;
+    throw error;
+  }
+
+  const mappings = providerServices.map((row) => ({
+    serviceId: row.serviceId,
+    serviceName: row.serviceName,
+    providerServiceCode: row.mapping.mapping || row.mapping.candidate,
+    providerServiceName: row.mapping.candidateName || null,
+  }));
+
+  const pool = await getPool();
+  const activeServiceResult = await pool.query('SELECT id FROM services WHERE active=TRUE ORDER BY id');
+  const activeServiceIds = new Set(activeServiceResult.rows.map((row) => String(row.id)));
+  const missingFromDatabase = mappings.filter((row) => !activeServiceIds.has(row.serviceId));
+  if (missingFromDatabase.length) {
+    const error = Object.assign(new Error('Provider mapping set does not match the active INBOX9 service catalog'), { statusCode: 409 });
+    error.code = 'ACTIVE_SERVICE_CATALOG_MISMATCH';
+    error.missingServiceIds = missingFromDatabase.map((row) => row.serviceId);
+    throw error;
+  }
+
+  return withTransaction(async (client) => {
+    for (const mapping of mappings) {
+      await client.query(
+        `INSERT INTO provider_service_mappings(provider_id,service_id,provider_service_code,active,created_at,updated_at)
+         VALUES ($1,$2,$3,TRUE,NOW(),NOW())
+         ON CONFLICT (provider_id,service_id)
+         DO UPDATE SET provider_service_code=EXCLUDED.provider_service_code,active=TRUE,updated_at=NOW()`,
+        [targetId, mapping.serviceId, mapping.providerServiceCode],
+      );
+    }
+    await recordAuditTx(client, adminUserId, 'provider.service_mappings_batch_verified', 'provider', targetId, {
+      adapterKey: provider.adapterKey,
+      country: 'IN',
+      serviceCount: mappings.length,
+      mappingMethod: 'exact_normalized_name_match',
+      mappings: mappings.map((row) => ({ serviceId: row.serviceId, providerServiceCode: row.providerServiceCode })),
+    });
+    return {
+      providerId: targetId,
+      adapterKey: provider.adapterKey,
+      country: 'IN',
+      mappingMethod: 'exact_normalized_name_match',
+      mappedCount: mappings.length,
+      mappings,
+      verified: true,
+    };
+  });
 }
