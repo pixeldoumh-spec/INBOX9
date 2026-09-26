@@ -1,19 +1,18 @@
 :root {
-  /* Legacy/global values remain for the untouched admin surface. */
-  --bg: #080a08;
-  --surface: #111511;
-  --surface-soft: #171c17;
-  --text: #f4f7f2;
-  --muted: #a7aea5;
-  --line: #283128;
-  --accent: #b6ff3b;
-  --accent-soft: #1d2a12;
-  --danger: #ff6464;
-  --success: #35d07f;
-  --shadow-soft: 0 6px 22px rgb(0 0 0 / 22%);
-  --shadow-card: 0 16px 38px rgb(0 0 0 / 28%);
-  --radius-sm: 11px;
-  --radius-md: 15px;
+  --bg: #fbfafc;
+  --surface: #fff;
+  --surface-soft: #f4f2f8;
+  --text: #17131d;
+  --muted: #7e7a86;
+  --line: #ebe8ef;
+  --accent: #6d3ee7;
+  --accent-soft: #f0eaff;
+  --danger: #cf4a55;
+  --success: #1d9b62;
+  --shadow-soft: 0 5px 20px rgba(37, 24, 66, .05);
+  --shadow-card: 0 12px 30px rgba(37, 24, 66, .08);
+  --radius-sm: 12px;
+  --radius-md: 17px;
   --radius-lg: 22px;
   --font: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
@@ -21,25 +20,25 @@
 /* INBOX9 customer foundation tokens — Phase 1.
    Prefixed tokens intentionally avoid changing admin styling. */
 :root {
-  --i9-bg: #f7f7fa;
-  --i9-surface: #ffffff;
-  --i9-surface-subtle: #f1f1f6;
-  --i9-text: #17141f;
-  --i9-text-muted: #686373;
-  --i9-text-subtle: #8a8491;
-  --i9-border: #e4e1ea;
-  --i9-border-strong: #d7d2df;
-  --i9-accent: #6d3ee7;
-  --i9-accent-hover: #5b2fd1;
-  --i9-accent-soft: #eee8ff;
-  --i9-success: #167a4c;
-  --i9-warning: #8a6413;
-  --i9-danger: #b33b49;
+  --i9-bg: #080a08;
+  --i9-surface: #111511;
+  --i9-surface-subtle: #171c17;
+  --i9-text: #f4f7f2;
+  --i9-text-muted: #a7aea5;
+  --i9-text-subtle: #879084;
+  --i9-border: #283128;
+  --i9-border-strong: #3a443b;
+  --i9-accent: #b6ff3b;
+  --i9-accent-hover: #c8ff66;
+  --i9-accent-soft: #1d2a12;
+  --i9-success: #35d07f;
+  --i9-warning: #ffd166;
+  --i9-danger: #ff6464;
   --i9-radius-control: 12px;
   --i9-radius-card: 16px;
   --i9-radius-sheet: 24px;
-  --i9-shadow-float: 0 18px 48px rgb(25 18 40 / 14%);
-  --i9-shadow-card: 0 4px 18px rgb(25 18 40 / 6%);
+  --i9-shadow-float: 0 18px 48px rgb(0 0 0 / 38%);
+  --i9-shadow-card: 0 8px 24px rgb(0 0 0 / 24%);
   --i9-space-1: 4px;
   --i9-space-2: 8px;
   --i9-space-3: 12px;
