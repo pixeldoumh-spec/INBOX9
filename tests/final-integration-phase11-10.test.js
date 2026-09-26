@@ -90,7 +90,7 @@ test('phase 11.10 admin write endpoints retain authentication, origin and payloa
   assert.match(supportById, /validateBodySize/);
   assert.match(notifications, /validateBodySize/);
   assert.match(walletRecon, /rateLimitAsync/);
-  assert.match(paymentSettings, /validateBodySize/);
+  assert.match(paymentSettings, /enforceSameOrigin/);
 });
 
 test('phase 11.10 frontend runtime has crash recovery and stale-bundle retirement', async () => {
