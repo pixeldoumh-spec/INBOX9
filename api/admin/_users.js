@@ -5,7 +5,7 @@ import { listAdminUsers } from '../_lib/admin-repository.js';
 
 export default async function handler(req,res){
   applySecurityHeaders(res); requestId(req,res);
-  if(req.method!=='GET')return res.status(405).json({error:'Method not allowed'});
+  if (req.method !== 'GET')return res.status(405).json({error:'Method not allowed'});
   if(!await rateLimitAsync(req,res,'admin-users',30,60_000))return;
   if(!dbEnabled())return res.status(503).json({error:'Admin users require PostgreSQL'});
   const user=await getSessionUser(req);
