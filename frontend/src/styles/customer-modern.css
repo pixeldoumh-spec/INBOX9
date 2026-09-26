@@ -1064,3 +1064,88 @@
     padding-top: 18px;
   }
 }
+
+
+/* Radium Night — contrast repair
+ * Customer shell only. Neutralizes legacy light-surface rules that made light text
+ * unreadable after the dark theme migration. Admin styling is intentionally excluded.
+ */
+.app-shell { color-scheme: dark; }
+.app-shell .account-refresh { background: var(--i9-surface); border-color: var(--i9-border); color: var(--i9-text-muted); }
+.app-shell .account-security-banner { background: linear-gradient(135deg, #141a13 0%, #101510 100%); border-color: var(--i9-border); color: var(--i9-text); }
+.app-shell .account-security-banner > div > span { color: var(--i9-text-subtle); }
+.app-shell .account-security-banner strong { color: var(--i9-text); }
+.app-shell .account-security-banner small { color: var(--i9-text-muted); }
+.app-shell .security-state { background: #10261b; color: #6fe6a7 !important; }
+.app-shell .account-panel-profile .field span,
+.app-shell .account-panel .field span { color: var(--i9-text-muted); }
+.app-shell .account-panel .field input,
+.app-shell .support-form input,
+.app-shell .support-form select,
+.app-shell .support-form textarea,
+.app-shell .reply-form textarea { background: #0d110d; border-color: var(--i9-border-strong); color: var(--i9-text); }
+.app-shell .account-panel .field input::placeholder,
+.app-shell .support-form input::placeholder,
+.app-shell .support-form textarea::placeholder,
+.app-shell .reply-form textarea::placeholder { color: #687168; }
+.app-shell .session-row { background: #0f140f; border-color: var(--i9-border); color: var(--i9-text); }
+.app-shell .session-row-current { background: #11190f; border-color: rgb(182 255 59 / 30%); }
+.app-shell .session-row strong { color: var(--i9-text); }
+.app-shell .session-row span { color: var(--i9-text-muted); }
+.app-shell .session-policy { background: #0d120d; border: 1px solid var(--i9-border); color: var(--i9-text-subtle); }
+.app-shell .inline-retry { color: var(--i9-accent); }
+.app-shell .resilience-row { background: #0f140f; border-color: var(--i9-border); color: var(--i9-text); }
+.app-shell .resilience-row small { color: var(--i9-text-muted); }
+.app-shell .buy-empty-workspace { background: var(--i9-surface); border-color: var(--i9-border); color: var(--i9-text); box-shadow: none; }
+.app-shell .buy-empty-workspace h2 { color: var(--i9-text); }
+.app-shell .buy-empty-workspace p { color: var(--i9-text-muted); }
+.app-shell .active-tabs { background: #0f140f; border-color: var(--i9-border); }
+.app-shell .active-tab { color: var(--i9-text-muted); }
+.app-shell .active-tab b { background: #1a201a; color: var(--i9-text-subtle); }
+.app-shell .active-tab.is-selected { background: var(--i9-surface-subtle); color: var(--i9-accent); box-shadow: none; }
+.app-shell .active-tab.is-selected b { background: var(--i9-accent-soft); color: var(--i9-accent); }
+.app-shell .empty-state { background: #0f140f; border-color: var(--i9-border-strong); color: var(--i9-text-muted); }
+.app-shell .empty-state h3 { color: var(--i9-text); }
+.app-shell .empty-state p { color: var(--i9-text-muted); }
+.app-shell .error-card { background: #241315; border-color: #53252a; color: #ff8585; }
+.app-shell .info-card { background: #152012; border-color: #304522; color: #c9eb9e; }
+.app-shell .info-card p { color: #a8b79f; }
+.app-shell .success-card { background: #10261b; border-color: #24563c; color: #7be7aa; }
+.app-shell .filter-select,
+.app-shell .amount-chip { background: var(--i9-surface); border-color: var(--i9-border); color: var(--i9-text); }
+.app-shell .outline-button { background: var(--i9-surface); border-color: var(--i9-border-strong); color: var(--i9-text); }
+.app-shell .secondary-danger { background: #241315; border-color: #53252a; color: #ff8585; }
+.app-shell .back-link { color: var(--i9-text-muted); }
+.app-shell .activation-card-ongoing,
+.app-shell .activation-card-history { background: var(--i9-surface); border-color: var(--i9-border); }
+.app-shell .activation-validity { background: var(--i9-accent-soft); color: var(--i9-accent); }
+.app-shell .activation-history-meta { color: var(--i9-text-subtle); }
+.app-shell .workspace-live-row,
+.app-shell .trust-row { color: var(--i9-text-muted); }
+.app-shell .offline-banner,
+.app-shell .allocation-delay-banner { background: #17180e; border-color: #403d1f; color: #e0d688; }
+.app-shell .offline-banner small,
+.app-shell .allocation-delay-banner small { color: #bdb978; }
+.app-shell .ticket-hero,
+.app-shell .thread-message { background: var(--i9-surface); border-color: var(--i9-border); color: var(--i9-text); }
+.app-shell .thread-message p { color: var(--i9-text); }
+.app-shell .thread-message span,
+.app-shell .thread-message time { color: var(--i9-text-subtle); }
+.app-shell .thread-message.from-customer { background: #141a10; border-color: rgb(182 255 59 / 24%); }
+.app-shell .reference-strip a { background: var(--i9-accent-soft); color: var(--i9-accent); }
+.app-shell .menu-row { background: var(--i9-surface); color: var(--i9-text); }
+.app-shell .menu-row span { color: inherit; }
+.app-shell .ticket-row { background: var(--i9-surface); color: var(--i9-text); border-color: var(--i9-border); }
+.app-shell .ticket-row span { color: var(--i9-text-muted); }
+.app-shell .wallet-step,
+.app-shell .wallet-payment-destination,
+.app-shell .wallet-amount-panel,
+.app-shell .wallet-qr-panel,
+.app-shell .payment-paid-button { color: var(--i9-text); }
+@media (prefers-contrast: more) {
+  .app-shell .account-security-banner,
+  .app-shell .account-panel .field input,
+  .app-shell .session-row,
+  .app-shell .buy-empty-workspace,
+  .app-shell .empty-state { border-color: var(--i9-border-strong); }
+}
