@@ -6,8 +6,8 @@ import { syntheticProvider } from '../api/_lib/synthetic-provider.js';
 
 test.afterEach(() => resetProviderGatewayMetrics());
 
-test('provider registry contains only the synthetic fulfillment adapter', () => {
-  assert.deepEqual(listProviderAdapters(), ['synthetic']);
+test('provider registry contains the synthetic adapter plus explicitly vetted external adapters', () => {
+  assert.deepEqual(listProviderAdapters(), ['synthetic', 'asms', 'pvapins', 'sms-verification-number']);
 });
 
 test('provider adapters expose explicit gateway capabilities', () => {

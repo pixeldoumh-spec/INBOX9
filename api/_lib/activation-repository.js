@@ -29,10 +29,10 @@ async function enforceActivationQuotas(client, { userId, serviceId }) {
 /**
  * Build the canonical payload sent to a fulfillment provider for a number reservation.
  *
- * Provider adapters own their provider-specific request details. INBOX9 only supplies
- * canonical service/account data plus an idempotency key. A requested server is
- * forwarded only for the synthetic fulfillment adapter so internal server selection
- * never leaks to a future external adapter.
+ * Provider adapters own their provider-specific request details. INBOX9 supplies
+ * canonical service/account data, an idempotency key, and an explicit external
+ * provider service mapping when the selected adapter is not synthetic. A requested
+ * server is forwarded only for the synthetic fulfillment adapter.
  */
 export function buildProviderReserveInput({
   catalogService,
@@ -40,6 +40,7 @@ export function buildProviderReserveInput({
   provider,
   serverId = null,
   idempotencyKey = null,
+  providerServiceCode = null,
 }) {
   const dbService = persistedService || {};
   const input = {
@@ -54,6 +55,8 @@ export function buildProviderReserveInput({
   const adapterKey = String(provider?.adapter_key || provider?.adapterKey || '').trim().toLowerCase();
   if (adapterKey === 'synthetic') {
     input.serverId = serverId ? String(serverId).trim().toLowerCase() : null;
+  } else if (providerServiceCode) {
+    input.providerServiceCode = String(providerServiceCode).trim();
   }
 
   return input;
@@ -104,6 +107,23 @@ export async function createActivation(service, userId, idempotency = null, opti
   }
   provider = providerRoute.rows[0];
 
+  let mappedProviderServiceCode = null;
+  if (provider.adapter_key !== 'synthetic') {
+    const mapping = await pool.query(
+      `SELECT provider_service_code
+         FROM provider_service_mappings
+        WHERE provider_id=$1 AND service_id=$2 AND active=TRUE
+        LIMIT 1`,
+      [provider.id, service.id]
+    );
+    if (!mapping.rowCount) {
+      const error = new Error('This service is not mapped for the selected provider');
+      error.code = 'PROVIDER_SERVICE_MAPPING_REQUIRED';
+      throw error;
+    }
+    mappedProviderServiceCode = mapping.rows[0].provider_service_code;
+  }
+
   for (let attempt = 1; attempt <= SYNTHETIC_SLOT_RESERVATION_ATTEMPTS; attempt += 1) {
     try {
       const latestService = await pool.query(
@@ -126,6 +146,7 @@ export async function createActivation(service, userId, idempotency = null, opti
           provider,
           serverId: options.serverId || null,
           idempotencyKey: idempotency?.idempotencyKey || null,
+          providerServiceCode: mappedProviderServiceCode,
         }),
       });
 
