@@ -25,9 +25,10 @@ test('external route activation fails closed while production external routing i
   process.env.DATABASE_SSL = 'false';
 
   const { preflightExternalRouteActivation } = await import('../api/_lib/provider-route-activation.js');
+  const { services } = await import('../api/_lib/catalog.js');
   const result = await preflightExternalRouteActivation({
     providerId: 'provider-svnumber',
-    serviceId: 'svc-whatsapp',
+    serviceId: services[0].id,
   });
   assert.equal(result.status, 'blocked');
   assert.ok(result.blockers.some(blocker => blocker.code === 'EXTERNAL_ROUTING_DISABLED'));
