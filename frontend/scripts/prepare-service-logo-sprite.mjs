@@ -3,7 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const frontendRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const partsDir = path.join(frontendRoot, 'assets', 'service-logo-sprite');
+const partsDir = path.join(frontendRoot, 'src', 'app', 'service-logo-sprite-parts');
 const publicDir = path.join(frontendRoot, 'public');
 const outputPath = path.join(publicDir, 'service-icons-sprite.webp');
 
