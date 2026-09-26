@@ -1,3 +1,4 @@
+// Phase 8.4 lifecycle certification regression boundary.
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
