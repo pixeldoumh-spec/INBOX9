@@ -40,18 +40,15 @@ export function ServiceLogo({serviceId,name}:{serviceId:string;name:string}){
   ? `${column/(Math.max(columns-1,1))*100}% ${row/(Math.max(rows-1,1))*100}%`
   : '0% 0%';
  return <div className={['service-logo',has?'':'service-logo-blank'].filter(Boolean).join(' ')} data-service-id={serviceId} data-logo-source={has?'zip-sprite':'blank'} style={{width:72,height:72}}>
-   <span className="service-logo-aura" aria-hidden="true"/>
-   <span className="service-logo-frame">
-    <span
-      className={['service-logo-art',has?'':'service-logo-blank-art'].filter(Boolean).join(' ')}
-      aria-hidden="true"
-      style={has ? {
-        backgroundImage: 'url('+path+')',
-        backgroundSize: (columns*100)+'% '+(rows*100)+'%',
-        backgroundPosition,
-      } : undefined}
-    />
-   </span>
+   <span
+     className={['service-logo-art',has?'':'service-logo-blank-art'].filter(Boolean).join(' ')}
+     aria-hidden="true"
+     style={has ? {
+       backgroundImage: 'url('+path+')',
+       backgroundSize: (columns*100)+'% '+(rows*100)+'%',
+       backgroundPosition,
+     } : undefined}
+   />
    <span className="service-logo-sheen" aria-hidden="true"/>
  </div>;
 }
