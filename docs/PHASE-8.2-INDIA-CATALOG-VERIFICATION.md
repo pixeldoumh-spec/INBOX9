@@ -4,9 +4,9 @@ Phase 8.2 adds a non-billable India catalog verification path for the three auth
 
 ## Provider catalog calls
 
-- ASMS.ai: `GET /api/v1/otp/services?country=in` with a Bearer API key. The provider documents this endpoint as the live service/pricing/stock catalog. citeturn737512search1
-- PVAPins: `GET /api/v1/services` for service codes plus `GET /api/v1/operators?country=IN` for country-specific live route availability, price and stock. The provider explicitly documents the country-only operators mode for bulk availability. citeturn846066search1
-- SMS Verification Number: `getCountryAndOperators` to resolve India's country ID, followed by `getServicesAndCostWithStatistics` for service code, name, price, quantity and delivery statistics. The provider documents these as catalogue endpoints and requires the API key to remain secret. citeturn245775search0turn245775search1
+- ASMS.ai: `GET /api/v1/otp/services?country=in` with a Bearer API key. The provider documents this endpoint as the live service/pricing/stock catalog.
+- PVAPins: `GET /api/v1/services` for service codes plus `GET /api/v1/operators?country=IN` for country-specific live route availability, price and stock. The provider explicitly documents the country-only operators mode for bulk availability.
+- SMS Verification Number: `getCountryAndOperators` to resolve India's country ID, followed by `getServicesAndCostWithStatistics` for service code, name, price, quantity and delivery statistics. The provider documents these as catalogue endpoints and requires the API key to remain secret.
 
 These calls do not reserve a number and therefore do not create a provider-side purchase.
 
