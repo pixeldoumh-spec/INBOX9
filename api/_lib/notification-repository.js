@@ -1,7 +1,17 @@
 import crypto from 'node:crypto';
 import { getPool } from './db.js';
 
-function id() { return 'NOT-' + crypto.randomUUID(); }
+function id(prefix='NOT') { return prefix + '-' + crypto.randomUUID(); }
+
+export async function createNotificationTx(client, { userId, kind, sourceType, sourceId, eventKey, title, body, page='apps', tone='info', createdAt=null }) {
+  if (!client || !userId || !kind || !sourceType || !sourceId || !eventKey || !title || !body) return;
+  await client.query(
+    `INSERT INTO notifications (id,user_id,kind,source_type,source_id,event_key,title,body,page,tone,created_at)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,COALESCE($11,NOW()))
+     ON CONFLICT (user_id,source_type,source_id,event_key) DO NOTHING`,
+    [id(),String(userId),String(kind),String(sourceType),String(sourceId),String(eventKey).slice(0,160),String(title).slice(0,160),String(body).slice(0,1000),String(page).slice(0,80),String(tone).slice(0,40),createdAt ? new Date(createdAt) : null]
+  );
+}
 
 export async function syncUserNotifications(userId) {
   const pool = await getPool();
