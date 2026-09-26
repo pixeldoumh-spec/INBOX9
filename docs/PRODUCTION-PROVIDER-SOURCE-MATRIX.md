@@ -14,11 +14,11 @@ INBOX9 currently has eight candidate sources from the India +91 research pass. T
 
 These APIs are server-side integrations. API keys must never be exposed to the customer browser.
 
-ASMS.ai documents a paid REST API for ordering a private number and polling its SMS, with India/private-number support described on its India page. citeturn679945search0turn503570search2
+ASMS.ai documents a paid REST API for ordering a private number and polling its SMS, with India/private-number support described on its India page.
 
-PVAPins documents an authenticated REST API for service/country inventory, number orders and OTP polling, with an idempotency header for order creation. citeturn679945search1
+PVAPins documents an authenticated REST API for service/country inventory, number orders and OTP polling, with an idempotency header for order creation.
 
-SMS Verification Number documents `getNumber`, `getStatus`, `setStatus`, balance and service/country discovery through its activation API. citeturn692236search0
+SMS Verification Number documents `getNumber`, `getStatus`, `setStatus`, balance and service/country discovery through its activation API.
 
 ## Public/shared sources
 
@@ -32,7 +32,7 @@ SMS Verification Number documents `getNumber`, `getStatus`, `setStatus`, balance
 
 The public/shared sources are **not routed into customer fulfillment**. INBOX9 does not scrape their public inboxes or automatically harvest third-party OTPs.
 
-OnlineSIM explicitly documents that its free-number API exposes public numbers and public messages and recommends those numbers for testing rather than personal/sensitive use. citeturn512611search1turn512611search2
+OnlineSIM explicitly documents that its free-number API exposes public numbers and public messages and recommends those numbers for testing rather than personal/sensitive use.
 
 ## Production routing rule
 
