@@ -6,6 +6,7 @@ import test from 'node:test';
 const root=process.cwd();
 const app=fs.readFileSync(path.join(root,'frontend/src/app/App.tsx'),'utf8');
 const customerCss=fs.readFileSync(path.join(root,'frontend/src/styles/customer-modern.css'),'utf8');
+const globalsCss=fs.readFileSync(path.join(root,'frontend/src/styles/globals.css'),'utf8');
 const catalog=fs.readFileSync(path.join(root,'api/_lib/catalog.js'),'utf8');
 const services=JSON.parse(fs.readFileSync(path.join(root,'data/services.json'),'utf8'));
 
@@ -19,7 +20,7 @@ test('phase 2 launcher fetches the authoritative service catalog and keeps live 
 test('phase 2 launcher renders the fixed four-column mobile grid without changing the 90-service catalog',()=>{
   assert.equal(services.length,90);
   assert.match(catalog,/export const serviceCatalogSize = services.length/);
-  assert.match(customerCss,/\.app-shell \.catalog-apps \.service-grid[\s\S]*?grid-template-columns:\s*repeat\(4,minmax\(0,1fr\)/);
+  assert.match(globalsCss,/\.service-grid\s*\{[\s\S]*?grid-template-columns:\s*repeat\(4,minmax\(0,1fr\)/);
   assert.match(app,/className="service-grid"/);
   assert.match(app,/list\.map\(item=><Link className="service-tile"/);
 });
@@ -44,7 +45,7 @@ test('phase 2 launcher preserves app-like navigation and unread notification acc
 });
 
 test('phase 2 launcher uses readable Radium Night typography for service names and filters',()=>{
-  assert.match(customerCss,/\.app-shell \.catalog-apps \.service-name,/);
+  assert.match(customerCss,/\.app-shell \.catalog-apps \.service-name\s*\{/);
   assert.match(customerCss,/\.app-shell \.catalog-apps \.service-name[\s\S]*?color:\s*var\(--i9-text-muted\)/);
   assert.match(customerCss,/\.app-shell \.catalog-apps \.recent-tile span[\s\S]*?color:\s*var\(--i9-text-muted\)/);
   assert.doesNotMatch(customerCss,/\.admin-[A-Za-z0-9_-]+/);
