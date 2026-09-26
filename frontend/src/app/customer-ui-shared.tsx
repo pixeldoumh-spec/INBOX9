@@ -46,12 +46,12 @@ function getServiceLogoSpriteImage(path:string){
  return serviceLogoSpritePromise;
 }
 
-export export function cropServiceLogo(path:string,index:number,tileSize:number,columns:number,outputSize:number){
+export function cropServiceLogo(path:string,index:number,tileSize:number,columns:number,outputSize:number){
  const cached=serviceLogoCropCache.get(index);
  if(cached)return Promise.resolve(cached);
  const inflight=serviceLogoCropPromiseCache.get(index);
  if(inflight)return inflight;
- const job=getServiceLogoSpriteImage(path).then(image=>{
+ const job=getServiceLogoSpriteImage(path).then(async image=>{
   const source=document.createElement('canvas');
   source.width=tileSize;
   source.height=tileSize;
