@@ -69,3 +69,26 @@ export function getAdminActivation(id:string){
 export function cancelAdminActivation(id:string){
   return apiRequest<{activation:{id:string;status:string;refundPaise?:number}|null}>('/api/admin/activations/'+encodeURIComponent(id),{method:'POST',body:JSON.stringify({action:'cancel'})});
 }
+
+export type AdminProviderReadinessBlocker={code:string;message:string};
+export type AdminProviderReadiness={
+  providerId:string;name:string;adapterKey:string;active:boolean;priority:number;
+  status:'ready'|'blocked'|'failed';checkedAt:number;
+  healthOk:boolean;credentialsOk:boolean;catalogOk:boolean;cancellationOk:boolean;
+  routingGateOk:boolean;mappingOk:boolean;reconciliationOk:boolean;routeHealthOk:boolean;
+  canaryStatus:'passed'|'not_run'|'failed';
+  blockers:AdminProviderReadinessBlocker[];
+  details:{
+    activeRoutes:number;mappedRoutes:number;unmappedRoutes:number;catalogCount:number;verifiedMappings:number;
+    pendingOperations:number;staleOperations:number;openCircuits:number;maxConsecutiveFailures:number;
+    latestReconciliationStatus:string;latestReconciliationStartedAt?:number|null;latestReconciliationCompletedAt?:number|null;
+    providerHealth:{configured:boolean;healthy:boolean;balance?:unknown;currency?:unknown;checkedAt?:number|null};
+    capabilities:Record<string,boolean>;globalExternalRoutingEnabled:boolean;nonCancellableReserveAllowed:boolean;
+    lifecycleCanaryEvidence?:unknown;lifecycleCanaryError?:string|null;
+  };
+};
+export type AdminProviderReadinessResponse={generatedAt:number;externalRoutingEnabled:boolean;nonCancellableReserveAllowed:boolean;providers:AdminProviderReadiness[];rules:Record<string,boolean>};
+export function getProviderProductionReadiness(){return apiRequest<AdminProviderReadinessResponse>('/api/admin/provider-readiness');}
+export function setAdminProviderActive(providerId:string,active:boolean){
+  return apiRequest<AdminProviderReadinessResponse>('/api/admin/provider-readiness',{method:'POST',body:JSON.stringify({action:active?'activate':'deactivate',providerId})});
+}

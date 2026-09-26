@@ -9,6 +9,9 @@ import {
   type AdminServiceRoute,
   type AdminProvider,
   type AdminProviderHealth,
+  getProviderProductionReadiness,
+  setAdminProviderActive,
+  type AdminProviderReadiness,
 } from '../../api/admin';
 
 type DraftRoute = Pick<AdminServiceRoute, 'providerId' | 'priority' | 'active'>;
@@ -63,6 +66,14 @@ export function AdminServicesPage() {
     refetchOnReconnect: true,
   });
 
+  const readiness = useQuery({
+    queryKey: ['admin-provider-readiness'],
+    queryFn: getProviderProductionReadiness,
+    staleTime: 30_000,
+    refetchInterval: 60_000,
+    refetchOnReconnect: true,
+  });
+
   const qualification = useQuery({
     queryKey: ['admin-provider-qualification'],
     queryFn: getProviderQualification,
@@ -101,6 +112,18 @@ export function AdminServicesPage() {
     setSaveError(null);
     setSaveMessage(null);
   }, [selectedId]); // selection changes define the editable record
+
+  const providerActivation = useMutation({
+    mutationFn: ({ providerId, active }: { providerId: string; active: boolean }) => setAdminProviderActive(providerId, active),
+    onSuccess: async () => {
+      await Promise.all([
+        client.invalidateQueries({ queryKey: ['admin-providers'] }),
+        client.invalidateQueries({ queryKey: ['admin-provider-readiness'] }),
+        client.invalidateQueries({ queryKey: ['admin-provider-qualification'] }),
+        client.invalidateQueries({ queryKey: ['admin-services'] }),
+      ]);
+    },
+  });
 
   const save = useMutation({
     mutationFn: async () => {
@@ -249,6 +272,50 @@ export function AdminServicesPage() {
           <strong>{selected.name}:</strong>{' '}
           {Object.entries(selectedQualification.providers).map(([adapter, state]) => adapter + ' → ' + state.status.replaceAll('_', ' ') + (state.mapping ? ' (' + state.mapping + ')' : state.candidate ? ' [candidate ' + state.candidate + ']' : '')).join(' · ')}
         </div> : null}
+      </section>
+
+      <section className="admin-panel">
+        <div className="admin-panel-heading">
+          <div>
+            <span className="admin-eyebrow">PHASE 7 READINESS</span>
+            <h2>Production activation gate</h2>
+          </div>
+          <span className="admin-status-badge">{readiness.data?.providers.length ?? 0} providers</span>
+        </div>
+        {readiness.isError ? <div className="admin-alert" role="alert"><strong>Readiness unavailable.</strong><span>Production provider readiness could not be evaluated.</span><button className="outline-button" type="button" onClick={() => void readiness.refetch()}>Retry</button></div> : null}
+        <div className="admin-provider-list">
+          {(readiness.data?.providers ?? []).map((provider: AdminProviderReadiness) => (
+            <div className="admin-provider-card" key={provider.providerId}>
+              <div>
+                <strong>{provider.name}</strong>
+                <span>{provider.adapterKey} · {provider.details.activeRoutes} active routes · {provider.details.catalogCount} catalog entries</span>
+              </div>
+              <div className="admin-provider-state">
+                <span className={provider.status === 'ready' ? 'admin-provider-pill is-on' : 'admin-provider-pill'}>
+                  {provider.status === 'ready' ? 'Ready' : 'Blocked'}
+                </span>
+                <small>
+                  {provider.canaryStatus === 'passed' ? 'Canary passed' : 'Canary ' + provider.canaryStatus.replaceAll('_', ' ')}
+                  {' · '}{provider.details.mappedRoutes}/{provider.details.activeRoutes || 0} routes mapped
+                </small>
+                {provider.blockers.length ? <small>{provider.blockers.map((blocker) => blocker.code).join(' · ')}</small> : <small>All readiness gates passed</small>}
+                {provider.adapterKey === 'synthetic' ? (
+                  <small>Permanent internal safety lane</small>
+                ) : (
+                  <button
+                    className={provider.active ? 'outline-button' : 'primary-button'}
+                    type="button"
+                    disabled={providerActivation.isPending || (provider.active ? false : provider.status !== 'ready')}
+                    onClick={() => void providerActivation.mutate({ providerId: provider.providerId, active: !provider.active })}
+                  >
+                    {provider.active ? 'Deactivate' : provider.status === 'ready' ? 'Activate' : 'Blocked'}
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+        <p className="admin-routing-help">External providers cannot be activated until every readiness gate passes. External reserve canaries are never executed automatically because they may create provider-side allocations.</p>
       </section>
 
       <div className="admin-services-layout">
