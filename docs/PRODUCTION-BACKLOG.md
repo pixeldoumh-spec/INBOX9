@@ -19,7 +19,7 @@ INBOX9 is currently synthetic-only. The checklist below distinguishes completed 
 - [ ] Gateway-specific sandbox certification and production settlement enablement
 + [x] Authorized external provider adapter with server-side secret isolation
 + [ ] Real SMS/number-provider compliance and operational controls
-- [x] Phase 8.2 non-billable India catalog verification path
+- [x] Phase 8.2 non-billable India catalog verification path\n- [x] Phase 8.3 exact active-catalog provider mapping workflow
 
 ## P1 — beta/operations
 - [x] Admin console
