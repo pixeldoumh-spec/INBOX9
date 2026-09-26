@@ -30,7 +30,7 @@ test('phase 2 launcher keeps service identity stable and routes by service ID',(
   assert.match(app,/key={item\.id} to={\`\/buy\?serviceId=\$\{encodeURIComponent\(item\.id\)\}\`}/);
   assert.match(shared,/data-service-id={serviceId}/);
   assert.match(shared,/const logo=SERVICE_LOGO_MANIFEST\[serviceId\]/);
-  assert.match(shared,/data-logo-source=\{has\?'zip-sprite':'blank'\}/);
+  assert.match(shared,/data-logo-source=\\{has\\?'zip-sprite':'blank'\\}/);
   assert.match(shared,/backgroundPosition/);
   assert.doesNotMatch(shared,/serviceLogoCropCache|cropServiceLogo|detectSafeCrop|getImageData|toBlob|createObjectURL/);
 });
