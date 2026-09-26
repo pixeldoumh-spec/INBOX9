@@ -94,7 +94,7 @@ test('batch exact mapping verifies all 90 active services from unique live provi
   delete process.env.INBOX9_SVNUMBER_API_KEY;
   const { services } = await import('../api/_lib/catalog.js');
 
-  const pool = (await import('../api/_lib/db.js')).getPool();
+  const pool = await (await import('../api/_lib/db.js')).getPool();
   await pool.query('DELETE FROM provider_service_mappings WHERE provider_id=$1', ['provider-asms']);
 
   global.fetch = async (url) => {
