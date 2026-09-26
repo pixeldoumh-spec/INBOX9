@@ -21,6 +21,7 @@ jobs:
     timeout-minutes: 20
     permissions:
       contents: read
+      statuses: write
     env:
       INBOX9_TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/inbox9_test
     steps:
@@ -90,3 +91,21 @@ jobs:
             echo "Potential secret material found in repository" >&2
             exit 1
           fi
+      - name: Publish commit status
+        if: ${{ always() }}
+        continue-on-error: true
+        uses: actions/github-script@v9
+        env:
+          GATE_STATE: ${{ job.status }}
+        with:
+          script: |
+            const state = process.env.GATE_STATE === 'success' ? 'success' : 'failure';
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: context.sha,
+              state,
+              context: 'ci/inbox9',
+              description: state === 'success' ? 'Release gate passed' : 'Release gate failed',
+              target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`
+            });
