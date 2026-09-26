@@ -37,9 +37,11 @@ export default async function handler(req, res) {
     const supportOpen = Number(support.rows[0].open_count || 0);
     const supportInProgress = Number(support.rows[0].in_progress_count || 0);
     const unreadNotifications = Number(notifications.rows[0].unread_count || 0);
+    const runtimeStatus = runtime.counters.http5xx > 0 ? 'degraded' : 'healthy';
+    const databaseStatus = databaseLatencyMs > 3000 ? 'critical' : (databaseLatencyMs > 1000 ? 'degraded' : 'healthy');
     const checks = {
-      database: { status: 'healthy', reachable: true, latencyMs: databaseLatencyMs, name: database.rows[0].database_name },
-      runtime: { status: 'healthy', mode: runtimeMode(), uptimeSeconds: runtime.uptimeSeconds },
+      database: { status: databaseStatus, reachable: true, latencyMs: databaseLatencyMs, name: database.rows[0].database_name },
+      runtime: { status: runtimeStatus, mode: runtimeMode(), uptimeSeconds: runtime.uptimeSeconds },
       productionConfiguration: { status: config.database && config.appOrigin && config.cronAuth ? 'healthy' : 'critical', database: config.database, appOrigin: config.appOrigin, cronAuth: config.cronAuth, persistentRuntime: config.persistentRuntime, syntheticRuntime: config.syntheticRuntime },
       providers: { status: providerFailures ? 'critical' : 'healthy', total: providers.length, failures: providerFailures, items: providers },
       providerOperations: { status: providerOperations.summary.failed > 0 ? 'degraded' : (providerOperations.summary.pending > 5 ? 'degraded' : 'healthy'), pending: providerOperations.summary.pending, failed: providerOperations.summary.failed, oldestPendingAt: providerOperations.summary.oldestPendingAt },
