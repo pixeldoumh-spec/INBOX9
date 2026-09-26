@@ -1,3 +1,4 @@
+// Phase 10.3 customer surface boundary: implementation details stay out of customer UI.
 import type { ReactNode } from 'react';
 import { SERVICE_LOGO_MANIFEST, SERVICE_LOGO_SPRITE } from './serviceLogoManifest';
 
