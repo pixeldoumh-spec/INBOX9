@@ -1,0 +1,4 @@
+-- Migration-history bridge.
+-- This remote version is already represented by the canonical route-cleanup
+-- migration retained later in the repository. Intentionally no-op so Supabase
+-- history reconciles without replaying the cleanup mutation.

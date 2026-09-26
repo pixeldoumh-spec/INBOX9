@@ -1,0 +1,3 @@
+-- Migration-history bridge.
+-- Reconciliation journal objects are already represented by the canonical
+-- repository migration. Intentionally no-op to preserve remote history.
