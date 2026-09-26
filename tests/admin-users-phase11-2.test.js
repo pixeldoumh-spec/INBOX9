@@ -4,9 +4,11 @@ import fs from 'node:fs/promises';
 
 test('Phase 11.2 admin user operations are isolated, searchable and auditable', async()=>{
   const route=await fs.readFile(new URL('../api/admin/_users.js',import.meta.url),'utf8');
+  const detailRoute=await fs.readFile(new URL('../api/admin/users/_id.js',import.meta.url),'utf8');
   const repository=await fs.readFile(new URL('../api/_lib/admin-repository.js',import.meta.url),'utf8');
   const ui=await fs.readFile(new URL('../frontend/src/features/admin/AdminUsers.tsx',import.meta.url),'utf8');
-  assert.match(route,/requireAdmin/); assert.match(route,/enforceSameOrigin/); assert.match(route,/logout_all/);
+  assert.match(route,/requireAdmin/); assert.match(route,/req\.method!=='GET'/);
+  assert.match(detailRoute,/requireAdmin/); assert.match(detailRoute,/enforceSameOrigin/); assert.match(detailRoute,/logout_all/);
   assert.match(repository,/user.disabled/); assert.match(repository,/user.enabled/); assert.match(repository,/user.sessions_revoked/);
   assert.match(repository,/DELETE FROM sessions WHERE user_id=\$1/);
   assert.match(ui,/Search email, name or user ID/); assert.match(ui,/Disable account/); assert.match(ui,/Sign out sessions/);
