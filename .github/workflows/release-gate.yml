@@ -1,0 +1,130 @@
+name: INBOX9 release gate
+# Connector-observable aggregate release certification for main commits.
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+jobs:
+  certify:
+    name: Release gate / aggregate workflow certification
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      actions: read
+      contents: read
+      statuses: write
+    steps:
+      - uses: actions/github-script@v9
+        env:
+          POLL_INTERVAL_MS: "15000"
+          MAX_POLLS: "100"
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const sha = context.sha;
+            const workflowNames = {
+              ci: 'INBOX9 CI',
+              frontend: 'INBOX9 frontend CI',
+              observability: 'INBOX9 production observability',
+              disasterRecovery: 'INBOX9 disaster recovery rehearsal'
+            };
+
+            const commit = await github.rest.repos.getCommit({ owner, repo, ref: sha });
+            const changedFiles = (commit.data.files || []).map(file => file.filename);
+
+            const frontendRequired = changedFiles.some(file =>
+              file.startsWith('frontend/') || file === '.github/workflows/frontend-ci.yml'
+            );
+
+            const expected = [
+              workflowNames.ci,
+              workflowNames.observability,
+              workflowNames.disasterRecovery
+            ];
+            if (frontendRequired) expected.push(workflowNames.frontend);
+
+            core.info(`Release gate for ${sha}`);
+            core.info(`Changed files: ${changedFiles.join(', ') || '(none returned)'}`);
+            core.info(`Expected workflows: ${expected.join(', ')}`);
+
+            const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+            let completed = null;
+
+            for (let attempt = 1; attempt <= Number(process.env.MAX_POLLS); attempt++) {
+              const runs = await github.rest.actions.listWorkflowRunsForRepo({
+                owner,
+                repo,
+                head_sha: sha,
+                per_page: 100
+              });
+
+              const relevant = runs.data.workflow_runs.filter(run =>
+                expected.includes(run.name) &&
+                run.event === 'push' &&
+                run.head_sha === sha
+              );
+
+              const state = Object.fromEntries(expected.map(name => {
+                const run = relevant
+                  .filter(candidate => candidate.status === 'completed')
+                  .sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at))[0];
+                return [name, run ? {
+                  id: run.id,
+                  status: run.status,
+                  conclusion: run.conclusion,
+                  html_url: run.html_url
+                } : null];
+              }));
+
+              const pending = expected.filter(name => !state[name]);
+              core.info(`Attempt ${attempt}: pending=${pending.join(', ') || 'none'}`);
+
+              if (!pending.length) {
+                completed = state;
+                break;
+              }
+
+              await sleep(Number(process.env.POLL_INTERVAL_MS));
+            }
+
+            if (!completed) {
+              await github.rest.repos.createCommitStatus({
+                owner,
+                repo,
+                sha,
+                state: 'failure',
+                context: 'ci/inbox9-release-gate',
+                description: 'Timed out waiting for required release workflows',
+                target_url: `${context.serverUrl}/${owner}/${repo}/actions`
+              });
+              core.setFailed('Timed out waiting for required workflows');
+              return;
+            }
+
+            const failed = Object.entries(completed)
+              .filter(([, run]) => run.conclusion !== 'success')
+              .map(([name, run]) => `${name}: ${run.conclusion}`);
+
+            const allPassed = failed.length === 0;
+            await github.rest.repos.createCommitStatus({
+              owner,
+              repo,
+              sha,
+              state: allPassed ? 'success' : 'failure',
+              context: 'ci/inbox9-release-gate',
+              description: allPassed
+                ? `All ${expected.length} release workflows passed`
+                : `Release workflows failed: ${failed.join('; ')}`,
+              target_url: `${context.serverUrl}/${owner}/${repo}/actions`
+            });
+
+            for (const [name, run] of Object.entries(completed)) {
+              core.info(`${name}: ${run.conclusion} ${run.html_url}`);
+            }
+
+            if (!allPassed) {
+              core.setFailed(failed.join('; '));
+            }
