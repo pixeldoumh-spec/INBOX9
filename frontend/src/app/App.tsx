@@ -235,6 +235,7 @@ function BuyServiceWorkspace({serviceId}:{serviceId:string}){
  const client=useQueryClient();
  const [pending,setPending]=useState(false);
  const [confirmOpen,setConfirmOpen]=useState(false);
+ const [idempotencyKey]=useState(()=>`i9-${serviceId}-${crypto.randomUUID()}`);
  const [error,setError]=useState<string|null>(null);
  const services=useQuery({queryKey:['services'],queryFn:getServices,staleTime:60_000});
  const wallet=useQuery({queryKey:['wallet'],queryFn:getWallet,staleTime:10_000});
@@ -249,7 +250,7 @@ function BuyServiceWorkspace({serviceId}:{serviceId:string}){
   if(!selected.purchasable||pending||insufficient)return;
   setPending(true);setError(null);
   try{
-   const act=await createActivation(selected.id,`i9-${selected.id}-${crypto.randomUUID()}`);
+   const act=await createActivation(selected.id,idempotencyKey);
    await Promise.all([client.invalidateQueries({queryKey:['wallet']}),client.invalidateQueries({queryKey:['activations']})]);
    setConfirmOpen(false);
    navigate(`/buy?serviceId=${encodeURIComponent(selected.id)}&activationId=${encodeURIComponent(act.id)}`,{replace:true});
@@ -281,15 +282,16 @@ function BuyActivationWorkspace({activationId,serviceId}:{activationId:string;se
  const [now,setNow]=useState(Date.now());
  const [cancelError,setCancelError]=useState<string|null>(null);
  const [cancelConfirmOpen,setCancelConfirmOpen]=useState(false);
- const q=useQuery({queryKey:['activation',activationId],queryFn:()=>getActivation(activationId),enabled:Boolean(activationId),refetchInterval:query=>['Active','CancellationPending','ExpirationPending'].includes(query.state.data?.status||'')?2_000:false});
+ const q=useQuery({queryKey:['activation',activationId],queryFn:()=>getActivation(activationId),enabled:Boolean(activationId),retry:3,retryDelay:attempt=>Math.min(1000*(attempt+1),4000),refetchOnReconnect:true,refetchOnWindowFocus:true,refetchInterval:query=>['Active','CancellationPending','ExpirationPending'].includes(query.state.data?.status||'')?2_000:false});
  const cancel=useMutation({
   mutationFn:()=>cancelActivation(activationId),
   onSuccess:async()=>{setCancelError(null);setCancelConfirmOpen(false);await Promise.all([client.invalidateQueries({queryKey:['activations']}),client.invalidateQueries({queryKey:['wallet']}),q.refetch()])},
   onError:(reason)=>setCancelError(activationErrorMessage(reason))
  });
  useEffect(()=>{const t=window.setInterval(()=>setNow(Date.now()),1000);return()=>window.clearInterval(t)},[]);
+ useEffect(()=>{const refresh=()=>{if(document.visibilityState==='visible')void q.refetch()};document.addEventListener('visibilitychange',refresh);window.addEventListener('focus',refresh);return()=>{document.removeEventListener('visibilitychange',refresh);window.removeEventListener('focus',refresh)}},[q.refetch]);
  if(q.isPending)return <section className="page-section"><div className="page-loading">Loading number allocation...</div></section>;
- if(q.isError||!q.data)return <section className="page-section buy-workspace"><Link className="back-link" to={serviceId?`/buy?serviceId=${encodeURIComponent(serviceId)}`:'/buy'}><Icon name="back" size={18}/> Buy</Link><div className="error-card">Could not load this activation.</div></section>;
+ if(q.isError||!q.data)return <section className="page-section buy-workspace"><Link className="back-link" to={serviceId?`/buy?serviceId=${encodeURIComponent(serviceId)}`:'/buy'}><Icon name="back" size={18}/> Buy</Link><div className="error-card"><strong>Could not load this activation.</strong><p>The Buy workspace will retry automatically when the connection returns.</p><button type="button" className="outline-button compact-button" onClick={()=>void q.refetch()} disabled={q.isFetching}>{q.isFetching?'Retrying…':'Retry now'}</button></div></section>;
  const a=q.data;
  const remaining=a.expiresAt?Math.max(0,a.expiresAt-now):0;
  const countdown=`${Math.floor(remaining/60000)}:${String(Math.floor((remaining%60000)/1000)).padStart(2,'0')}`;
@@ -301,6 +303,7 @@ function BuyActivationWorkspace({activationId,serviceId}:{activationId:string;se
   <Link className="back-link" to={serviceId?`/buy?serviceId=${encodeURIComponent(serviceId)}`:'/buy'}><Icon name="back" size={18}/> Buy workspace</Link>
   <div className="buy-workspace-title"><span className="catalog-eyebrow">NUMBER + OTP</span><h1>Activation</h1><p>Number allocation and incoming verification code stay here while you wait.</p></div>
   <div className="activation-hero"><ServiceLogo serviceId={a.serviceId} name={a.service||a.serviceId}/><div><h2>{a.service||a.serviceId}</h2><div className="hero-meta"><span className={statusClass(a.status)}>{a.status}</span><span>₹{(a.pricePaise/100).toFixed(2)}</span></div></div></div>
+  <div className="workspace-live-row"><span className="workspace-live-dot"/><span>{q.isFetching?'Refreshing activation status…':activationStateIsOngoing(a.status)?'Live status · updates automatically':'Activation status is final'}</span></div>
   <div className="number-card"><span className="card-label">Phone number</span><div className="big-number">{a.number||'Waiting for number'}</div>{a.number?<button className="copy-button" onClick={()=>void doCopy('number',a.number!)}><Icon name="copy" size={17}/>{copied==='number'?'Copied':'Copy'}</button>:null}</div>
   <div className={`otp-card ${a.otp?'otp-ready':''}`}><div><span className="card-label">Verification code</span><div className="otp-value">{a.otp||'— — — — — —'}</div></div>{a.otp?<button className="copy-button" onClick={()=>void doCopy('otp',a.otp!)}><Icon name="copy" size={17}/>{copied==='otp'?'Copied':'Copy'}</button>:<div className="otp-wait"><span className="pulse-dot"/>{q.isFetching?'Checking for OTP...':'Waiting for OTP'}</div>}</div>
   {a.status==='Active'?<div className="countdown-card"><Icon name="clock" size={21}/><div><strong>{remaining?countdown:'Expired'}</strong><span>time remaining</span></div></div>:null}
@@ -370,7 +373,7 @@ function ActivePage(){
     const remaining=a.expiresAt?Math.max(0,a.expiresAt-now):0;
     const countdown=a.expiresAt?remaining>0?`${Math.floor(remaining/60000)}:${String(Math.floor((remaining%60000)/1000)).padStart(2,'0')}`:'Expired':null;
     const terminal=a.status!=='Active';
-    return <Link className={`activation-card ${terminal?'activation-card-history':'activation-card-ongoing'}`} key={a.id} to={`/active/${encodeURIComponent(a.id)}`}>
+    return <Link className={`activation-card ${terminal?'activation-card-history':'activation-card-ongoing'}`} key={a.id} to={`/buy?serviceId=${encodeURIComponent(a.serviceId)}&activationId=${encodeURIComponent(a.id)}`}>
      <ServiceLogo serviceId={a.serviceId} name={a.service||a.serviceId}/>
      <div className="activation-main">
       <div className="activation-title"><strong>{a.service||a.serviceId}</strong><span className={statusClass(a.status)}>{a.status}</span></div>
@@ -494,12 +497,12 @@ function WalletPage(){
  </section>
 }
 function NotificationsPage(){
- const client=useQueryClient();const q=useQuery({queryKey:['notifications'],queryFn:getNotifications,refetchInterval:30000});
+ const client=useQueryClient();const q=useQuery({queryKey:['notifications'],queryFn:getNotifications,refetchInterval:15000});
  const markAll=useMutation({mutationFn:markAllNotificationsRead,onSuccess:async()=>{await client.invalidateQueries({queryKey:['notifications']})}});
  const markOne=useMutation({mutationFn:(id:string)=>markNotificationRead(id),onSuccess:async()=>{await client.invalidateQueries({queryKey:['notifications']})}});
  const [filter,setFilter]=useState<'all'|'unread'>('all');const items=q.data?.notifications??[];
  const unread=items.filter(n=>!n.read).length;const visible=filter==='unread'?items.filter(n=>!n.read):items;
- const target=(n:Notification)=>n.page==='active'&&n.sourceId?'/active/'+encodeURIComponent(n.sourceId):n.page==='wallet'?'/wallet':n.page==='support'?'/support':'/apps';
+ const target=(n:Notification)=>n.kind==='activation'&&n.sourceId?'/buy?activationId='+encodeURIComponent(n.sourceId):n.page==='wallet'?'/wallet':n.page==='support'?'/support':'/apps';
  function ago(t:number){const ms=Math.max(0,Date.now()-t);const m=Math.floor(ms/60000);if(m<1)return 'just now';if(m<60)return m+'m ago';const h=Math.floor(m/60);if(h<24)return h+'h ago';const d=Math.floor(h/24);return d<30?d+'d ago':new Date(t).toLocaleDateString()}
  function toneClass(n:Notification){return ['success','danger','warning','info'].includes(String(n.tone))?' notification-tone-'+n.tone:' notification-tone-info'}
  function iconFor(n:Notification):IconName{return n.kind==='activation'?'active':n.kind==='recharge'?'wallet':n.kind==='support'?'support':'bell'}

@@ -816,3 +816,9 @@ body{
  .buy-workspace-title h1{font-size:27px}
  .buy-empty-workspace{padding:22px 14px}
 }
+
+/* Buy 2.1 / lifecycle hardening */
+.buy-workspace .outline-button,.buy-workspace .primary-button,.buy-workspace .secondary-danger{min-height:48px}
+.workspace-live-row{display:flex;align-items:center;gap:7px;margin:-8px 0 12px;color:#8c8494;font-size:9px}
+.workspace-live-dot{width:7px;height:7px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 4px rgba(109,62,231,.08),0 0 12px rgba(109,62,231,.22)}
+.buy-empty-workspace .primary-button{display:inline-flex;justify-content:center;min-width:190px}
