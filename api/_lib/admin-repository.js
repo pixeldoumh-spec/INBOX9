@@ -10,7 +10,10 @@ function mapUser(row) {
     email: row.email,
     role: row.role,
     active: row.active,
+    displayName: row.display_name || '',
     createdAt: new Date(row.created_at).getTime(),
+    updatedAt: row.updated_at ? new Date(row.updated_at).getTime() : undefined,
+    lastActivityAt: row.last_activity_at ? new Date(row.last_activity_at).getTime() : null,
     balancePaise: Number(row.balance_paise || 0),
     rechargeCount: Number(row.recharge_count || 0),
     activationCount: Number(row.activation_count || 0),
@@ -85,7 +88,8 @@ export async function getAdminOverview() {
 
 export async function listAdminUsers(filters = {}) {
   const input = typeof filters === 'number' ? { limit: filters } : (filters || {});
-  const safeLimit = Math.min(Math.max(Number(input.limit) || 100, 1), 250);
+  const safeLimit = Math.min(Math.max(Number(input.limit) || 50, 1), 100);
+  const safeOffset = Math.min(Math.max(Number(input.offset) || 0, 0), 100_000);
   const query = String(input.query || '').trim().slice(0, 120);
   const role = ['all','user','admin'].includes(String(input.role)) ? String(input.role) : 'all';
   const status = ['all','active','disabled'].includes(String(input.status)) ? String(input.status) : 'all';
@@ -103,23 +107,32 @@ export async function listAdminUsers(filters = {}) {
       FROM users u WHERE ${where}`, [query,pattern,role,status]),
     pool.query(`SELECT u.id,u.email,u.role,u.active,u.created_at,u.updated_at,u.display_name,
               COALESCE(w.balance_paise,0) AS balance_paise,
+              (SELECT MAX(COALESCE(s.last_used_at,s.created_at)) FROM sessions s WHERE s.user_id=u.id) AS last_activity_at,
               (SELECT COUNT(*) FROM recharge_requests r WHERE r.user_id=u.id)::int AS recharge_count,
               (SELECT COUNT(*) FROM activations a WHERE a.user_id=u.id)::int AS activation_count
        FROM users u LEFT JOIN wallets w ON w.user_id=u.id
-       WHERE ${where} ORDER BY u.created_at DESC LIMIT $5`, [query,pattern,role,status,safeLimit])
+       WHERE ${where}
+       ORDER BY u.active DESC,u.created_at DESC,u.id
+       LIMIT $5 OFFSET $6`, [query,pattern,role,status,safeLimit,safeOffset])
   ]);
-  return {users:result.rows.map(mapUser),summary:{
-    total:Number(summary.rows[0].total||0),active:Number(summary.rows[0].active||0),
-    disabled:Number(summary.rows[0].disabled||0),admins:Number(summary.rows[0].admins||0)
-  }};
+  const total = Number(summary.rows[0].total || 0);
+  return {
+    users: result.rows.map(mapUser),
+    summary: {
+      total,
+      active: Number(summary.rows[0].active||0),
+      disabled: Number(summary.rows[0].disabled||0),
+      admins: Number(summary.rows[0].admins||0)
+    },
+    pagination: { limit: safeLimit, offset: safeOffset, hasMore: safeOffset + result.rows.length < total }
+  };
 }
-
 function adminUserNotFound(){return Object.assign(new Error('User not found'),{statusCode:404});}
 
 export async function getAdminUser(userId) {
   const pool=await getPool();
   const target=String(userId||'').trim();
-  const userResult=await pool.query(`SELECT u.id,u.email,u.role,u.active,u.created_at,u.updated_at,u.display_name,
+  const userResult=await pool.query(`SELECT u.id,u.email,u.role,u.active,u.created_at,u.updated_at,u.display_name,u.password_changed_at,
     COALESCE(w.balance_paise,0) AS balance_paise,
     (SELECT COUNT(*) FROM recharge_requests r WHERE r.user_id=u.id)::int AS recharge_count,
     (SELECT COUNT(*) FROM activations a WHERE a.user_id=u.id)::int AS activation_count,
@@ -152,6 +165,12 @@ export async function setAdminUserActive(adminUserId,targetUserId,active){
     const row=current.rows[0];
     if(row.id===adminUserId)throw Object.assign(new Error('You cannot change your own admin account status'),{statusCode:400});
     const next=Boolean(active);
+    if(!next && row.role==='admin') {
+      const adminCount = await client.query(`SELECT COUNT(*)::int AS count FROM users WHERE role='admin' AND active=TRUE AND id<>$1`, [row.id]);
+      if(Number(adminCount.rows[0].count || 0) < 1) {
+        throw Object.assign(new Error('At least one active admin account must remain enabled'), { statusCode: 400 });
+      }
+    }
     if(row.active===next)return {id:row.id,email:row.email,role:row.role,active:row.active,changed:false,revokedSessions:0};
     const updated=await client.query('UPDATE users SET active=$2,session_version=$3,updated_at=NOW() WHERE id=$1 RETURNING id,email,role,active',[row.id,next,Number(row.session_version||1)+1]);
     let revokedSessions=0;
