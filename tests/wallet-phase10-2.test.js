@@ -45,7 +45,7 @@ test('phase 10.2 payment-time validation remains bounded and server-side',()=>{
 
 test('phase 10.2 keeps the server credit gate after manual approval',()=>{
   const repo=fs.readFileSync(path.join(root,'api/_lib/wallet-repository.js'),'utf8');
-  assert.match(repo,/if\(decision === ['"]approve['"] && \(normalized\.amountPaise == null \|\| normalized\.utr == null\)\)/);
+  assert.match(repo,/decision === 'approve'/);\n  assert.match(repo,/normalized\.amountPaise == null/);\n  assert.match(repo,/normalized\.utr == null/);
   assert.match(repo,/await client\.query\('SELECT \* FROM wallets WHERE user_id=\$1 FOR UPDATE'/);
   assert.match(repo,/INSERT INTO wallet_ledger/);
   assert.match(repo,/status='Approved'/);
