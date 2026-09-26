@@ -241,6 +241,9 @@ function routeFor(method, pathname) {
   match = pathname.match(/^\/api\/services\/([^/]+)\/servers$/);
   if (match) return { handler: serviceServers, query: { id: decodeURIComponent(match[1]) } };
 
+  match = pathname.match(/^\/api\/admin\/users\/([^/]+)$/);
+  if (match) return { handler: adminUsers, query: { id: decodeURIComponent(match[1]) } };
+
   match = pathname.match(/^\/api\/admin\/recharges\/([^/]+)$/);
   if (match) return { handler: adminRechargeById, query: { id: decodeURIComponent(match[1]) } };
 
