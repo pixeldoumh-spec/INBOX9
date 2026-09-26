@@ -1737,8 +1737,12 @@
   background-color: #0a0d0a;
 }
 
-.app-shell .service-logo-sprite-tile {
+.app-shell .service-logo-sprite-canvas {
+  position: absolute;
+  display: block;
   background-repeat: no-repeat;
+  background-size: 100% 100%;
+  background-position: 0 0;
   background-color: #0a0d0a;
 }
 
