@@ -435,7 +435,15 @@ export async function listAdminLedger(filters = {}) {
     pagination:{limit:safeLimit,offset:safeOffset,hasMore:safeOffset+result.rows.length<total}
   };
 }
-export async function listAuditLogs(limit = 100) {
+export async function listAuditLogs(filters = {}) {
+  const input = typeof filters === 'number' ? { limit: filters } : (filters || {});
+  const pool = await getPool();
+  const safeLimit = Math.min(Math.max(Number(input.limit) || 100, 1), 250);
+  const safeOffset = Math.min(Math.max(Number(input.offset) || 0, 0), 100000);
+  const query = String(input.query || '').trim().slice(0, 120);
+  const action = String(input.action || 'all').trim().slice(0, 160) || 'all';
+  const targetType = String(input.targetType || 'all').trim().slice(0, 80) || 'all';
+  const escaped = query.replace(/[%_]/g, '\\export async function listAuditLogs(limit = 100) {
   const pool = await getPool();
   const safeLimit = Math.min(Math.max(Number(limit) || 100, 1), 250);
   const result = await pool.query(
@@ -454,6 +462,33 @@ export async function listAuditLogs(limit = 100) {
     metadata: row.metadata || {},
     createdAt: new Date(row.created_at).getTime(),
   }));
+}');
+  const pattern = '%' + escaped + '%';
+  const where = `($1='' OR a.id ILIKE $2 ESCAPE '\\\\' OR COALESCE(u.email,'') ILIKE $2 ESCAPE '\\\\' OR a.action ILIKE $2 ESCAPE '\\\\' OR a.target_type ILIKE $2 ESCAPE '\\\\' OR COALESCE(a.target_id,'') ILIKE $2 ESCAPE '\\\\')
+    AND ($3='all' OR a.action=$3)
+    AND ($4='all' OR a.target_type=$4)`;
+  const [summary,result] = await Promise.all([
+    pool.query(`SELECT COUNT(*)::int AS total FROM audit_logs a LEFT JOIN users u ON u.id=a.actor_user_id WHERE ${where}`, [query,pattern,action,targetType]),
+    pool.query(`SELECT a.*, u.email AS actor_email
+      FROM audit_logs a
+      LEFT JOIN users u ON u.id=a.actor_user_id
+      WHERE ${where}
+      ORDER BY a.created_at DESC,a.id DESC LIMIT $5 OFFSET $6`, [query,pattern,action,targetType,safeLimit,safeOffset])
+  ]);
+  const total = Number(summary.rows[0].total || 0);
+  return {
+    logs: result.rows.map(row => ({
+      id: row.id,
+      actorUserId: row.actor_user_id,
+      actorEmail: row.actor_email,
+      action: row.action,
+      targetType: row.target_type,
+      targetId: row.target_id,
+      metadata: row.metadata || {},
+      createdAt: new Date(row.created_at).getTime(),
+    })),
+    pagination:{limit:safeLimit,offset:safeOffset,hasMore:safeOffset+result.rows.length<total,total}
+  };
 }
 
 export async function recordAuditTx(client, adminUserId, action, targetType, targetId, metadata = {}) {
