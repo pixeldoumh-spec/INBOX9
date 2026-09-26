@@ -5,6 +5,7 @@ import test from 'node:test';
 
 const root=process.cwd();
 const app=fs.readFileSync(path.join(root,'frontend/src/app/App.tsx'),'utf8');
+const shared=fs.readFileSync(path.join(root,'frontend/src/app/customer-ui-shared.tsx'),'utf8');
 const customerCss=fs.readFileSync(path.join(root,'frontend/src/styles/customer-modern.css'),'utf8');
 const globalsCss=fs.readFileSync(path.join(root,'frontend/src/styles/globals.css'),'utf8');
 const catalog=fs.readFileSync(path.join(root,'api/_lib/catalog.js'),'utf8');
