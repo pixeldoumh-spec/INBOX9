@@ -37,3 +37,21 @@ services:
         value: "false"
       - key: INBOX9_UPI_ID
         value: ""
+      - key: INBOX9_ENABLE_EXTERNAL_ROUTING
+        value: "false"
+      - key: INBOX9_ALLOW_NONCANCELLABLE_PROVIDER_RESERVE
+        value: "false"
+      - key: INBOX9_ASMS_BASE_URL
+        value: "https://asms.ai"
+      - key: INBOX9_ASMS_API_KEY
+        sync: false
+      - key: INBOX9_ASMS_COUNTRY_MAP_JSON
+        value: ""
+      - key: INBOX9_PVAPINS_BASE_URL
+        value: "https://api.pvapins.com"
+      - key: INBOX9_PVAPINS_API_KEY
+        sync: false
+      - key: INBOX9_SVNUMBER_BASE_URL
+        value: "https://sms-verification-number.com/stubs/handler_api"
+      - key: INBOX9_SVNUMBER_API_KEY
+        sync: false
