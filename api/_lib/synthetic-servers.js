@@ -63,7 +63,7 @@ export function issueSyntheticServer({ requestedServerId = null, capacity = SYNT
 
 export function getSyntheticServer(serverId, capacity = SYNTHETIC_CAPACITY) {
   const key = String(serverId || '').trim().toLowerCase();
-  if (!/^server-d+$/.test(key)) return null;
+  if (!/^server-\d+$/.test(key)) return null;
   return listSyntheticServers(capacity).find((server) => server.id === key) || null;
 }
 
