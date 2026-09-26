@@ -15,9 +15,25 @@ export const pvapinsProvider = createProviderAdapter({
   capabilities: { cancelActivation: false, safeToRetryReserve: false },
   async listServices(service = {}) {
     const apiKey = String(process.env[API_KEY_ENV] || '').trim();
-    if (!apiKey) return { provider: 'pvapins', configured: false, services: [] };
-    const data = await requestJson(BASE_URL + '/api/v1/services', { headers: authHeaders() });
-    return { provider: 'pvapins', configured: true, services: Array.isArray(data?.services) ? data.services : [], country: countryIso2(service) };
+    if (!apiKey) return { provider: 'pvapins', configured: false, country: countryIso2(service), services: [] };
+    const country = countryIso2(service);
+    const [catalogData, routeData] = await Promise.all([
+      requestJson(BASE_URL + '/api/v1/services', { headers: authHeaders() }),
+      requestJson(BASE_URL + '/api/v1/operators?country=' + encodeURIComponent(country), { headers: authHeaders() }),
+    ]);
+    const namesByCode = new Map((Array.isArray(catalogData?.services) ? catalogData.services : []).map(row => [String(row?.code ?? row?.id ?? row?.service ?? '').trim(), String(row?.name ?? row?.label ?? row?.serviceName ?? row?.service ?? '').trim()]));
+    const aggregated = new Map();
+    for (const row of (Array.isArray(routeData?.operators) ? routeData.operators : [])) {
+      const code = String(row?.service ?? row?.code ?? row?.id ?? row?.name ?? '').trim();
+      if (!code) continue;
+      const existing = aggregated.get(code) || { code, name: namesByCode.get(code) || String(row?.name ?? row?.label ?? code).trim(), stock: 0, price: null };
+      const count = row?.count == null ? null : Number(row.count);
+      if (count != null && Number.isFinite(count)) existing.stock += Math.max(0, count);
+      const price = Number(row?.price);
+      if (Number.isFinite(price) && (existing.price == null || price < existing.price)) existing.price = price;
+      aggregated.set(code, existing);
+    }
+    return { provider: 'pvapins', configured: true, country, services: [...aggregated.values()] };
   },
   async reserveNumber(service) {
     const idempotencyKey = String(service?.idempotencyKey || crypto.randomUUID());
