@@ -8,6 +8,10 @@ export const ROUTING_CIRCUIT_COOLDOWN_MS = 2 * 60 * 1000;
 
 const EXTERNAL_ROUTING_ENABLED = String(process.env.INBOX9_ENABLE_EXTERNAL_ROUTING || '').trim().toLowerCase() === 'true';
 const ALLOW_NONCANCELLABLE_RESERVE = String(process.env.INBOX9_ALLOW_NONCANCELLABLE_PROVIDER_RESERVE || '').trim().toLowerCase() === 'true';
+const PROVIDER_CERT_MAX_AGE_MS = (() => {
+  const value = Number(process.env.INBOX9_PROVIDER_CERT_MAX_AGE_MS);
+  return Number.isFinite(value) && value > 0 ? Math.min(Math.max(Math.trunc(value), 60_000), 7 * 24 * 60 * 60 * 1000) : 24 * 60 * 60 * 1000;
+})();
 
 const SAFE_FAILOVER_CODES = new Set([
   'PROVIDER_NOT_CONFIGURED',
@@ -97,11 +101,11 @@ async function eligibleRoutes(pool, serviceId) {
              AND c.status='passed'
              AND c.cleanup_ok=TRUE
              AND c.reconciliation_ok=TRUE
-             AND c.created_at > NOW() - INTERVAL '24 hours'
+             AND c.created_at > NOW() - ($2 * INTERVAL '1 millisecond')
              AND c.provider_service_code=m.provider_service_code
         ))
       ORDER BY r.priority ASC,p.priority ASC,p.id ASC`,
-    [serviceId],
+    [serviceId, PROVIDER_CERT_MAX_AGE_MS],
   );
   const filtered = EXTERNAL_ROUTING_ENABLED
     ? result.rows
