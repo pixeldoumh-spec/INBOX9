@@ -39,5 +39,5 @@ test('customer account and activity surfaces contain no implementation residue',
 test('customer auth and recharge fallbacks do not expose mock mode markers',()=>{
  assert.doesNotMatch(read('api/auth/_login.js'),/mode:\s*['"]mock['"]/);
  assert.doesNotMatch(read('api/auth/_register.js'),/mode:\s*['"]mock['"]/);
- assert.doesNotMatch(read('api/recharges/_index.js'),/mode:\s*['"]mock['"]/);
+ assert.doesNotMatch(read('api/recharges/_index.js'),/mode:\s*['"]mock['"]/);\n assert.doesNotMatch(read('api/auth/_logout-all.js'),/mode:/);
 });
