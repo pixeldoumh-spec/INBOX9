@@ -37,3 +37,7 @@ CREATE INDEX IF NOT EXISTS idx_provider_recon_runs_status ON public.provider_rec
 CREATE INDEX IF NOT EXISTS idx_provider_recon_events_run ON public.provider_reconciliation_events(run_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_provider_recon_events_activation ON public.provider_reconciliation_events(activation_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_provider_recon_events_review ON public.provider_reconciliation_events(outcome, created_at DESC);
+
+INSERT INTO schema_migrations(version)
+VALUES ('043_provider_reconciliation_journal')
+ON CONFLICT DO NOTHING;
