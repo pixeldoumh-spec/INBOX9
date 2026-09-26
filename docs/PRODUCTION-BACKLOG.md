@@ -17,7 +17,7 @@ INBOX9 is currently synthetic-only. The checklist below distinguishes completed 
 - [x] Client-facing marketplace terminology cleanup
 - [x] Provider-neutral payment webhook verification, idempotency and settlement reconciliation foundation
 - [ ] Gateway-specific sandbox certification and production settlement enablement
-- [ ] Authorized external provider adapter with secret isolation
++ [x] Authorized external provider adapter with server-side secret isolation
 - [ ] Real SMS/number-provider compliance and operational controls
 
 ## P1 — beta/operations
