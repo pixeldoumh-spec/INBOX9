@@ -14,9 +14,10 @@ test('shared customer service icon uses one enhanced Android-style frame everywh
   assert.match(shared,/data-service-id={serviceId}/);
   assert.match(shared,/SERVICE_LOGO_MANIFEST/);
   assert.match(shared,/SERVICE_LOGO_MANIFEST\[serviceId\]/);
-  assert.match(shared,/className="service-logo-sprite-canvas"/);
-  assert.match(shared,/width: \(columns\*100\)\+'%'/);
-  assert.match(shared,/height: \(rows\*100\)\+'%'/);
+  assert.doesNotMatch(shared,/service-logo-sprite-canvas/);
+  assert.match(shared,/backgroundSize: \(columns\*100\)\+'% \'+\(rows\*100\)\+'%'/);
+  assert.match(shared,/column\/\(Math\.max\(columns-1,1\)\)/);
+  assert.match(shared,/row\/\(Math\.max\(rows-1,1\)\)/);
   assert.doesNotMatch(shared,/getImageData|toBlob|createObjectURL|cropServiceLogo|detectSafeCrop/);
 });
 
