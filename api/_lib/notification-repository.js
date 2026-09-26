@@ -89,3 +89,62 @@ export async function markAllNotificationsRead(userId) {
   const result=await pool.query('UPDATE notifications SET read_at=NOW() WHERE user_id=$1 AND read_at IS NULL',[userId]);
   return result.rowCount;
 }
+
+
+export async function listAdminNotifications(filters = {}) {
+  const pool = await getPool();
+  const safeLimit = Math.min(Math.max(Number(filters.limit) || 50, 1), 100);
+  const safeOffset = Math.min(Math.max(Number(filters.offset) || 0, 0), 100000);
+  const query = String(filters.query || '').trim().slice(0, 120);
+  const kind = String(filters.kind || 'all').trim().slice(0, 40) || 'all';
+  const read = ['all','read','unread'].includes(String(filters.read)) ? String(filters.read) : 'all';
+  const escaped = query.replace(/[%_]/g, '\\$&');
+  const pattern = '%' + escaped + '%';
+  const where = `($1='' OR n.id ILIKE $2 ESCAPE '\\\\' OR n.title ILIKE $2 ESCAPE '\\\\' OR n.body ILIKE $2 ESCAPE '\\\\' OR u.email ILIKE $2 ESCAPE '\\\\' OR u.id ILIKE $2 ESCAPE '\\\\')
+    AND ($3='all' OR n.kind=$3)
+    AND ($4='all' OR ($4='read' AND n.read_at IS NOT NULL) OR ($4='unread' AND n.read_at IS NULL))`;
+  const [summary,result] = await Promise.all([
+    pool.query(`SELECT COUNT(*)::int AS total,
+      COUNT(*) FILTER (WHERE n.read_at IS NULL)::int AS unread,
+      COUNT(*) FILTER (WHERE n.read_at IS NOT NULL)::int AS read
+      FROM notifications n JOIN users u ON u.id=n.user_id WHERE ${where}`, [query,pattern,kind,read]),
+    pool.query(`SELECT n.id,n.user_id,n.kind,n.title,n.body,n.page,n.tone,n.read_at,n.created_at,u.email
+      FROM notifications n JOIN users u ON u.id=n.user_id WHERE ${where}
+      ORDER BY n.created_at DESC,n.id DESC LIMIT $5 OFFSET $6`, [query,pattern,kind,read,safeLimit,safeOffset])
+  ]);
+  const total = Number(summary.rows[0].total || 0);
+  return {
+    notifications: result.rows.map(n => ({
+      id:n.id,userId:n.user_id,email:n.email,kind:n.kind,title:n.title,body:n.body,page:n.page,tone:n.tone,
+      read:Boolean(n.read_at),createdAt:new Date(n.created_at).getTime()
+    })),
+    summary:{total,unread:Number(summary.rows[0].unread||0),read:Number(summary.rows[0].read||0)},
+    pagination:{limit:safeLimit,offset:safeOffset,hasMore:safeOffset+result.rows.length<total}
+  };
+}
+
+export async function createAdminNotification(adminUserId, input = {}) {
+  const userId = String(input.userId || '').trim();
+  const kind = String(input.kind || 'system').trim().slice(0, 40);
+  const title = String(input.title || '').trim().slice(0, 160);
+  const body = String(input.body || '').trim().slice(0, 1000);
+  const page = String(input.page || 'notifications').trim().slice(0, 80);
+  const tone = String(input.tone || 'info').trim().slice(0, 40);
+  if (!userId) throw Object.assign(new Error('Customer user id is required'),{statusCode:400});
+  if (!/^[a-zA-Z0-9._:-]{1,120}$/.test(userId)) throw Object.assign(new Error('Invalid customer user id'),{statusCode:400});
+  if (!kind) throw Object.assign(new Error('Notification kind is required'),{statusCode:400});
+  if (title.length < 3) throw Object.assign(new Error('Notification title must be at least 3 characters'),{statusCode:400});
+  if (body.length < 2) throw Object.assign(new Error('Notification message must be at least 2 characters'),{statusCode:400});
+  return (await import('./db.js')).withTransaction(async client => {
+    const target=await client.query('SELECT id,email,active FROM users WHERE id=$1 FOR UPDATE',[userId]);
+    if(!target.rowCount) throw Object.assign(new Error('Customer user was not found'),{statusCode:404});
+    if(!target.rows[0].active) throw Object.assign(new Error('Disabled customers cannot receive targeted notifications'),{statusCode:409});
+    const notificationId=id();
+    await client.query(`INSERT INTO notifications (id,user_id,kind,source_type,source_id,event_key,title,body,page,tone) VALUES ($1,$2,$3,'admin_message',$4,$5,$6,$7,$8,$9)`,
+      [notificationId,userId,kind,notificationId,'admin:'+notificationId,title,body,page,tone]);
+    await (await import('./admin-repository.js')).recordAuditTx(client,adminUserId,'notification.targeted_created','notification',notificationId,{userId,email:target.rows[0].email,kind,title});
+    const row=await client.query('SELECT id,user_id,kind,title,body,page,tone,read_at,created_at FROM notifications WHERE id=$1',[notificationId]);
+    const n=row.rows[0];
+    return {id:n.id,userId:n.user_id,email:target.rows[0].email,kind:n.kind,title:n.title,body:n.body,page:n.page,tone:n.tone,read:false,createdAt:new Date(n.created_at).getTime()};
+  });
+}
