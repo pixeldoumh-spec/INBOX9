@@ -1737,13 +1737,14 @@
   background-color: #0a0d0a;
 }
 
-.app-shell .service-logo-sprite-canvas {
-  position: absolute;
-  display: block;
+/* Sprite cells are rendered directly on the clipped art viewport.
+ * This avoids percentage-offset drift from an oversized positioning canvas.
+ */
+.app-shell .service-logo-art {
   background-repeat: no-repeat;
-  background-size: 100% 100%;
-  background-position: 0 0;
   background-color: #0a0d0a;
+  background-origin: border-box;
+  background-clip: border-box;
 }
 
 .app-shell .service-logo-blank-art { background: #000 !important; }
