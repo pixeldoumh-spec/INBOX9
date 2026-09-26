@@ -38,9 +38,24 @@ function mapActivation(response, service, createdAt) {
 }
 export const smsVerificationNumberProvider = createProviderAdapter({
   capabilities: { cancelActivation: true, safeToRetryReserve: false },
-  async listServices() {
-    const country = await resolveCountryId('IN');
-    return { provider: 'sms-verification-number', configured: true, country, note: 'Provider service codes must be mapped before routing a production service.' };
+  async listServices(service = {}) {
+    const targetCountry = countryIso2(service);
+    const countryId = await resolveCountryId(targetCountry);
+    const raw = await callText({ action: 'getServicesAndCostWithStatistics', country: countryId });
+    let services;
+    try {
+      services = raw ? JSON.parse(raw) : [];
+    } catch {
+      const error = new Error('SMS Verification Number returned an invalid India service catalog');
+      error.code = 'PROVIDER_INVALID_RESPONSE';
+      throw error;
+    }
+    if (!Array.isArray(services)) {
+      const error = new Error('SMS Verification Number returned an invalid India service catalog');
+      error.code = 'PROVIDER_INVALID_RESPONSE';
+      throw error;
+    }
+    return { provider: 'sms-verification-number', configured: true, country: targetCountry, countryId, services };
   },
   async reserveNumber(service) {
     const createdAt = Date.now();
