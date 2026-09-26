@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import { services as catalogServices } from './catalog.js';
 import { getPool } from './db.js';
 import { getProviderAdapter } from './provider-registry.js';
@@ -143,7 +144,7 @@ export async function verifyAndSaveProviderMapping(adminUserId, { providerId, se
   await pool.query(
     `INSERT INTO audit_logs(id,actor_user_id,action,target_type,target_id,metadata)
      VALUES ($1,$2,'provider.service_mapping_verified','provider_service_mapping',$3,$4::jsonb)`,
-    ['AUD-MAP-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8), adminUserId, providerId + '::' + serviceId, JSON.stringify({ providerId, serviceId, providerServiceCode: code, providerServiceName: serviceLabel(match), country: 'IN' })]
+    [crypto.randomUUID(), adminUserId, providerId + '::' + serviceId, JSON.stringify({ providerId, serviceId, providerServiceCode: code, providerServiceName: serviceLabel(match), country: 'IN' })]
   );
   return { providerId, serviceId, providerServiceCode: code, providerServiceName: serviceLabel(match), verified: true };
 }
