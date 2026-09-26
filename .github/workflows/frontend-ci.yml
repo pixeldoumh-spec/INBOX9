@@ -20,6 +20,7 @@ jobs:
     timeout-minutes: 10
     permissions:
       contents: read
+      statuses: write
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -37,3 +38,21 @@ jobs:
         run: node --test tests/pwa-assets.test.js
       - name: Mobile launcher layout regression test
         run: node --test tests/mobile-ui-phase1.test.js
+      - name: Publish commit status
+        if: ${{ always() }}
+        continue-on-error: true
+        uses: actions/github-script@v9
+        env:
+          GATE_STATE: ${{ job.status }}
+        with:
+          script: |
+            const state = process.env.GATE_STATE === 'success' ? 'success' : 'failure';
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: context.sha,
+              state,
+              context: 'ci/inbox9-frontend',
+              description: state === 'success' ? 'Release gate passed' : 'Release gate failed',
+              target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`
+            });
