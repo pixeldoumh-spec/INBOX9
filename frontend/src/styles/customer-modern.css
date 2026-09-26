@@ -1805,3 +1805,50 @@
     transform: none;
   }
 }
+
+
+/* Final customer service icon fit — one authoritative responsive constraint.
+ * The sprite artwork must stay centered inside the actual grid cell at every phone width.
+ */
+.app-shell .catalog-apps .service-tile {
+  min-width: 0;
+  width: 100%;
+  overflow: visible;
+  align-items: center;
+}
+
+.app-shell .catalog-apps .service-logo {
+  flex: 0 1 auto;
+  width: min(72px, 100%) !important;
+  height: auto !important;
+  aspect-ratio: 1 / 1;
+  min-width: 0;
+  min-height: 0;
+  max-width: 72px;
+  max-height: 72px;
+  margin-inline: auto;
+}
+
+.app-shell .catalog-apps .service-logo-art {
+  inset: 0;
+  width: auto;
+  height: auto;
+  max-width: none;
+  max-height: none;
+}
+
+@media (max-width: 720px) {
+  .app-shell .catalog-apps .service-logo {
+    width: min(72px, 100%) !important;
+    max-width: 72px;
+    max-height: 72px;
+  }
+}
+
+@media (max-width: 380px) {
+  .app-shell .catalog-apps .service-logo {
+    width: min(70px, 100%) !important;
+    max-width: 70px;
+    max-height: 70px;
+  }
+}
