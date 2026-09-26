@@ -49,6 +49,8 @@ services:
         value: "30000"
       - key: INBOX9_PROVIDER_CANARY_POLL_INTERVAL_MS
         value: "3000"
+      - key: INBOX9_PROVIDER_CERT_MAX_AGE_MS
+        value: "86400000"
       - key: INBOX9_ASMS_BASE_URL
         value: "https://asms.ai"
       - key: INBOX9_ASMS_API_KEY
