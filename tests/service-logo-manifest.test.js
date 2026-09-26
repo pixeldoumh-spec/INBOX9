@@ -59,6 +59,6 @@ test('ServiceLogo uses the stable manifest and direct pre-prepared sprite tiles'
   assert.doesNotMatch(shared,/<ServiceLogo[^>]*position=/);
   assert.match(shared,/SERVICE_LOGO_MANIFEST/);
   assert.match(shared,/data-logo-source=\{has\?'sprite-tile':'fallback'\}/);
-  assert.match(shared,/backgroundImage: 'url('\+path\+')'/);
+  assert.match(shared,/backgroundImage: 'url\('\+path\+'\)'/);
   assert.doesNotMatch(shared,/cropServiceLogo|detectSafeCrop|getImageData|toBlob|createObjectURL/);
 });
