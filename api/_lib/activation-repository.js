@@ -1,5 +1,6 @@
 import crypto from 'node:crypto';
 import { getPool, withTransaction } from './db.js';
+import { createNotificationTx } from './notification-repository.js';
 import { invokeProvider } from './provider-gateway.js';
 import { beginCancellation, completeCancellation } from './provider-operations.js';
 import { debitForActivation, getBalanceForClient } from './wallet-repository.js';
@@ -201,6 +202,12 @@ export async function createActivation(service, userId, idempotency = null, opti
         const result = await client.query('SELECT * FROM activations WHERE id=$1', [activationId]);
         const activation = mapActivation({ ...result.rows[0], adapter_key: provider.adapter_key });
         const balancePaise = await getBalanceForClient(client, userId);
+        await createNotificationTx(client, {
+          userId, kind:'activation', sourceType:'activation', sourceId:activation.id, eventKey:'status:'+activation.status,
+          title: activation.status === 'Active' ? 'Number allocated successfully' : 'Activation started',
+          body: activation.number ? `Your ${serviceName} number ${activation.number} is ready. Open Buy to continue to OTP.` : `Your ${serviceName} activation has started.`,
+          page:'buy', tone:'success', createdAt:now
+        });
         if (idempotency?.idempotencyKey) {
           await completeActivationKey(client, userId, idempotency.idempotencyKey, activation.id, { ...activation, walletBalancePaise: balancePaise });
         }
@@ -344,6 +351,12 @@ export async function getActivation(id, userId) {
     }
 
     const row = updated.rows[0];
+    await createNotificationTx(client, {
+      userId, kind:'activation', sourceType:'activation', sourceId:row.id, eventKey:'status:'+providerState.status,
+      title: providerState.status === 'Completed' ? 'OTP received successfully' : 'Number expired',
+      body: providerState.status === 'Completed' ? `Verification code is ready for ${row.service_name}. Open Buy to view the OTP.` : `Your ${row.service_name} activation has reached its validity limit.`,
+      page:'buy', tone: providerState.status === 'Completed' ? 'success' : 'info'
+    });
     if (providerState.status === 'Expired' || providerState.status === 'Completed') {
       const released = await releaseSyntheticSlot(client, row.id);
       if (!released && shouldRequireSyntheticReservation(row.provider_metadata)) {

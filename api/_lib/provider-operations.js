@@ -1,5 +1,6 @@
 import crypto from 'node:crypto';
 import { getPool, withTransaction } from './db.js';
+import { createNotificationTx } from './notification-repository.js';
 import { invokeProvider } from './provider-gateway.js';
 import { creditRefund, getBalanceForClient } from './wallet-repository.js';
 import { releaseSyntheticSlot, shouldRestoreSyntheticStock, shouldRequireSyntheticReservation } from './synthetic-inventory-repository.js';
@@ -73,11 +74,19 @@ export async function completeCancellation(operationId, success, errorMessage = 
     if (!success) {
       await client.query(`UPDATE provider_operations SET status='Failed', attempts=attempts+1, last_error=$2, updated_at=NOW(), completed_at=NOW() WHERE id=$1`, [operationId, String(errorMessage || 'Provider cancellation failed').slice(0,500)]);
       await client.query(`UPDATE activations SET status='Active',updated_at=NOW() WHERE id=$1 AND status='CancellationPending'`, [row.activation_id]);
+      await createNotificationTx(client, {
+        userId:row.user_id, kind:'activation', sourceType:'activation', sourceId:row.activation_id, eventKey:'cancel:failed',
+        title:'Cancellation could not be completed', body:'The number is still active. You can retry cancellation from Buy.', page:'buy', tone:'warning'
+      });
       return { activationId: row.activation_id, status: 'Failed' };
     }
     await client.query(`UPDATE provider_operations SET status='Succeeded', attempts=attempts+1, last_error=NULL, updated_at=NOW(), completed_at=NOW() WHERE id=$1`, [operationId]);
     const updated = await client.query(`UPDATE activations SET status='Refunded',refund_paise=price_paise,updated_at=NOW() WHERE id=$1 AND status='CancellationPending' RETURNING *`, [row.activation_id]);
     if (updated.rowCount) {
+      await createNotificationTx(client, {
+        userId: row.user_id, kind:'activation', sourceType:'activation', sourceId:row.activation_id, eventKey:'status:Refunded',
+        title:'Activation refunded', body:`₹${(Number(row.price_paise)/100).toFixed(2)} has been returned to your wallet after cancellation.`, page:'buy', tone:'success'
+      });
       await releaseSyntheticSlot(client, row.activation_id);
       await client.query(`UPDATE services SET stock=stock+1,updated_at=NOW() WHERE id=$1`, [row.service_id]);
       await creditRefund(client, row.user_id, Number(row.price_paise), row.activation_id, `${row.service_name} activation refund`);

@@ -1,5 +1,6 @@
 import crypto from 'node:crypto';
 import { getPool, withTransaction } from './db.js';
+import { createNotificationTx } from './notification-repository.js';
 import { recordAuditTx } from './admin-repository.js';
 
 export const MIN_RECHARGE_PAISE = 10000;
@@ -145,6 +146,11 @@ export async function createRecharge(userId, amountPaise, utr, submissionSession
       }
       throw error;
     }
+    await createNotificationTx(client, {
+      userId, kind:'recharge', sourceType:'recharge', sourceId:result.rows[0].id, eventKey:'status:Pending',
+      title:'Recharge submitted', body:`Your recharge of ₹${(amountPaise/100).toFixed(2)} was submitted and is waiting for verification.`,
+      page:'wallet', tone:'info', createdAt:result.rows[0].submitted_at
+    });
     await client.query(
       `INSERT INTO payment_reconciliation_events (id,recharge_id,event_type,actor_user_id,observed_amount_paise,observed_utr,notes)
        VALUES ($1,$2,'submitted',$3,$4,$5,'Customer submitted UPI recharge for review')`,
@@ -262,6 +268,10 @@ export async function reviewRecharge(idValue, adminUserId, decision, rejectionRe
         [id('PAY'), idValue, adminUserId, verification.amountPaise ?? null, verification.utr ?? null, verification.externalReference ?? null,
           String(rejectionReason || 'Payment could not be verified').slice(0, 500)]
       );
+      await createNotificationTx(client, {
+        userId:row.user_id, kind:'recharge', sourceType:'recharge', sourceId:idValue, eventKey:'status:Rejected',
+        title:'Recharge not credited', body:`Your recharge of ₹${(Number(row.amount_paise)/100).toFixed(2)} was rejected.`, page:'wallet', tone:'danger'
+      });
       await recordAuditTx(client, adminUserId, 'recharge.reject', 'recharge', idValue, {
         status: result.rows[0].status, amountPaise: Number(result.rows[0].amount_paise), utr: result.rows[0].utr,
         reason: String(rejectionReason || 'Payment could not be verified').slice(0, 250)
@@ -295,6 +305,10 @@ export async function reviewRecharge(idValue, adminUserId, decision, rejectionRe
          verified_amount_paise=$3, verified_utr=$4, external_reference=$5
        WHERE id=$1 RETURNING *`, [idValue, adminUserId, observedAmount, observedUtr, normalized.externalReference]
     );
+    await createNotificationTx(client, {
+      userId:row.user_id, kind:'recharge', sourceType:'recharge', sourceId:idValue, eventKey:'status:Approved',
+      title:'Recharge successful', body:`₹${(amount/100).toFixed(2)} was added to your wallet after payment verification.`, page:'wallet', tone:'success'
+    });
     await client.query(
       `INSERT INTO payment_reconciliation_events (id,recharge_id,event_type,actor_user_id,observed_amount_paise,observed_utr,external_reference,notes)
        VALUES ($1,$2,'verified',$3,$4,$5,$6,'Payment details verified before wallet credit')`,
@@ -333,6 +347,10 @@ export async function flagRecharge(idValue, adminUserId, reason, verification = 
        VALUES ($1,$2,'flagged',$3,$4,$5,$6,$7)`,
       [id('PAY'), idValue, adminUserId, normalized.amountPaise, normalized.utr, normalized.externalReference, cleanReason]
     );
+    await createNotificationTx(client, {
+      userId:row.user_id, kind:'recharge', sourceType:'recharge', sourceId:idValue, eventKey:'status:Flagged',
+      title:'Recharge needs review', body:'Your recharge was flagged for additional payment verification. No wallet credit was posted.', page:'wallet', tone:'warning'
+    });
     await recordAuditTx(client, adminUserId, 'recharge.flag', 'recharge', idValue, {
       status: result.rows[0].status, amountPaise: Number(result.rows[0].amount_paise), utr: result.rows[0].utr,
       reason: cleanReason, observedAmountPaise: normalized.amountPaise, observedUtr: normalized.utr,
