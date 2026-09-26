@@ -147,9 +147,15 @@ function mapAdminRow(row) {
   };
 }
 
-export async function listAdminSupportTickets(limit = 250) {
+export async function listAdminSupportTickets(filters = {}) {
   const pool = await getPool();
-  const safeLimit = Math.min(Math.max(Number(limit) || 250, 1), 500);
+  const safeLimit = Math.min(Math.max(Number(filters.limit) || 250, 1), 500);
+  const query = String(filters.query || '').trim().slice(0, 120);
+  const status = ['all', ...SUPPORT_STATUSES].includes(String(filters.status)) ? String(filters.status) : 'all';
+  const escaped = query.replace(/[%_]/g, '\\$&');
+  const pattern = '%' + escaped + '%';
+  const where = `($1='' OR s.id ILIKE $2 ESCAPE '\\\\' OR u.email ILIKE $2 ESCAPE '\\\\' OR s.subject ILIKE $2 ESCAPE '\\\\' OR s.category ILIKE $2 ESCAPE '\\\\' OR COALESCE(s.activation_id,'') ILIKE $2 ESCAPE '\\\\' OR COALESCE(s.recharge_id,'') ILIKE $2 ESCAPE '\\\\')
+    AND ($3='all' OR s.status=$3)`;
   const result = await pool.query(
     `SELECT s.*,
             u.email,
@@ -165,18 +171,18 @@ export async function listAdminSupportTickets(limit = 250) {
      LEFT JOIN activations a ON a.id=s.activation_id
      LEFT JOIN services sv ON sv.id=a.service_id
      LEFT JOIN recharge_requests r ON r.id=s.recharge_id
+     WHERE ${where}
      ORDER BY CASE s.status
        WHEN 'Open' THEN 0
        WHEN 'In Progress' THEN 1
        WHEN 'Resolved' THEN 2
        ELSE 3
-     END, s.created_at ASC
-     LIMIT $1`,
-    [safeLimit]
+     END, s.created_at ASC, s.id
+     LIMIT $4`,
+    [query, pattern, status, safeLimit]
   );
   return attachMessages(pool,result.rows.map(mapAdminRow));
 }
-
 export async function updateAdminSupportTicket(adminUserId, ticketId, patch = {}) {
   const requestedStatus = patch.status == null ? null : String(patch.status).trim();
   if (requestedStatus && !SUPPORT_STATUSES.has(requestedStatus)) {
