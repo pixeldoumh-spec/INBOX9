@@ -13,11 +13,6 @@ function configured(provider) {
   return Boolean(env && String(process.env[env] || '').trim());
 }
 
-function lifecycleCertificationMaxAgeMs() {
-  const value = Number(process.env.INBOX9_PROVIDER_CERT_MAX_AGE_MS);
-  return Number.isFinite(value) && value > 0 ? Math.min(Math.max(Math.trunc(value), 60000), 7 * 24 * 60 * 60 * 1000) : 24 * 60 * 60 * 1000;
-}
-
 export function lifecycleCertificationMaxAgeMs() {
   const value = Number(process.env.INBOX9_PROVIDER_CERT_MAX_AGE_MS);
   return Number.isFinite(value) && value > 0 ? Math.min(Math.max(Math.trunc(value), 60000), 7 * 24 * 60 * 60 * 1000) : 24 * 60 * 60 * 1000;
