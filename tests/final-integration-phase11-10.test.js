@@ -180,7 +180,17 @@ test('phase 7 provider readiness gate is isolated behind admin controls', async 
   for (const route of [
     'GET /api/admin/provider-readiness',
     'POST /api/admin/provider-readiness'
-  ]) assert.match(server, new RegExp(route.replace(/[.*+?^{}()|[\\]\\]/g, '\\test('phase 11.10 accounting and operational safeguards remain non-mutating where required', async () => {')));
+  ]) assert.ok(server.includes(route), route);
+  assert.match(handler, /requireAdmin/);
+  assert.match(handler, /enforceSameOrigin/);
+  assert.match(handler, /rateLimitAsync/);
+  assert.match(readiness, /PROVIDER_NOT_PRODUCTION_READY/);
+  assert.match(readiness, /runSyntheticLifecycleCanary/);
+  assert.match(readiness, /LIFECYCLE_CANARY_REQUIRED/);
+  assert.match(readiness, /provider_production_readiness/);
+});
+
+test('phase 11.10 accounting and operational safeguards remain non-mutating where required', async () => {')));
   assert.match(handler, /requireAdmin/);
   assert.match(handler, /enforceSameOrigin/);
   assert.match(handler, /rateLimitAsync/);
