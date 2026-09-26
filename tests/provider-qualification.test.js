@@ -35,6 +35,13 @@ test('provider qualification recognizes an exact live provider service-name cand
   delete process.env.INBOX9_SVNUMBER_API_KEY;
   const { services } = await import('../api/_lib/catalog.js');
   const target = services[0];
+  const pool = (await import('../api/_lib/db.js')).getPool();
+  await pool.query('DELETE FROM provider_service_mappings WHERE provider_id=$1', ['provider-pvapins']);
+  await pool.query(
+    `INSERT INTO provider_service_mappings(provider_id,service_id,provider_service_code,active)
+     VALUES ($1,$2,$3,FALSE)`,
+    ['provider-pvapins', target.id, 'stale-code']
+  );
   global.fetch = async (url) => {
     const targetUrl = String(url);
     if (targetUrl.endsWith('/api/v1/services')) {
