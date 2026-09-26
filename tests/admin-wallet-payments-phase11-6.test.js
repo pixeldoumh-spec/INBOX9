@@ -15,11 +15,18 @@ test('phase 11.6 wallet ledger is read-only, filtered and paginated', async () =
   assert.match(repo, /entry_type/);
   assert.match(route, /requireAdmin/);
   assert.match(route, /listAdminLedger\(\{query:req\.query\?\.q,type:req\.query\?\.type/);
+  assert.match(route, /res\.status\(200\)\.json\(await listAdminLedger/);
+  assert.doesNotMatch(route, /json\(\{\s*ledger:\s*await listAdminLedger/);
   assert.match(client, /getAdminLedger/);
   assert.match(client, /pagination/);
   assert.match(ui, /admin-wallet-ledger-panel/);
   assert.match(ui, /Read-only accounting trail/);
   assert.match(ui, /getAdminLedger/);
+  assert.match(ui, /const ledger=Array\.isArray\(ledgerQ\.data\?\.ledger\)\?ledgerQ\.data\.ledger:\[\]/);
+  assert.match(ui, /const ledgerSummary=ledgerQ\.data\?\.summary\?\?/);
+  assert.match(ui, /const ledgerHasMore=ledgerQ\.data\?\.pagination\?\.hasMore\?\?false/);
+  assert.doesNotMatch(ui, /ledgerQ\.data\?\.summary\.total/);
+  assert.doesNotMatch(ui, /ledgerQ\.data\.summary\.total/);
   assert.doesNotMatch(ui, /UPDATE wallets/);
 });
 
