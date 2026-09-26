@@ -71,7 +71,7 @@ test('SMS Verification Number adapter maps ACCESS_NUMBER and STATUS_OK', async (
     providerServiceCode: 'wa',
   });
   assert.equal(result.providerActivationId, '42');
-  assert.equal(result.number, '+91919999000002');
+  assert.equal(result.number, '+919999000002');
   const state = await smsVerificationNumberProvider.getActivation({
     providerActivationId: '42',
     activation: result,
