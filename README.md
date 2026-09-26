@@ -4,7 +4,7 @@ INBOX9 is an India-focused OTP marketplace with a mobile-first customer app back
 
 ## Repository boundary
 
-The repository contains the customer app, server/API, PostgreSQL migrations, authentication, wallet and UPI recharge controls, activation lifecycle, provider gateway, synthetic QA infrastructure, admin APIs, observability, CI, reconciliation, and deployment configuration.
+The repository contains the customer app, server/API, PostgreSQL migrations, authentication, wallet and UPI recharge controls, activation lifecycle, provider gateway, synthetic server infrastructure, admin APIs, observability, CI, reconciliation, and deployment configuration.
 
 The customer app lives under `/frontend` and is served by the same Node runtime. It calls the backend only through same-origin `/api/*` endpoints.
 
@@ -48,7 +48,7 @@ Completed / Expired / Refunded / Cancelled
 
 The frontend sends an idempotency key for every purchase request, invalidates wallet/activation queries after state changes, supports copy-to-clipboard, displays lifecycle-specific states, and exposes cancellation/refund results.
 
-Production activation remains fail-closed until an approved real provider route is configured. The synthetic fulfillment engine is not exposed as production customer inventory.
+Production activation uses the synthetic fulfillment engine. Each allocation is assigned to an internal synthetic server and fulfilled through the MockAPI/synthetic engine.
 
 ## Backend surface
 
@@ -122,12 +122,15 @@ Customer app (/frontend)
                        │
                        ▼
                 Provider gateway
-                   │       │
-                   ▼       ▼
-             Real provider  QA synthetic engine
+                       │
+                       ▼
+              Synthetic server
+                       │
+                       ▼
+                 MockAPI engine
 ```
 
-Production runtime is explicitly configured for PostgreSQL. Synthetic fulfillment is reserved for non-production QA; production activation fails closed when a real provider route is not available.
+Production runtime is explicitly configured for PostgreSQL. Synthetic fulfillment is the current production fulfillment path.
 
 ## Wallet & UPI
 
@@ -137,6 +140,3 @@ Wallet balance and ledger state are PostgreSQL-authoritative. Recharge is manual
 
 Admin APIs require an account with database role `admin`. Reconciliation, provider operations, observability, and disaster-recovery workflows remain part of the repository.
 
-## Provider readiness
-
-`npm run virtualsms:preflight` performs purchase-blocked provider readiness checks. Customer routing remains disabled until provider credentials, India inventory, authorization, mappings, and canary controls are verified.

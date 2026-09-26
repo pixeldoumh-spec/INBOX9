@@ -88,7 +88,7 @@ export default async function handler(req, res) {
         const result = await createActivation(persistedService, user.id, { idempotencyKey, requestHash }, { serverId });
         return res.status(201).json({ ...result.activation, walletBalancePaise: result.balancePaise });
       } catch (error) {
-        if (error.code && ['INSUFFICIENT_BALANCE','OUT_OF_STOCK','SERVICE_UNAVAILABLE','NO_PROVIDER','REAL_PROVIDER_REQUIRED','ACTIVATION_QUOTA_EXCEEDED','VIRTUALSMS_CANARY_CAP_REACHED'].includes(error.code)) {
+        if (error.code && ['INSUFFICIENT_BALANCE','OUT_OF_STOCK','SERVICE_UNAVAILABLE','NO_PROVIDER','ACTIVATION_QUOTA_EXCEEDED'].includes(error.code)) {
           await failActivationKey(user.id, idempotencyKey, error.code, error.message);
         }
         throw error;
@@ -98,8 +98,8 @@ export default async function handler(req, res) {
       if (error.code === 'IDEMPOTENCY_KEY_REUSED' || error.code === 'IDEMPOTENCY_KEY_UNUSABLE') return res.status(409).json({ error: error.message, code: error.code });
       if (error.code === 'INSUFFICIENT_BALANCE') return res.status(402).json({ error: error.message, code: error.code });
       if (error.code === 'OUT_OF_STOCK' || error.code === 'SERVICE_UNAVAILABLE') return res.status(409).json({ error: error.message, code: error.code });
-      if (error.code === 'NO_PROVIDER' || error.code === 'REAL_PROVIDER_REQUIRED' || error.code === 'PROVIDER_RESELLER_AUTHORIZATION_REQUIRED' || error.code === 'PROVIDER_CANARY_DISABLED' || error.code === 'VIRTUALSMS_SERVICE_MAPPING_MISSING' || error.code === 'VIRTUALSMS_SERVICE_NOT_ALLOWLISTED') return res.status(503).json({ error: error.message, code: error.code });
-      if (error.code === 'ACTIVATION_QUOTA_EXCEEDED' || error.code === 'VIRTUALSMS_CANARY_CAP_REACHED') return res.status(429).json({ error: error.message, code: error.code });
+      if (error.code === 'NO_PROVIDER') return res.status(503).json({ error: error.message, code: error.code });
+      if (error.code === 'ACTIVATION_QUOTA_EXCEEDED') return res.status(429).json({ error: error.message, code: error.code });
       return res.status(503).json({ error: 'Activation service unavailable' });
     }
   }

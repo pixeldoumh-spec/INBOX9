@@ -304,12 +304,6 @@ function activationErrorMessage(reason:unknown){
    case 'INSUFFICIENT_BALANCE': return 'Your wallet balance is too low for this number.';
    case 'OUT_OF_STOCK': return 'This service is temporarily out of stock. Please try again shortly.';
    case 'SERVICE_UNAVAILABLE': return 'This service is temporarily unavailable. Please try another service.';
-   case 'REAL_PROVIDER_REQUIRED':
-   case 'PROVIDER_RESELLER_AUTHORIZATION_REQUIRED':
-   case 'PROVIDER_CANARY_DISABLED':
-   case 'VIRTUALSMS_SERVICE_MAPPING_MISSING':
-   case 'VIRTUALSMS_SERVICE_NOT_ALLOWLISTED':
-     return 'Live purchase is not enabled for this service yet.';
    default: return reason.message;
   }
  }
