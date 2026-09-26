@@ -190,16 +190,6 @@ test('phase 7 provider readiness gate is isolated behind admin controls', async 
   assert.match(readiness, /provider_production_readiness/);
 });
 
-test('phase 11.10 accounting and operational safeguards remain non-mutating where required', async () => {')));
-  assert.match(handler, /requireAdmin/);
-  assert.match(handler, /enforceSameOrigin/);
-  assert.match(handler, /rateLimitAsync/);
-  assert.match(readiness, /PROVIDER_NOT_PRODUCTION_READY/);
-  assert.match(readiness, /runSyntheticLifecycleCanary/);
-  assert.match(readiness, /LIFECYCLE_CANARY_REQUIRED/);
-  assert.match(readiness, /provider_production_readiness/);
-});
- 
 test('phase 11.10 accounting and operational safeguards remain non-mutating where required', async () => {
   const [wallet, recon, health] = await Promise.all([
     read('api/_lib/wallet-repository.js'),
