@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { failoverDecision, externalRoutingEnabled } from '../api/_lib/provider-routing.js';
+import { failoverDecision, externalRoutingEnabled, nonCancellableReserveAllowed } from '../api/_lib/provider-routing.js';
 
 test('provider timeout blocks automatic reserve failover because outcome is uncertain', () => {
   const result = failoverDecision(Object.assign(new Error('timed out'), { code: 'PROVIDER_TIMEOUT', status: null }));
@@ -19,4 +19,8 @@ test('HTTP 429 is treated as a rejected request and may move to another provider
 
 test('external routing is disabled by default unless explicitly enabled', () => {
   assert.equal(externalRoutingEnabled(), process.env.INBOX9_ENABLE_EXTERNAL_ROUTING === 'true');
+});
+
+test('non-cancellable provider reserve remains disabled unless explicitly overridden', () => {
+  assert.equal(nonCancellableReserveAllowed(), process.env.INBOX9_ALLOW_NONCANCELLABLE_PROVIDER_RESERVE === 'true');
 });
