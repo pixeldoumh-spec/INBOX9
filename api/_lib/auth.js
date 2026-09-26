@@ -241,7 +241,7 @@ export async function logout(req, res) {
 export async function logoutAllSessions(req, res) {
   if (!dbEnabled()) {
     clearSessionCookie(res);
-    return { count: 0, mode: 'mock' };
+    return { count: 0 };
   }
   const context = await getSessionRecord(req);
   if (!context) {
