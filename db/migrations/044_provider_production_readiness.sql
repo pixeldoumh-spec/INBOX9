@@ -1,7 +1,7 @@
 -- Phase 7: persistent provider production-readiness snapshots.
 BEGIN;
 
-CREATE TABLE IF NOT EXISTS provider_production_readiness (
+CREATE TABLE NOT EXISTS provider_production_readiness (
   provider_id TEXT PRIMARY KEY REFERENCES providers(id) ON DELETE CASCADE,
   status TEXT NOT NULL CHECK (status IN ('ready','blocked','failed')),
   checked_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
