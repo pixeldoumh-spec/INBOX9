@@ -752,3 +752,315 @@
     transition-duration: .001ms !important;
   }
 }
+
+/* Radium Night — Phase 1.1
+ * Customer/common-auth scope only. Admin routes are intentionally untouched.
+ */
+.app-shell,
+.auth-page {
+  --bg: var(--i9-bg);
+  --surface: var(--i9-surface);
+  --surface-soft: var(--i9-surface-subtle);
+  --text: var(--i9-text);
+  --muted: var(--i9-text-muted);
+  --line: var(--i9-border);
+  --border: var(--i9-border);
+  --border-strong: var(--i9-border-strong);
+  --accent: var(--i9-accent);
+  --accent-soft: var(--i9-accent-soft);
+  --danger: var(--i9-danger);
+  --success: var(--i9-success);
+  --background: var(--i9-bg);
+  --card: var(--i9-surface);
+  --surface-2: var(--i9-surface-subtle);
+  --shadow: var(--i9-shadow-card);
+  --shadow-soft: var(--i9-shadow-card);
+}
+
+.app-shell {
+  background: var(--i9-bg);
+  color: var(--i9-text);
+}
+
+.app-shell .top-header {
+  background: rgb(17 21 17 / 92%);
+  border-bottom-color: var(--i9-border);
+  box-shadow: 0 1px 0 rgb(255 255 255 / 2%);
+}
+
+.app-shell .brand,
+.app-shell .brand-mark,
+.app-shell .wallet-pill,
+.app-shell .notification-button,
+.app-shell .profile-button {
+  color: var(--i9-text);
+}
+
+.app-shell .brand-mark,
+.app-shell .splash-mark {
+  background: var(--i9-accent);
+  color: #080a08;
+}
+
+.app-shell .wallet-pill,
+.app-shell .notification-button,
+.app-shell .profile-button {
+  border-color: var(--i9-border);
+  background: var(--i9-surface);
+}
+
+.app-shell .wallet-add,
+.app-shell .notification-glow,
+.app-shell .notification-icon {
+  background: var(--i9-accent-soft);
+  color: var(--i9-accent);
+}
+
+.app-shell .profile-button span {
+  background: var(--i9-accent-soft);
+  color: var(--i9-accent);
+}
+
+.app-shell .notification-dot {
+  background: var(--i9-accent);
+  box-shadow: 0 0 0 3px var(--i9-surface);
+}
+
+.app-shell .notification-badge {
+  background: var(--i9-accent);
+  color: #080a08;
+  box-shadow: 0 0 0 3px var(--i9-surface);
+}
+
+.app-shell .page-content,
+.app-shell .page-section {
+  color: var(--i9-text);
+}
+
+.app-shell :where(.service-tile, .recent-tile, .detail-card, .activation-card, .ledger-row, .notification-row, .ticket-row, .menu-row, .recharge-card, .support-panel, .account-panel, .number-card, .otp-card, .countdown-card, .buy-wallet-strip, .wallet-header, .wallet-overview, .wallet-detail-card, .ticket-hero, .ticket-thread-hero, .support-quick-card) {
+  background: var(--i9-surface);
+  color: var(--i9-text);
+  border-color: var(--i9-border);
+  box-shadow: none;
+}
+
+.app-shell .service-logo,
+.app-shell .search-field,
+.app-shell .category-chip,
+.app-shell .outline-button,
+.app-shell .wallet-filter-tabs,
+.app-shell .notification-filter-tabs,
+.app-shell .support-view-tabs,
+.app-shell .wallet-step,
+.app-shell .wallet-payment-destination,
+.app-shell .wallet-amount-panel,
+.app-shell .wallet-qr-panel,
+.app-shell .payment-paid-button {
+  background: var(--i9-surface);
+  border-color: var(--i9-border);
+  color: var(--i9-text);
+}
+
+.app-shell .service-logo {
+  box-shadow: 0 3px 12px rgb(0 0 0 / 18%);
+}
+
+.app-shell .search-field {
+  color: var(--i9-text-subtle);
+}
+
+.app-shell .search-field:focus-within,
+.app-shell :where(.field input, .support-form input, .support-form textarea, .support-form select, .reply-form textarea):focus {
+  border-color: var(--i9-accent);
+  box-shadow: 0 0 0 3px rgb(182 255 59 / 14%);
+}
+
+.app-shell .category-chip.is-selected,
+.app-shell .wallet-filter-tab.is-selected,
+.app-shell .notification-filter-tab.is-selected,
+.app-shell .support-view-tab.is-selected,
+.app-shell .support-category-chip.is-selected {
+  border-color: rgb(182 255 59 / 38%);
+  background: var(--i9-accent-soft);
+  color: var(--i9-accent);
+}
+
+.app-shell .primary-button {
+  background: var(--i9-accent);
+  color: #080a08;
+  box-shadow: 0 10px 24px rgb(182 255 59 / 14%);
+}
+
+.app-shell .primary-button:hover {
+  background: var(--i9-accent-hover);
+  color: #080a08;
+}
+
+.app-shell .outline-button {
+  color: var(--i9-text);
+}
+
+.app-shell .notification-strip {
+  background: var(--i9-surface);
+  border-color: var(--i9-border);
+}
+
+.app-shell .notification-strip:after {
+  background: rgb(182 255 59 / 7%);
+}
+
+.app-shell .notification-row.unread {
+  border-color: rgb(182 255 59 / 30%);
+  background: #10170e;
+}
+
+.app-shell .wallet-status-pill,
+.app-shell .wallet-pending-pill {
+  border-color: rgb(182 255 59 / 18%);
+}
+
+.app-shell .wallet-status-pending {
+  background: var(--i9-accent-soft) !important;
+  color: var(--i9-accent) !important;
+}
+
+.app-shell .wallet-overview,
+.app-shell .buy-wallet-strip {
+  background: linear-gradient(135deg, #111711 0%, #0c100c 100%);
+}
+
+.app-shell .wallet-overview-main strong,
+.app-shell .wallet-header strong,
+.app-shell .wallet-stat-grid strong,
+.app-shell .buy-wallet-strip strong {
+  color: var(--i9-text);
+}
+
+.app-shell .payment-live-pill {
+  background: #102015;
+  color: #63e49b;
+}
+
+.app-shell .recovery-code {
+  background: var(--i9-accent-soft);
+  border-color: rgb(182 255 59 / 25%);
+}
+
+.app-shell .recovery-code code {
+  color: var(--i9-accent);
+}
+
+.app-shell .thread-message.from-customer {
+  background: #141a10;
+  border-color: rgb(182 255 59 / 24%);
+}
+
+.app-shell .bottom-nav {
+  background: rgb(17 21 17 / 96%);
+  border-top-color: var(--i9-border);
+}
+
+.app-shell .bottom-nav-item {
+  color: #7f887e;
+}
+
+.app-shell .bottom-nav-item.is-active {
+  color: var(--i9-accent);
+}
+
+.app-shell .bottom-nav-item.is-active:before {
+  background: var(--i9-accent);
+  box-shadow: 0 0 12px rgb(182 255 59 / 28%);
+}
+
+.app-shell :where(a, button, input, select, textarea, summary):focus-visible {
+  outline-color: rgb(182 255 59 / 65%);
+}
+
+.app-shell .splash {
+  background: var(--i9-bg);
+  color: var(--i9-text-muted);
+}
+
+.app-shell .offline-banner {
+  background: #17180e;
+  border-bottom-color: #403d1f;
+  color: #e0d688;
+}
+
+.app-shell .offline-banner button {
+  border-color: #585323;
+  background: #13150c;
+  color: #e0d688;
+}
+
+.auth-page {
+  background:
+    radial-gradient(circle at 50% 0%, rgb(182 255 59 / 8%), transparent 36%),
+    var(--i9-bg);
+  color: var(--i9-text);
+}
+
+.auth-page .auth-card {
+  background: var(--i9-surface);
+  border-color: var(--i9-border);
+  box-shadow: var(--i9-shadow-float);
+}
+
+.auth-page .auth-brand,
+.auth-page .auth-heading h1 {
+  color: var(--i9-text);
+}
+
+.auth-page .auth-brand .brand-mark {
+  background: var(--i9-accent);
+  color: #080a08;
+}
+
+.auth-page .auth-heading p,
+.auth-page .auth-footer,
+.auth-page .field span {
+  color: var(--i9-text-muted);
+}
+
+.auth-page .field input {
+  background: #0d110d;
+  border-color: var(--i9-border-strong);
+  color: var(--i9-text);
+}
+
+.auth-page .field input::placeholder {
+  color: #697067;
+}
+
+.auth-page .field input:focus {
+  border-color: var(--i9-accent);
+  box-shadow: 0 0 0 3px rgb(182 255 59 / 14%);
+}
+
+.auth-page .primary-button {
+  background: var(--i9-accent);
+  color: #080a08;
+  box-shadow: 0 10px 24px rgb(182 255 59 / 14%);
+}
+
+.auth-page .primary-button:hover {
+  background: var(--i9-accent-hover);
+  color: #080a08;
+}
+
+.auth-page .auth-footer a {
+  color: var(--i9-accent);
+}
+
+.auth-page .form-error {
+  background: #241315;
+  border-color: #53252a;
+  color: #ff8585;
+}
+
+@media (max-width: 520px) {
+  .app-shell .page-content {
+    padding-top: 18px;
+  }
+}
