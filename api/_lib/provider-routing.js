@@ -88,6 +88,18 @@ async function eligibleRoutes(pool, serviceId) {
       WHERE r.service_id=$1 AND r.active=TRUE AND p.active=TRUE
         AND (p.adapter_key='synthetic' OR m.provider_service_code IS NOT NULL)
         AND (h.opened_until IS NULL OR h.opened_until <= NOW())
+        AND (p.adapter_key='synthetic' OR EXISTS (
+          SELECT 1
+            FROM provider_lifecycle_certifications c
+           WHERE c.provider_id=r.provider_id
+             AND c.service_id=r.service_id
+             AND c.mode='external'
+             AND c.status='passed'
+             AND c.cleanup_ok=TRUE
+             AND c.reconciliation_ok=TRUE
+             AND c.created_at > NOW() - INTERVAL '24 hours'
+             AND c.provider_service_code=m.provider_service_code
+        ))
       ORDER BY r.priority ASC,p.priority ASC,p.id ASC`,
     [serviceId],
   );
