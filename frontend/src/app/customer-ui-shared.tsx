@@ -46,6 +46,93 @@ function getServiceLogoSpriteImage(path:string){
  return serviceLogoSpritePromise;
 }
 
+const LOGO_SAFE_INSET=7;
+const LOGO_EDGE_THRESHOLD=24;
+const LOGO_MAX_ASYMMETRY=0.22;
+const LOGO_MIN_CROP_RATIO=0.70;
+const LOGO_MAX_CROP_RATIO=0.98;
+
+function rgbDistance(a:number[],b:number[]){
+ return Math.sqrt(
+  (a[0]-b[0])**2+
+  (a[1]-b[1])**2+
+  (a[2]-b[2])**2
+ );
+}
+
+function percentile(values:number[],p:number){
+ const sorted=[...values].sort((a,b)=>a-b);
+ if(!sorted.length)return 0;
+ const i=Math.min(sorted.length-1,Math.max(0,Math.round((sorted.length-1)*p)));
+ return sorted[i];
+}
+
+function getEdgeColor(pixels:Uint8ClampedArray,tileSize:number){
+ const samples:number[][]=[];
+ for(let i=0;i<tileSize;i+=2){
+  for(const [x,y] of [[i,0],[i,tileSize-1],[0,i],[tileSize-1,i]]){
+   const p=(y*tileSize+x)*4;
+   if(pixels[p+3]>=220)samples.push([pixels[p],pixels[p+1],pixels[p+2]]);
+  }
+ }
+ if(!samples.length)return null;
+ const channels=[0,1,2].map(c=>percentile(samples.map(v=>v[c]),0.5));
+ return channels;
+}
+
+function detectSafeCrop(sourceCanvas:HTMLCanvasElement,tileSize:number){
+ const ctx=sourceCanvas.getContext('2d',{willReadFrequently:true});
+ if(!ctx)return null;
+ const pixels=ctx.getImageData(0,0,tileSize,tileSize).data;
+ const edge=getEdgeColor(pixels,tileSize);
+ if(!edge)return null;
+
+ let minX=tileSize,minY=tileSize,maxX=-1,maxY=-1;
+ for(let y=0;y<tileSize;y++){
+  for(let x=0;x<tileSize;x++){
+   const p=(y*tileSize+x)*4;
+   if(pixels[p+3]<24)continue;
+   const d=rgbDistance([pixels[p],pixels[p+1],pixels[p+2]],edge);
+   if(d>LOGO_EDGE_THRESHOLD){
+    minX=Math.min(minX,x); minY=Math.min(minY,y);
+    maxX=Math.max(maxX,x); maxY=Math.max(maxY,y);
+   }
+  }
+ }
+ if(maxX<0||maxY<0)return null;
+
+ const rawW=maxX-minX+1;
+ const rawH=maxY-minY+1;
+ const rawRatio=Math.min(rawW/rawH,rawH/rawW);
+ const coverage=Math.max(rawW,rawH)/tileSize;
+ const touchesEdge=minX<=2||minY<=2||maxX>=tileSize-3||maxY>=tileSize-3;
+ 
+ // Reject unstable detections: very thin/asymmetric artwork or a crop that is
+ // already trying to consume almost the entire source tile.
+ if(rawRatio<0.55)return null;
+ if(coverage<LOGO_MIN_CROP_RATIO && !touchesEdge && rawRatio<0.72)return null;
+
+ const inset=Math.max(
+  LOGO_SAFE_INSET,
+  Math.ceil(Math.min(tileSize*0.12,Math.max(rawW,rawH)*0.08))
+ );
+ minX=Math.max(0,minX-inset);
+ minY=Math.max(0,minY-inset);
+ maxX=Math.min(tileSize-1,maxX+inset);
+ maxY=Math.min(tileSize-1,maxY+inset);
+
+ const cropW=maxX-minX+1;
+ const cropH=maxY-minY+1;
+ const cropRatio=Math.min(cropW/cropH,cropH/cropW);
+ const cropCoverage=Math.max(cropW,cropH)/tileSize;
+ const asymmetry=Math.abs(cropW-cropH)/Math.max(cropW,cropH);
+
+ if(cropCoverage<LOGO_MAX_CROP_RATIO && cropRatio<0.78)return null;
+ if(asymmetry>LOGO_MAX_ASYMMETRY)return null;
+
+ return {minX,minY,cropW,cropH};
+}
+
 export function cropServiceLogo(path:string,index:number,tileSize:number,columns:number,outputSize:number){
  const cached=serviceLogoCropCache.get(index);
  if(cached)return Promise.resolve(cached);
@@ -57,53 +144,40 @@ export function cropServiceLogo(path:string,index:number,tileSize:number,columns
   source.height=tileSize;
   const ctx=source.getContext('2d',{willReadFrequently:true});
   if(!ctx)throw new Error('Canvas unavailable');
+
   const sx=(index%columns)*tileSize;
   const sy=Math.floor(index/columns)*tileSize;
   ctx.clearRect(0,0,tileSize,tileSize);
   ctx.drawImage(image,sx,sy,tileSize,tileSize,0,0,tileSize,tileSize);
 
-  const pixels=ctx.getImageData(0,0,tileSize,tileSize).data;
-  const corners=[[0,0],[tileSize-1,0],[0,tileSize-1],[tileSize-1,tileSize-1]];
-  let opaqueCorners=0,bgR=0,bgG=0,bgB=0;
-  for(const point of corners){
-   const p=(point[1]*tileSize+point[0])*4;
-   if(pixels[p+3]>220){opaqueCorners++;bgR+=pixels[p];bgG+=pixels[p+1];bgB+=pixels[p+2];}
-  }
-  if(opaqueCorners){bgR/=opaqueCorners;bgG/=opaqueCorners;bgB/=opaqueCorners;}
+  const crop=detectSafeCrop(source,tileSize);
 
-  const isArtwork=(x:number,y:number)=>{
-   const p=(y*tileSize+x)*4;
-   if(pixels[p+3]<18)return false;
-   if(!opaqueCorners)return true;
-   return Math.max(Math.abs(pixels[p]-bgR),Math.abs(pixels[p+1]-bgG),Math.abs(pixels[p+2]-bgB))>18;
-  };
-
-  let minX=tileSize,minY=tileSize,maxX=-1,maxY=-1;
-  for(let y=0;y<tileSize;y++){
-   for(let x=0;x<tileSize;x++){
-    if(isArtwork(x,y)){minX=Math.min(minX,x);minY=Math.min(minY,y);maxX=Math.max(maxX,x);maxY=Math.max(maxY,y);}
-   }
-  }
-  if(maxX<0||maxY<0){minX=0;minY=0;maxX=tileSize-1;maxY=tileSize-1;}
-
-  const margin=1;
-  minX=Math.max(0,minX-margin);
-  minY=Math.max(0,minY-margin);
-  maxX=Math.min(tileSize-1,maxX+margin);
-  maxY=Math.min(tileSize-1,maxY+margin);
-
-  const cropW=maxX-minX+1,cropH=maxY-minY+1;
   const output=document.createElement('canvas');
-  output.width=outputSize;output.height=outputSize;
+  output.width=outputSize;
+  output.height=outputSize;
   const out=output.getContext('2d');
   if(!out)throw new Error('Canvas unavailable');
-  const pad=5,box=outputSize-pad*2;
-  const scale=Math.min(box/cropW,box/cropH);
-  const dw=cropW*scale,dh=cropH*scale;
+
+  // When detection is uncertain, preserve the complete supplied tile.
+  const sourceX=crop?.minX??0;
+  const sourceY=crop?.minY??0;
+  const sourceW=crop?.cropW??tileSize;
+  const sourceH=crop?.cropH??tileSize;
+
+  const pad=6;
+  const box=outputSize-pad*2;
+  const scale=Math.min(box/sourceW,box/sourceH);
+  const dw=sourceW*scale;
+  const dh=sourceH*scale;
+
   out.imageSmoothingEnabled=true;
   out.imageSmoothingQuality='high';
   out.clearRect(0,0,outputSize,outputSize);
-  out.drawImage(source,minX,minY,cropW,cropH,(outputSize-dw)/2,(outputSize-dh)/2,dw,dh);
+  out.drawImage(
+   source,
+   sourceX,sourceY,sourceW,sourceH,
+   (outputSize-dw)/2,(outputSize-dh)/2,dw,dh
+  );
 
   const blob=await new Promise<Blob>((resolve,reject)=>{
    output.toBlob(value=>value?resolve(value):reject(new Error('Logo encoding failed')),'image/png');
