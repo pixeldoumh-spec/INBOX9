@@ -76,3 +76,43 @@ test('provider qualification blocks an empty or mismatched India catalog', async
   assert.equal(pvapins.catalogCount, 0);
   assert.equal(pvapins.error, 'PROVIDER_INDIA_CATALOG_EMPTY');
 });
+
+
+test('batch exact mapping verifies all 90 active services from unique live provider names', async () => {
+  if (!process.env.INBOX9_TEST_DATABASE_URL) return;
+  process.env.DATABASE_URL = process.env.INBOX9_TEST_DATABASE_URL;
+  process.env.DATABASE_SSL = 'false';
+  process.env.INBOX9_ASMS_API_KEY = 'test-key';
+  delete process.env.INBOX9_PVAPINS_API_KEY;
+  delete process.env.INBOX9_SVNUMBER_API_KEY;
+  const { services } = await import('../api/_lib/catalog.js');
+
+  const pool = (await import('../api/_lib/db.js')).getPool();
+  await pool.query('DELETE FROM provider_service_mappings WHERE provider_id=$1', ['provider-asms']);
+
+  global.fetch = async (url) => {
+    const targetUrl = String(url);
+    if (targetUrl.includes('/api/v1/otp/services?country=in')) {
+      return new Response(JSON.stringify({
+        services: services.map((service, index) => ({
+          service: 'asms-svc-' + String(index + 1).padStart(3, '0'),
+          name: service.name,
+          stock: 10,
+          price: 0.5,
+        })),
+      }), { status: 200, headers: { 'content-type': 'application/json' } });
+    }
+    throw new Error('unexpected request ' + targetUrl);
+  };
+
+  const { verifyAndSaveExactProviderMappings } = await import('../api/_lib/provider-qualification.js');
+  const result = await verifyAndSaveExactProviderMappings(null, { providerId: 'provider-asms' });
+  assert.equal(result.verified, true);
+  assert.equal(result.mappedCount, 90);
+
+  const count = await pool.query(
+    "SELECT COUNT(*)::int AS count FROM provider_service_mappings WHERE provider_id=$1 AND active=TRUE",
+    ['provider-asms']
+  );
+  assert.equal(Number(count.rows[0].count), 90);
+});
